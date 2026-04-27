@@ -1,0 +1,32 @@
+{
+  "name": "pronus-labor-360",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pronus Labor 360 - ERP de saude ocupacional, NR-01/PGR, risco psicossocial e operacao PRONUS.",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=10.33.2"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @pronus/web-pronus --filter @pronus/web-client --filter @pronus/web-employee --filter @pronus/api dev",
+    "dev:pronus": "pnpm --filter @pronus/web-pronus dev",
+    "dev:client": "pnpm --filter @pronus/web-client dev",
+    "dev:employee": "pnpm --filter @pronus/web-employee dev",
+    "dev:api": "pnpm --filter @pronus/api dev",
+    "build": "cross-env NEXT_TELEMETRY_DISABLED=1 pnpm -r --workspace-concurrency=1 build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @pronus/database db:generate",
+    "db:migrate": "pnpm --filter @pronus/database db:migrate",
+    "db:studio": "pnpm --filter @pronus/database db:studio"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "cross-env": "^10.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}

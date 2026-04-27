@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum UserType {
+  PRONUS_ADMIN
+  PRONUS_HEALTH_PROFESSIONAL
+  CLIENT_HR
+  CLIENT_EMPLOYEE
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  email     String?    @unique
+  cpf       String?    @unique
+  phone     String?
+  userType  UserType   @map("user_type")
+  status    RecordStatus @default(ACTIVE)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model OrganizationGroup {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String
+  legalName String?      @map("legal_name")
+  status    RecordStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  companies Company[]
+
+  @@map("organization_groups")
+}
+
+model Company {
+  id                  String             @id @default(uuid()) @db.Uuid
+  organizationGroupId String             @map("organization_group_id") @db.Uuid
+  tradeName           String             @map("trade_name")
+  legalName           String             @map("legal_name")
+  cnpj                String             @unique
+  cnaeMain            String?            @map("cnae_main")
+  riskGrade           Int?               @map("risk_grade")
+  status              RecordStatus       @default(ACTIVE)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  organizationGroup   OrganizationGroup  @relation(fields: [organizationGroupId], references: [id])
+  units               CompanyUnit[]
+  departments         Department[]
+  jobPositions        JobPosition[]
+  employees           Employee[]
+
+  @@map("companies")
+}
+
+model CompanyUnit {
+  id          String       @id @default(uuid()) @db.Uuid
+  companyId   String       @map("company_id") @db.Uuid
+  name        String
+  code        String?
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  company     Company      @relation(fields: [companyId], references: [id])
+  departments Department[]
+  employees   Employee[]
+
+  @@map("company_units")
+}
+
+model Department {
+  id            String       @id @default(uuid()) @db.Uuid
+  companyId     String       @map("company_id") @db.Uuid
+  companyUnitId String?      @map("company_unit_id") @db.Uuid
+  name          String
+  code          String?
+  status        RecordStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  company       Company      @relation(fields: [companyId], references: [id])
+  companyUnit   CompanyUnit? @relation(fields: [companyUnitId], references: [id])
+  jobPositions  JobPosition[]
+  employees     Employee[]
+
+  @@map("departments")
+}
+
+model JobPosition {
+  id           String       @id @default(uuid()) @db.Uuid
+  companyId    String       @map("company_id") @db.Uuid
+  departmentId String?      @map("department_id") @db.Uuid
+  title        String
+  cboCode      String?      @map("cbo_code")
+  description  String?
+  status       RecordStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  company      Company      @relation(fields: [companyId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  employees    Employee[]
+
+  @@map("job_positions")
+}
+
+model Employee {
+  id                   String       @id @default(uuid()) @db.Uuid
+  userId               String?      @map("user_id") @db.Uuid
+  companyId            String       @map("company_id") @db.Uuid
+  companyUnitId        String?      @map("company_unit_id") @db.Uuid
+  departmentId         String?      @map("department_id") @db.Uuid
+  jobPositionId        String?      @map("job_position_id") @db.Uuid
+  cpf                  String
+  fullName             String       @map("full_name")
+  socialName           String?      @map("social_name")
+  birthDate            DateTime?    @map("birth_date") @db.Date
+  sex                  String?
+  email                String?
+  phone                String?
+  whatsapp             String?
+  employeeRegistration String?      @map("employee_registration")
+  workerCategoryCode   String?      @map("worker_category_code")
+  admissionDate        DateTime?    @map("admission_date") @db.Date
+  employmentStatus     String       @default("active") @map("employment_status")
+  hasMedicalPlan       Boolean      @default(false) @map("has_medical_plan")
+  hasDentalPlan        Boolean      @default(false) @map("has_dental_plan")
+  hasLifeInsurance     Boolean      @default(false) @map("has_life_insurance")
+  registrationStatus   String       @default("pending_validation") @map("registration_status")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+  company              Company      @relation(fields: [companyId], references: [id])
+  companyUnit          CompanyUnit? @relation(fields: [companyUnitId], references: [id])
+  department           Department?  @relation(fields: [departmentId], references: [id])
+  jobPosition          JobPosition? @relation(fields: [jobPositionId], references: [id])
+
+  @@unique([companyId, cpf])
+  @@map("employees")
+}

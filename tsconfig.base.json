@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "baseUrl": ".",
+    "paths": {
+      "@pronus/ui": ["packages/ui/src/index.ts"],
+      "@pronus/types": ["packages/types/src/index.ts"],
+      "@pronus/validations": ["packages/validations/src/index.ts"],
+      "@pronus/database": ["packages/database/src/index.ts"]
+    }
+  }
+}

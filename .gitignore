@@ -1,0 +1,17 @@
+node_modules
+.next
+dist
+build
+coverage
+.turbo
+.cache
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+prisma/dev.db
+tmp
+temp
+.logs
+Dockerfile.local
