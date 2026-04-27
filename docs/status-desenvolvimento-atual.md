@@ -76,6 +76,13 @@ Estado encontrado:
 - API psicossocial agora aplica pontuacao reversa nas perguntas positivas antes de classificar o nivel de risco.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
 - Portal PRONUS passou a consumir a API local com fallback para dados-semente.
+- Portal PRONUS reorganizado com navegacao real por paginas:
+  - `/` para painel executivo;
+  - `/empresas` para empresas, unidades, setores e cargos;
+  - `/colaboradores` para base de colaboradores e importacao CSV;
+  - `/nr01-pgr` para inventario de riscos e plano de acao;
+  - `/psicossocial` para campanhas e sinais psicossociais;
+  - `/documentos` para fila documental inicial.
 - Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
 - Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
@@ -114,3 +121,7 @@ Estado encontrado:
 - Typecheck da API e Portal PRONUS apos criacao do modulo psicossocial inicial.
 - Teste HTTP de resumo, listagem de campanhas e envio de resposta psicossocial.
 - Typecheck da API e Portal Colaborador apos inclusao do questionario psicossocial.
+- Typecheck do Portal PRONUS apos reorganizacao da navegacao por paginas.
+- Teste HTTP das rotas do Portal PRONUS: `/`, `/empresas`, `/colaboradores`, `/nr01-pgr`, `/psicossocial` e `/documentos`.
+- Teste clicavel no navegador do menu do Portal PRONUS, cobrindo todos os itens laterais/horizontais.
+- Build geral do monorepo apos reorganizacao da navegacao.

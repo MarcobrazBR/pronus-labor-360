@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { PronusShell } from "./pronus-shell";
 
 export const metadata: Metadata = {
   title: "Portal PRONUS | Pronus Labor 360",
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <PronusShell>{children}</PronusShell>
+      </body>
     </html>
   );
 }
