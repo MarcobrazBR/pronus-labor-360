@@ -60,6 +60,37 @@ interface StructuralJobPosition {
   status: StructuralStatus;
 }
 
+interface Nr01Summary {
+  risks: number;
+  criticalRisks: number;
+  highRisks: number;
+  openActions: number;
+  overdueActions: number;
+  evidences: number;
+}
+
+interface Nr01Risk {
+  id: string;
+  companyTradeName: string;
+  departmentName: string;
+  danger: string;
+  risk: string;
+  probability: number;
+  severity: number;
+  level: RiskLevel;
+  status: "draft" | "active" | "review" | "archived";
+}
+
+interface Nr01ActionPlanItem {
+  id: string;
+  companyTradeName: string;
+  title: string;
+  responsible: string;
+  dueDate: string;
+  status: "open" | "in_progress" | "done" | "overdue";
+  evidenceCount: number;
+}
+
 const fallbackSummary: StructuralSummary = {
   companies: 2,
   units: 6,
@@ -175,6 +206,61 @@ const fallbackJobPositions: StructuralJobPosition[] = [
   },
 ];
 
+const fallbackNr01Summary: Nr01Summary = {
+  risks: 4,
+  criticalRisks: 0,
+  highRisks: 3,
+  openActions: 2,
+  overdueActions: 1,
+  evidences: 1,
+};
+
+const fallbackNr01Risks: Nr01Risk[] = [
+  {
+    id: "risk-horizonte-ruido",
+    companyTradeName: "Industria Horizonte",
+    departmentName: "Producao",
+    danger: "Ruido continuo acima do nivel de acao",
+    risk: "Perda auditiva induzida por ruido",
+    probability: 4,
+    severity: 4,
+    level: "high",
+    status: "active",
+  },
+  {
+    id: "risk-rede-norte-queda",
+    companyTradeName: "Rede Norte",
+    departmentName: "Logistica",
+    danger: "Circulacao em area com empilhadeiras",
+    risk: "Atropelamento ou colisao interna",
+    probability: 3,
+    severity: 5,
+    level: "high",
+    status: "active",
+  },
+];
+
+const fallbackNr01Actions: Nr01ActionPlanItem[] = [
+  {
+    id: "action-ruido-dosimetria",
+    companyTradeName: "Industria Horizonte",
+    title: "Atualizar dosimetria da linha de envase",
+    responsible: "Equipe SST PRONUS",
+    dueDate: "2026-05-20",
+    status: "in_progress",
+    evidenceCount: 1,
+  },
+  {
+    id: "action-ergonomia-procedimento",
+    companyTradeName: "Industria Horizonte",
+    title: "Revisar procedimento de manutencao corretiva",
+    responsible: "Engenharia de Seguranca",
+    dueDate: "2026-04-20",
+    status: "overdue",
+    evidenceCount: 0,
+  },
+];
+
 const fallbackEmployees: StructuralEmployee[] = [
   {
     id: "employee-001",
@@ -235,6 +321,13 @@ const structuralStatusLabels: Record<StructuralStatus, string> = {
   inactive: "Inativo",
 };
 
+const nr01ActionStatusLabels: Record<Nr01ActionPlanItem["status"], string> = {
+  open: "Aberta",
+  in_progress: "Em execucao",
+  done: "Concluida",
+  overdue: "Vencida",
+};
+
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
@@ -267,14 +360,43 @@ function statusClasses(status: StructuralStatus) {
   return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
 }
 
+function actionStatusClasses(status: Nr01ActionPlanItem["status"]) {
+  if (status === "overdue") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  if (status === "in_progress") {
+    return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+  }
+
+  if (status === "done") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+}
+
 export default async function PronusHomePage() {
-  const [summary, companies, employees, units, departments, jobPositions] = await Promise.all([
+  const [
+    summary,
+    companies,
+    employees,
+    units,
+    departments,
+    jobPositions,
+    nr01Summary,
+    nr01Risks,
+    nr01Actions,
+  ] = await Promise.all([
     fetchApi<StructuralSummary>("/structural/summary", fallbackSummary),
     fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
     fetchApi<StructuralEmployee[]>("/structural/employees", fallbackEmployees),
     fetchApi<StructuralUnit[]>("/structural/units", fallbackUnits),
     fetchApi<StructuralDepartment[]>("/structural/departments", fallbackDepartments),
     fetchApi<StructuralJobPosition[]>("/structural/job-positions", fallbackJobPositions),
+    fetchApi<Nr01Summary>("/nr01/summary", fallbackNr01Summary),
+    fetchApi<Nr01Risk[]>("/nr01/risks", fallbackNr01Risks),
+    fetchApi<Nr01ActionPlanItem[]>("/nr01/action-plan", fallbackNr01Actions),
   ]);
 
   const summaryCards = [
@@ -293,7 +415,11 @@ export default async function PronusHomePage() {
       value: `${summary.departments}/${summary.jobPositions}`,
       detail: "base para PGR",
     },
-    { label: "Acoes NR-01", value: "18", detail: "5 vencem em 30 dias" },
+    {
+      label: "Acoes NR-01",
+      value: String(nr01Summary.openActions + nr01Summary.overdueActions),
+      detail: `${nr01Summary.overdueActions} vencida`,
+    },
   ];
 
   return (
@@ -489,6 +615,82 @@ export default async function PronusHomePage() {
                         style={{ width: `${module.progress}%` }}
                       />
                     </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <h3 className="text-base font-semibold">NR-01 / Inventario de riscos</h3>
+              </div>
+              <div className="grid gap-3 border-b border-slate-100 p-5 sm:grid-cols-3">
+                <div className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Riscos</p>
+                  <strong className="mt-1 block text-xl">{nr01Summary.risks}</strong>
+                </div>
+                <div className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Altos/Criticos</p>
+                  <strong className="mt-1 block text-xl">
+                    {nr01Summary.highRisks + nr01Summary.criticalRisks}
+                  </strong>
+                </div>
+                <div className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Evidencias</p>
+                  <strong className="mt-1 block text-xl">{nr01Summary.evidences}</strong>
+                </div>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {nr01Risks.slice(0, 3).map((risk) => (
+                  <article key={risk.id} className="px-5 py-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold">{risk.danger}</h4>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {risk.companyTradeName} / {risk.departmentName}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">{risk.risk}</p>
+                      </div>
+                      <span
+                        className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${riskLevelColorClasses[risk.level]}`}
+                      >
+                        {riskLevelLabels[risk.level]}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <h3 className="text-base font-semibold">Plano de acao PGR</h3>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {nr01Actions.slice(0, 4).map((action) => (
+                  <article
+                    key={action.id}
+                    className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto]"
+                  >
+                    <div>
+                      <h4 className="text-sm font-semibold">{action.title}</h4>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {action.companyTradeName} / {action.responsible}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Prazo {new Date(`${action.dueDate}T00:00:00`).toLocaleDateString("pt-BR")} /
+                        evidencias {action.evidenceCount}
+                      </p>
+                    </div>
+                    <span
+                      className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${actionStatusClasses(
+                        action.status,
+                      )}`}
+                    >
+                      {nr01ActionStatusLabels[action.status]}
+                    </span>
                   </article>
                 ))}
               </div>

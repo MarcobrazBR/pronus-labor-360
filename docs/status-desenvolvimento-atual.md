@@ -50,12 +50,23 @@ Estado encontrado:
   - `GET /employee-access/divergences`
   - `POST /employee-access/divergences`
   - `PATCH /employee-access/divergences/:id`
+- Criado modulo inicial NR-01/GRO/PGR:
+  - `GET /nr01/summary`
+  - `GET /nr01/risks`
+  - `GET /nr01/risks/:id`
+  - `POST /nr01/risks`
+  - `PATCH /nr01/risks/:id`
+  - `DELETE /nr01/risks/:id`
+  - `GET /nr01/action-plan`
+  - `POST /nr01/action-plan`
+  - `PATCH /nr01/action-plan/:id`
 - API estrutural agora valida campos obrigatorios, normaliza CPF/CNPJ, bloqueia duplicidades e faz inativacao logica.
 - API estrutural agora cobre empresa, unidade, setor, cargo e colaborador.
 - Importacao inicial de colaboradores via CSV adicionada, com modo `dryRun`, validacao por CNPJ ou empresa padrao, contagem de linhas validas, puladas e com erro.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
 - Portal PRONUS passou a consumir a API local com fallback para dados-semente.
 - Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
+- Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral e envio de divergencia.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
 - Painel PRONUS agora exibe:
@@ -73,7 +84,8 @@ Estado encontrado:
 - Evoluir importacao para reconciliar unidade/setor/cargo com cadastros estruturais existentes.
 - Implementar autenticacao e permissoes.
 - Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
-- Implementar nucleos funcionais de NR-01/GRO/PGR e risco psicossocial.
+- Evoluir NR-01/GRO/PGR para formularios completos, documentos e evidencias anexas.
+- Implementar nucleo funcional de risco psicossocial.
 - Criar testes automatizados quando os fluxos deixarem de ser somente fundacao.
 
 ## Validacoes Executadas
@@ -86,3 +98,4 @@ Estado encontrado:
 - Teste HTTP de importacao CSV em `dryRun` e criacao real, seguido de inativacao logica do colaborador importado.
 - Typecheck do Portal PRONUS apos criacao do painel interativo de importacao.
 - Teste HTTP de lookup por CPF, envio de divergencia cadastral e revisao da divergencia.
+- Typecheck da API e Portal PRONUS apos criacao do modulo NR-01/PGR inicial.
