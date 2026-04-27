@@ -50,6 +50,7 @@ Estado encontrado:
 - Importacao inicial de colaboradores via CSV adicionada, com modo `dryRun`, validacao por CNPJ ou empresa padrao, contagem de linhas validas, puladas e com erro.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
 - Portal PRONUS passou a consumir a API local com fallback para dados-semente.
+- Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
 - Painel PRONUS agora exibe:
   - resumo de empresas, colaboradores, acoes NR-01 e campanhas;
   - unidades, setores e cargos;
@@ -62,7 +63,7 @@ Estado encontrado:
 
 - Conectar API ao Prisma/Supabase quando `DATABASE_URL` estiver definido.
 - Trocar persistencia temporaria em memoria por Prisma/Supabase.
-- Evoluir importacao de colaboradores para upload real de arquivo no Portal PRONUS.
+- Evoluir importacao para reconciliar unidade/setor/cargo com cadastros estruturais existentes.
 - Implementar autenticacao e permissoes.
 - Criar fluxo real de divergencia cadastral no primeiro acesso.
 - Implementar nucleos funcionais de NR-01/GRO/PGR e risco psicossocial.
@@ -76,3 +77,4 @@ Estado encontrado:
 - Teste HTTP de criacao, vinculacao e inativacao de empresa/colaborador na API local.
 - Teste HTTP de criacao, vinculacao e inativacao de unidade/setor/cargo na API local.
 - Teste HTTP de importacao CSV em `dryRun` e criacao real, seguido de inativacao logica do colaborador importado.
+- Typecheck do Portal PRONUS apos criacao do painel interativo de importacao.

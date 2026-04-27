@@ -1,5 +1,6 @@
 import type { RiskLevel } from "@pronus/types";
 import { riskLevelColorClasses, riskLevelLabels } from "@pronus/ui";
+import { EmployeeImportPanel } from "./employee-import-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -95,8 +96,6 @@ const modules = [
   { name: "Risco psicossocial", owner: "Psicologia", progress: 22, status: "Modelagem" },
   { name: "Documentos iniciais", owner: "Operacao", progress: 12, status: "Fila" },
 ];
-
-const importColumns = ["cnpj", "nome", "cpf", "setor", "cargo", "email", "telefone"];
 
 const fallbackUnits: StructuralUnit[] = [
   {
@@ -496,27 +495,13 @@ export default async function PronusHomePage() {
             </div>
           </section>
 
-          <section className="mt-4 rounded-lg border border-slate-200 bg-white">
-            <div className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
-              <div>
-                <h3 className="text-base font-semibold">Importacao de colaboradores</h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  API preparada para validar duplicidade por empresa, normalizar CPF e vincular
-                  setor/cargo informado.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {importColumns.map((column) => (
-                  <span
-                    key={column}
-                    className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
-                  >
-                    {column}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </section>
+          <EmployeeImportPanel
+            companies={companies.map((company) => ({
+              id: company.id,
+              tradeName: company.tradeName,
+              cnpj: company.cnpj,
+            }))}
+          />
 
           <section className="mt-4 grid gap-4 xl:grid-cols-2">
             <div className="rounded-lg border border-slate-200 bg-white">
