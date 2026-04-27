@@ -1,4 +1,10 @@
 export type StructuralStatus = "active" | "pending_validation" | "blocked" | "inactive";
+export type CompanyContractStatus =
+  | "prospecting"
+  | "onboarding"
+  | "active"
+  | "suspended"
+  | "closed";
 
 export interface StructuralCompany {
   id: string;
@@ -6,6 +12,23 @@ export interface StructuralCompany {
   tradeName: string;
   legalName: string;
   cnpj: string;
+  contractStatus: CompanyContractStatus;
+  eSocialValidFrom?: string;
+  eSocialValidTo?: string;
+  taxClassification?: string;
+  cooperativeIndicator?: string;
+  constructionCompanyIndicator?: string;
+  payrollExemptionIndicator?: string;
+  electronicRegistrationIndicator?: string;
+  educationalEntityIndicator?: string;
+  temporaryWorkCompanyIndicator?: string;
+  temporaryWorkRegistration?: string;
+  primaryCnae?: string;
+  contactName?: string;
+  contactCpf?: string;
+  contactPhone?: string;
+  contactMobile?: string;
+  contactEmail?: string;
   units: number;
   departments: number;
   employees: number;
@@ -82,6 +105,23 @@ export interface CreateStructuralCompanyInput {
   tradeName: string;
   legalName: string;
   cnpj: string;
+  contractStatus?: CompanyContractStatus;
+  eSocialValidFrom?: string;
+  eSocialValidTo?: string;
+  taxClassification?: string;
+  cooperativeIndicator?: string;
+  constructionCompanyIndicator?: string;
+  payrollExemptionIndicator?: string;
+  electronicRegistrationIndicator?: string;
+  educationalEntityIndicator?: string;
+  temporaryWorkCompanyIndicator?: string;
+  temporaryWorkRegistration?: string;
+  primaryCnae?: string;
+  contactName?: string;
+  contactCpf?: string;
+  contactPhone?: string;
+  contactMobile?: string;
+  contactEmail?: string;
   units?: number;
   departments?: number;
 }
@@ -131,7 +171,29 @@ export type UpdateStructuralJobPositionInput = Partial<
 export type UpdateStructuralCompanyInput = Partial<
   Pick<
     CreateStructuralCompanyInput,
-    "groupName" | "tradeName" | "legalName" | "cnpj" | "units" | "departments"
+    | "groupName"
+    | "tradeName"
+    | "legalName"
+    | "cnpj"
+    | "contractStatus"
+    | "eSocialValidFrom"
+    | "eSocialValidTo"
+    | "taxClassification"
+    | "cooperativeIndicator"
+    | "constructionCompanyIndicator"
+    | "payrollExemptionIndicator"
+    | "electronicRegistrationIndicator"
+    | "educationalEntityIndicator"
+    | "temporaryWorkCompanyIndicator"
+    | "temporaryWorkRegistration"
+    | "primaryCnae"
+    | "contactName"
+    | "contactCpf"
+    | "contactPhone"
+    | "contactMobile"
+    | "contactEmail"
+    | "units"
+    | "departments"
   >
 > & {
   status?: StructuralStatus;

@@ -1,6 +1,12 @@
 import type { RiskLevel } from "@pronus/types";
 
 export type StructuralStatus = "active" | "pending_validation" | "blocked" | "inactive";
+export type CompanyContractStatus =
+  | "prospecting"
+  | "onboarding"
+  | "active"
+  | "suspended"
+  | "closed";
 
 export interface StructuralSummary {
   companies: number;
@@ -14,7 +20,26 @@ export interface StructuralSummary {
 export interface StructuralCompany {
   id: string;
   tradeName: string;
+  legalName?: string;
+  groupName?: string;
   cnpj: string;
+  contractStatus?: CompanyContractStatus;
+  eSocialValidFrom?: string;
+  eSocialValidTo?: string;
+  taxClassification?: string;
+  cooperativeIndicator?: string;
+  constructionCompanyIndicator?: string;
+  payrollExemptionIndicator?: string;
+  electronicRegistrationIndicator?: string;
+  educationalEntityIndicator?: string;
+  temporaryWorkCompanyIndicator?: string;
+  temporaryWorkRegistration?: string;
+  primaryCnae?: string;
+  contactName?: string;
+  contactCpf?: string;
+  contactPhone?: string;
+  contactMobile?: string;
+  contactEmail?: string;
   units: number;
   departments: number;
   employees: number;
@@ -145,6 +170,14 @@ export const structuralStatusLabels: Record<StructuralStatus, string> = {
   inactive: "Inativo",
 };
 
+export const companyContractStatusLabels: Record<CompanyContractStatus, string> = {
+  prospecting: "Prospeccao",
+  onboarding: "Implantacao",
+  active: "Contrato ativo",
+  suspended: "Suspenso",
+  closed: "Encerrado",
+};
+
 export const nr01ActionStatusLabels: Record<Nr01ActionPlanItem["status"], string> = {
   open: "Aberta",
   in_progress: "Em execucao",
@@ -175,8 +208,19 @@ const fallbackSummary: StructuralSummary = {
 const fallbackCompanies: StructuralCompany[] = [
   {
     id: "company-pronus-demo",
+    groupName: "Grupo Demonstracao",
     tradeName: "Industria Horizonte",
+    legalName: "Industria Horizonte Ltda.",
     cnpj: "12.345.678/0001-90",
+    contractStatus: "active",
+    eSocialValidFrom: "2026-04",
+    taxClassification: "99",
+    primaryCnae: "1091102",
+    contactName: "Mariana Costa",
+    contactCpf: "111.222.333-44",
+    contactPhone: "1133334444",
+    contactMobile: "11988887777",
+    contactEmail: "rh@industriahorizonte.com.br",
     units: 2,
     departments: 6,
     employees: 148,
@@ -184,8 +228,19 @@ const fallbackCompanies: StructuralCompany[] = [
   },
   {
     id: "company-pronus-retail",
+    groupName: "Grupo Demonstracao",
     tradeName: "Rede Norte",
+    legalName: "Rede Norte Comercio S.A.",
     cnpj: "98.765.432/0001-10",
+    contractStatus: "onboarding",
+    eSocialValidFrom: "2026-04",
+    taxClassification: "99",
+    primaryCnae: "4711302",
+    contactName: "Paulo Mendes",
+    contactCpf: "222.333.444-55",
+    contactPhone: "1144445555",
+    contactMobile: "11977776666",
+    contactEmail: "rh@redenorte.com.br",
     units: 4,
     departments: 11,
     employees: 326,
@@ -501,6 +556,26 @@ export function statusClasses(status: StructuralStatus) {
   }
 
   return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
+
+export function contractStatusClasses(status: CompanyContractStatus | undefined) {
+  if (status === "active") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "onboarding") {
+    return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+  }
+
+  if (status === "suspended") {
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+  }
+
+  if (status === "closed") {
+    return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+  }
+
+  return "bg-violet-50 text-violet-700 ring-1 ring-violet-200";
 }
 
 export function actionStatusClasses(status: Nr01ActionPlanItem["status"]) {

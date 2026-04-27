@@ -71,6 +71,7 @@ Estado encontrado:
   - `POST /psychosocial/answers`
 - API estrutural agora valida campos obrigatorios, normaliza CPF/CNPJ, bloqueia duplicidades e faz inativacao logica.
 - API estrutural agora cobre empresa, unidade, setor, cargo e colaborador.
+- Cadastro de empresa na API estrutural agora contempla status contratual e campos preparatorios para eSocial S-1000: validade, classificacao tributaria, indicadores cadastrais e contato responsavel.
 - Importacao inicial de colaboradores via CSV adicionada, com modo `dryRun`, validacao por CNPJ ou empresa padrao, contagem de linhas validas, puladas e com erro.
 - API psicossocial agora possui campanhas, questionario-base, envio inicial de respostas, calculo de adesao, classificacao de risco e sinais por setor com indicacao de privacidade.
 - API psicossocial agora aplica pontuacao reversa nas perguntas positivas antes de classificar o nivel de risco.
@@ -84,6 +85,7 @@ Estado encontrado:
   - `/psicossocial` para campanhas e sinais psicossociais;
   - `/documentos` para fila documental inicial.
 - Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
+- Menu Empresas do Portal PRONUS agora possui pesquisa por nome/CNPJ/status, filtro por status contratual, acao de ajuste cadastral e modal para inclusao de empresa com campos preparatorios para eSocial.
 - Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
@@ -125,3 +127,5 @@ Estado encontrado:
 - Teste HTTP das rotas do Portal PRONUS: `/`, `/empresas`, `/colaboradores`, `/nr01-pgr`, `/psicossocial` e `/documentos`.
 - Teste clicavel no navegador do menu do Portal PRONUS, cobrindo todos os itens laterais/horizontais.
 - Build geral do monorepo apos reorganizacao da navegacao.
+- Teste HTTP de criacao de empresa com campos eSocial/contratuais.
+- Teste clicavel no navegador da tela Empresas: pesquisa e modal de inclusao.

@@ -1,4 +1,5 @@
-import { loadStructuralData, statusClasses, structuralStatusLabels } from "../pronus-data";
+import { CompanyManagementPanel } from "./company-management-panel";
+import { loadStructuralData } from "../pronus-data";
 
 export const dynamic = "force-dynamic";
 
@@ -15,51 +16,12 @@ export default async function CompaniesPage() {
           <h2 className="mt-1 text-2xl font-semibold tracking-normal">Empresas</h2>
         </div>
 
-        <button className="w-fit rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm">
-          Nova empresa
-        </button>
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">
+          Cadastro base para eSocial S-1000
+        </div>
       </header>
 
-      <section className="rounded-lg border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h3 className="text-base font-semibold">Empresas e CNPJs</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Empresa</th>
-                <th className="px-5 py-3 font-semibold">Estrutura</th>
-                <th className="px-5 py-3 font-semibold">Colaboradores</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {companies.map((company) => (
-                <tr key={company.id}>
-                  <td className="px-5 py-4">
-                    <strong className="block font-semibold">{company.tradeName}</strong>
-                    <span className="text-slate-500">{company.cnpj}</span>
-                  </td>
-                  <td className="px-5 py-4 text-slate-600">
-                    {company.units} unidades / {company.departments} setores
-                  </td>
-                  <td className="px-5 py-4 font-semibold">{company.employees}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
-                        company.status,
-                      )}`}
-                    >
-                      {structuralStatusLabels[company.status]}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <CompanyManagementPanel initialCompanies={companies} />
 
       <section className="mt-4 grid gap-4 xl:grid-cols-3">
         <StructureList

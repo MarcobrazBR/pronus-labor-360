@@ -1,6 +1,12 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { randomUUID } from "crypto";
 import type {
+  CompanyContractStatus,
   CreateStructuralCompanyInput,
   CreateStructuralDepartmentInput,
   CreateStructuralEmployeeInput,
@@ -31,6 +37,13 @@ import type {
 } from "./structural.types";
 
 const activeStatuses = new Set<StructuralStatus>(["active", "pending_validation"]);
+const contractStatuses = new Set<CompanyContractStatus>([
+  "prospecting",
+  "onboarding",
+  "active",
+  "suspended",
+  "closed",
+]);
 const validStatuses = new Set<StructuralStatus>([
   "active",
   "pending_validation",
@@ -97,6 +110,18 @@ function normalizeStatus(value: unknown, field: string): StructuralStatus | unde
   return value as StructuralStatus;
 }
 
+function normalizeContractStatus(value: unknown): CompanyContractStatus | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !contractStatuses.has(value as CompanyContractStatus)) {
+    throw new BadRequestException("Status contratual invalido");
+  }
+
+  return value as CompanyContractStatus;
+}
+
 function normalizeDivergenceStatus(value: unknown): EmployeeDivergenceStatus {
   if (typeof value !== "string" || !divergenceStatuses.has(value as EmployeeDivergenceStatus)) {
     throw new BadRequestException("Status de divergencia invalido");
@@ -123,6 +148,34 @@ function normalizeCpf(value: unknown): string {
   }
 
   return formatCpf(cpf);
+}
+
+function optionalCpf(value: unknown, field: string): string | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const cpf = onlyDigits(requireText(value, field));
+
+  if (cpf.length !== 11) {
+    throw new BadRequestException(`${field} deve ter 11 digitos`);
+  }
+
+  return formatCpf(cpf);
+}
+
+function optionalDigits(value: unknown, field: string, length?: number): string | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const digits = onlyDigits(requireText(value, field));
+
+  if (length !== undefined && digits.length !== length) {
+    throw new BadRequestException(`${field} deve ter ${length} digitos`);
+  }
+
+  return digits;
 }
 
 function now(): string {
@@ -153,13 +206,13 @@ function parseCsvLine(line: string, delimiter: "," | ";"): string[] {
     const char = line[index];
     const nextChar = line[index + 1];
 
-    if (char === "\"" && quoted && nextChar === "\"") {
-      current += "\"";
+    if (char === '"' && quoted && nextChar === '"') {
+      current += '"';
       index += 1;
       continue;
     }
 
-    if (char === "\"") {
+    if (char === '"') {
       quoted = !quoted;
       continue;
     }
@@ -177,7 +230,10 @@ function parseCsvLine(line: string, delimiter: "," | ";"): string[] {
   return values;
 }
 
-function parseCsv(content: string, delimiter?: "," | ";"): Array<{
+function parseCsv(
+  content: string,
+  delimiter?: "," | ";",
+): Array<{
   rowNumber: number;
   row: Record<string, string>;
 }> {
@@ -239,6 +295,21 @@ const companies: StructuralCompany[] = [
     tradeName: "Industria Horizonte",
     legalName: "Industria Horizonte Ltda.",
     cnpj: "12.345.678/0001-90",
+    contractStatus: "active",
+    eSocialValidFrom: "2026-04",
+    taxClassification: "99",
+    cooperativeIndicator: "0",
+    constructionCompanyIndicator: "0",
+    payrollExemptionIndicator: "0",
+    electronicRegistrationIndicator: "1",
+    educationalEntityIndicator: "N",
+    temporaryWorkCompanyIndicator: "N",
+    primaryCnae: "1091102",
+    contactName: "Mariana Costa",
+    contactCpf: "111.222.333-44",
+    contactPhone: "1133334444",
+    contactMobile: "11988887777",
+    contactEmail: "rh@industriahorizonte.com.br",
     units: 2,
     departments: 3,
     employees: 148,
@@ -252,6 +323,21 @@ const companies: StructuralCompany[] = [
     tradeName: "Rede Norte",
     legalName: "Rede Norte Comercio S.A.",
     cnpj: "98.765.432/0001-10",
+    contractStatus: "onboarding",
+    eSocialValidFrom: "2026-04",
+    taxClassification: "99",
+    cooperativeIndicator: "0",
+    constructionCompanyIndicator: "0",
+    payrollExemptionIndicator: "0",
+    electronicRegistrationIndicator: "1",
+    educationalEntityIndicator: "N",
+    temporaryWorkCompanyIndicator: "N",
+    primaryCnae: "4711302",
+    contactName: "Paulo Mendes",
+    contactCpf: "222.333.444-55",
+    contactPhone: "1144445555",
+    contactMobile: "11977776666",
+    contactEmail: "rh@redenorte.com.br",
     units: 4,
     departments: 3,
     employees: 326,
@@ -551,6 +637,41 @@ export class StructuralService {
       tradeName: requireText(input.tradeName, "tradeName"),
       legalName: requireText(input.legalName, "legalName"),
       cnpj,
+      contractStatus: normalizeContractStatus(input.contractStatus) ?? "onboarding",
+      eSocialValidFrom: optionalText(input.eSocialValidFrom, "eSocialValidFrom"),
+      eSocialValidTo: optionalText(input.eSocialValidTo, "eSocialValidTo"),
+      taxClassification: optionalDigits(input.taxClassification, "taxClassification"),
+      cooperativeIndicator: optionalText(input.cooperativeIndicator, "cooperativeIndicator"),
+      constructionCompanyIndicator: optionalText(
+        input.constructionCompanyIndicator,
+        "constructionCompanyIndicator",
+      ),
+      payrollExemptionIndicator: optionalText(
+        input.payrollExemptionIndicator,
+        "payrollExemptionIndicator",
+      ),
+      electronicRegistrationIndicator: optionalText(
+        input.electronicRegistrationIndicator,
+        "electronicRegistrationIndicator",
+      ),
+      educationalEntityIndicator: optionalText(
+        input.educationalEntityIndicator,
+        "educationalEntityIndicator",
+      ),
+      temporaryWorkCompanyIndicator: optionalText(
+        input.temporaryWorkCompanyIndicator,
+        "temporaryWorkCompanyIndicator",
+      ),
+      temporaryWorkRegistration: optionalText(
+        input.temporaryWorkRegistration,
+        "temporaryWorkRegistration",
+      ),
+      primaryCnae: optionalDigits(input.primaryCnae, "primaryCnae", 7),
+      contactName: optionalText(input.contactName, "contactName"),
+      contactCpf: optionalCpf(input.contactCpf, "contactCpf"),
+      contactPhone: optionalDigits(input.contactPhone, "contactPhone"),
+      contactMobile: optionalDigits(input.contactMobile, "contactMobile"),
+      contactEmail: optionalText(input.contactEmail, "contactEmail"),
       units: optionalCount(input.units, "units") ?? 0,
       departments: optionalCount(input.departments, "departments") ?? 0,
       employees: 0,
@@ -581,6 +702,44 @@ export class StructuralService {
     company.tradeName = optionalText(input.tradeName, "tradeName") ?? company.tradeName;
     company.legalName = optionalText(input.legalName, "legalName") ?? company.legalName;
     company.cnpj = cnpj ?? company.cnpj;
+    company.contractStatus =
+      normalizeContractStatus(input.contractStatus) ?? company.contractStatus;
+    company.eSocialValidFrom =
+      optionalText(input.eSocialValidFrom, "eSocialValidFrom") ?? company.eSocialValidFrom;
+    company.eSocialValidTo =
+      optionalText(input.eSocialValidTo, "eSocialValidTo") ?? company.eSocialValidTo;
+    company.taxClassification =
+      optionalDigits(input.taxClassification, "taxClassification") ?? company.taxClassification;
+    company.cooperativeIndicator =
+      optionalText(input.cooperativeIndicator, "cooperativeIndicator") ??
+      company.cooperativeIndicator;
+    company.constructionCompanyIndicator =
+      optionalText(input.constructionCompanyIndicator, "constructionCompanyIndicator") ??
+      company.constructionCompanyIndicator;
+    company.payrollExemptionIndicator =
+      optionalText(input.payrollExemptionIndicator, "payrollExemptionIndicator") ??
+      company.payrollExemptionIndicator;
+    company.electronicRegistrationIndicator =
+      optionalText(input.electronicRegistrationIndicator, "electronicRegistrationIndicator") ??
+      company.electronicRegistrationIndicator;
+    company.educationalEntityIndicator =
+      optionalText(input.educationalEntityIndicator, "educationalEntityIndicator") ??
+      company.educationalEntityIndicator;
+    company.temporaryWorkCompanyIndicator =
+      optionalText(input.temporaryWorkCompanyIndicator, "temporaryWorkCompanyIndicator") ??
+      company.temporaryWorkCompanyIndicator;
+    company.temporaryWorkRegistration =
+      optionalText(input.temporaryWorkRegistration, "temporaryWorkRegistration") ??
+      company.temporaryWorkRegistration;
+    company.primaryCnae =
+      optionalDigits(input.primaryCnae, "primaryCnae", 7) ?? company.primaryCnae;
+    company.contactName = optionalText(input.contactName, "contactName") ?? company.contactName;
+    company.contactCpf = optionalCpf(input.contactCpf, "contactCpf") ?? company.contactCpf;
+    company.contactPhone =
+      optionalDigits(input.contactPhone, "contactPhone") ?? company.contactPhone;
+    company.contactMobile =
+      optionalDigits(input.contactMobile, "contactMobile") ?? company.contactMobile;
+    company.contactEmail = optionalText(input.contactEmail, "contactEmail") ?? company.contactEmail;
     company.units = optionalCount(input.units, "units") ?? company.units;
     company.departments = optionalCount(input.departments, "departments") ?? company.departments;
     company.status = normalizeStatus(input.status, "status") ?? company.status;
@@ -707,10 +866,7 @@ export class StructuralService {
     return department;
   }
 
-  updateDepartment(
-    id: string,
-    input: UpdateStructuralDepartmentInput,
-  ): StructuralDepartment {
+  updateDepartment(id: string, input: UpdateStructuralDepartmentInput): StructuralDepartment {
     const department = this.findDepartment(id);
     const previousCompany = this.findCompany(department.companyId);
     const company =
@@ -796,10 +952,7 @@ export class StructuralService {
     return jobPosition;
   }
 
-  updateJobPosition(
-    id: string,
-    input: UpdateStructuralJobPositionInput,
-  ): StructuralJobPosition {
+  updateJobPosition(id: string, input: UpdateStructuralJobPositionInput): StructuralJobPosition {
     const jobPosition = this.findJobPosition(id);
     const company =
       input.companyId === undefined
@@ -885,7 +1038,8 @@ export class StructuralService {
     const cpf = input.cpf === undefined ? undefined : normalizeCpf(input.cpf);
     const previousStatus = employee.registrationStatus;
     const nextStatus =
-      normalizeStatus(input.registrationStatus, "registrationStatus") ?? employee.registrationStatus;
+      normalizeStatus(input.registrationStatus, "registrationStatus") ??
+      employee.registrationStatus;
 
     if (
       cpf !== undefined &&
@@ -908,11 +1062,19 @@ export class StructuralService {
       company.employees += 1;
     }
 
-    if (company.id === employee.companyId && activeStatuses.has(previousStatus) && nextStatus === "inactive") {
+    if (
+      company.id === employee.companyId &&
+      activeStatuses.has(previousStatus) &&
+      nextStatus === "inactive"
+    ) {
       company.employees = Math.max(company.employees - 1, 0);
     }
 
-    if (company.id === employee.companyId && previousStatus === "inactive" && activeStatuses.has(nextStatus)) {
+    if (
+      company.id === employee.companyId &&
+      previousStatus === "inactive" &&
+      activeStatuses.has(nextStatus)
+    ) {
       company.employees += 1;
     }
 
@@ -986,7 +1148,8 @@ export class StructuralService {
     const status = normalizeDivergenceStatus(input.status);
 
     divergence.status = status;
-    divergence.reviewerName = optionalText(input.reviewerName, "reviewerName") ?? divergence.reviewerName;
+    divergence.reviewerName =
+      optionalText(input.reviewerName, "reviewerName") ?? divergence.reviewerName;
     divergence.updatedAt = now();
 
     if (status === "approved") {
@@ -1100,7 +1263,8 @@ export class StructuralService {
     row: Record<string, string>,
     defaultCompanyId?: string,
   ): StructuralCompany {
-    const companyId = pickRowValue(row, ["companyid", "empresaid", "idempresa"]) ?? defaultCompanyId;
+    const companyId =
+      pickRowValue(row, ["companyid", "empresaid", "idempresa"]) ?? defaultCompanyId;
 
     if (companyId !== undefined) {
       return this.findCompany(companyId);
