@@ -86,6 +86,13 @@ Estado encontrado:
   - `/documentos` para fila documental inicial.
 - Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
 - Menu Empresas do Portal PRONUS agora possui pesquisa por nome/CNPJ/status, filtro por status contratual, acao de ajuste cadastral e modal para inclusao de empresa com campos preparatorios para eSocial.
+- Menu Empresas do Portal PRONUS agora foi dividido em subniveis operacionais:
+  - `/empresas` como resumo simples de empresas com pendencias de ajuste;
+  - `/empresas/busca` para buscar empresa e incluir/ajustar cadastro;
+  - `/empresas/cargos` para pesquisar e cadastrar cargos com referencia eSocial/CBO;
+  - `/empresas/setores` para pesquisar e cadastrar setores por empresa/unidade.
+- Busca Empresa agora apresenta resultado por abas: Geral, Cobertura, Colaborador e Financeiro, com inclusao de vida avulsa e consolidado financeiro por intervalo informado.
+- Telas de busca de empresa, cargos e setores nao carregam listas por padrao; os dados aparecem somente apos uma pesquisa do operador.
 - Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
@@ -129,3 +136,7 @@ Estado encontrado:
 - Build geral do monorepo apos reorganizacao da navegacao.
 - Teste HTTP de criacao de empresa com campos eSocial/contratuais.
 - Teste clicavel no navegador da tela Empresas: pesquisa e modal de inclusao.
+- Typecheck da API e Portal PRONUS apos reorganizacao do modulo Empresas em Busca, Cargos e Setores.
+- Build geral do monorepo apos criacao dos subniveis de Empresas.
+- Teste HTTP das rotas `/empresas`, `/empresas/busca`, `/empresas/cargos` e `/empresas/setores`.
+- Teste interativo no navegador cobrindo busca de empresa, abas Geral/Cobertura/Colaborador/Financeiro, botao de vida avulsa e buscas de Cargos/Setores.

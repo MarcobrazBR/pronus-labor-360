@@ -296,6 +296,8 @@ const companies: StructuralCompany[] = [
     legalName: "Industria Horizonte Ltda.",
     cnpj: "12.345.678/0001-90",
     contractStatus: "active",
+    contractDueDate: "2026-12-31",
+    selectedPackage: "Essencial SST + Psicossocial",
     eSocialValidFrom: "2026-04",
     taxClassification: "99",
     cooperativeIndicator: "0",
@@ -324,6 +326,8 @@ const companies: StructuralCompany[] = [
     legalName: "Rede Norte Comercio S.A.",
     cnpj: "98.765.432/0001-10",
     contractStatus: "onboarding",
+    contractDueDate: "2026-10-31",
+    selectedPackage: "Completo Ocupacional",
     eSocialValidFrom: "2026-04",
     taxClassification: "99",
     cooperativeIndicator: "0",
@@ -493,7 +497,9 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-horizonte-producao",
     departmentName: "Producao",
     title: "Operadora de Maquina",
+    eSocialCode: "CARGO-001",
     cboCode: "7842-05",
+    description: "Opera equipamentos industriais conforme procedimento de seguranca.",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -505,7 +511,9 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-horizonte-manutencao",
     departmentName: "Manutencao",
     title: "Tecnico de Seguranca",
+    eSocialCode: "CARGO-002",
     cboCode: "3516-05",
+    description: "Apoia rotinas de seguranca ocupacional e controles preventivos.",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -517,7 +525,9 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-rede-norte-atendimento",
     departmentName: "Atendimento",
     title: "Supervisora de Loja",
+    eSocialCode: "CARGO-003",
     cboCode: "5201-10",
+    description: "Coordena equipe de atendimento e operacao de loja.",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -529,7 +539,9 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-rede-norte-logistica",
     departmentName: "Logistica",
     title: "Auxiliar de Logistica",
+    eSocialCode: "CARGO-004",
     cboCode: "4141-05",
+    description: "Executa recebimento, conferencia e movimentacao de mercadorias.",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -543,6 +555,8 @@ const employees: StructuralEmployee[] = [
     companyTradeName: "Industria Horizonte",
     fullName: "Ana Cristina Ramos",
     cpf: "123.456.789-09",
+    birthDate: "1989-03-14",
+    inclusionDate: "2026-01-05",
     department: "Producao",
     jobPosition: "Operadora de Maquina",
     registrationStatus: "active",
@@ -555,6 +569,8 @@ const employees: StructuralEmployee[] = [
     companyTradeName: "Industria Horizonte",
     fullName: "Rafael Moreira Lima",
     cpf: "987.654.321-00",
+    birthDate: "1982-08-21",
+    inclusionDate: "2026-01-05",
     department: "Manutencao",
     jobPosition: "Tecnico de Seguranca",
     registrationStatus: "pending_validation",
@@ -567,6 +583,8 @@ const employees: StructuralEmployee[] = [
     companyTradeName: "Rede Norte",
     fullName: "Beatriz Almeida Souza",
     cpf: "456.789.123-44",
+    birthDate: "1991-11-02",
+    inclusionDate: "2026-02-12",
     department: "Atendimento",
     jobPosition: "Supervisora de Loja",
     registrationStatus: "active",
@@ -638,6 +656,8 @@ export class StructuralService {
       legalName: requireText(input.legalName, "legalName"),
       cnpj,
       contractStatus: normalizeContractStatus(input.contractStatus) ?? "onboarding",
+      contractDueDate: optionalText(input.contractDueDate, "contractDueDate"),
+      selectedPackage: optionalText(input.selectedPackage, "selectedPackage"),
       eSocialValidFrom: optionalText(input.eSocialValidFrom, "eSocialValidFrom"),
       eSocialValidTo: optionalText(input.eSocialValidTo, "eSocialValidTo"),
       taxClassification: optionalDigits(input.taxClassification, "taxClassification"),
@@ -704,6 +724,10 @@ export class StructuralService {
     company.cnpj = cnpj ?? company.cnpj;
     company.contractStatus =
       normalizeContractStatus(input.contractStatus) ?? company.contractStatus;
+    company.contractDueDate =
+      optionalText(input.contractDueDate, "contractDueDate") ?? company.contractDueDate;
+    company.selectedPackage =
+      optionalText(input.selectedPackage, "selectedPackage") ?? company.selectedPackage;
     company.eSocialValidFrom =
       optionalText(input.eSocialValidFrom, "eSocialValidFrom") ?? company.eSocialValidFrom;
     company.eSocialValidTo =
@@ -941,6 +965,7 @@ export class StructuralService {
       departmentId: department?.id,
       departmentName: department?.name,
       title,
+      eSocialCode: optionalText(input.eSocialCode, "eSocialCode"),
       cboCode: optionalText(input.cboCode, "cboCode"),
       description: optionalText(input.description, "description"),
       status: "active",
@@ -973,6 +998,8 @@ export class StructuralService {
     jobPosition.departmentId = department?.id ?? jobPosition.departmentId;
     jobPosition.departmentName = department?.name ?? jobPosition.departmentName;
     jobPosition.title = title;
+    jobPosition.eSocialCode =
+      optionalText(input.eSocialCode, "eSocialCode") ?? jobPosition.eSocialCode;
     jobPosition.cboCode = optionalText(input.cboCode, "cboCode") ?? jobPosition.cboCode;
     jobPosition.description =
       optionalText(input.description, "description") ?? jobPosition.description;
@@ -1014,6 +1041,9 @@ export class StructuralService {
       companyTradeName: company.tradeName,
       fullName: requireText(input.fullName, "fullName"),
       cpf,
+      birthDate: optionalText(input.birthDate, "birthDate"),
+      inclusionDate: optionalText(input.inclusionDate, "inclusionDate") ?? createdAt.slice(0, 10),
+      exclusionDate: optionalText(input.exclusionDate, "exclusionDate"),
       department: requireText(input.department, "department"),
       jobPosition: requireText(input.jobPosition, "jobPosition"),
       email: optionalText(input.email, "email"),
@@ -1082,6 +1112,11 @@ export class StructuralService {
     employee.companyTradeName = company.tradeName;
     employee.fullName = optionalText(input.fullName, "fullName") ?? employee.fullName;
     employee.cpf = cpf ?? employee.cpf;
+    employee.birthDate = optionalText(input.birthDate, "birthDate") ?? employee.birthDate;
+    employee.inclusionDate =
+      optionalText(input.inclusionDate, "inclusionDate") ?? employee.inclusionDate;
+    employee.exclusionDate =
+      optionalText(input.exclusionDate, "exclusionDate") ?? employee.exclusionDate;
     employee.department = optionalText(input.department, "department") ?? employee.department;
     employee.jobPosition = optionalText(input.jobPosition, "jobPosition") ?? employee.jobPosition;
     employee.email = optionalText(input.email, "email") ?? employee.email;

@@ -72,7 +72,9 @@ Ja existe:
 - cadastro estrutural inicial na API;
 - endpoints para empresas, unidades, setores, cargos e colaboradores;
 - importacao inicial de colaboradores via CSV com modo de simulacao;
-- painel operacional inicial no Portal PRONUS;
+- painel operacional inicial no Portal PRONUS com navegacao por paginas;
+- modulo Empresas do Portal PRONUS organizado em resumo, busca, cargos e setores;
+- busca de empresas com abas de dados gerais, cobertura contratual, colaboradores e financeiro;
 - fluxo de primeiro acesso do colaborador com conferencia cadastral;
 - painel RH Cliente para acompanhar divergencias cadastrais;
 - base inicial NR-01/GRO/PGR com inventario de riscos e plano de acao;

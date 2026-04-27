@@ -10,8 +10,11 @@ import {
   structuralStatusLabels,
   type CompanyContractStatus,
   type StructuralCompany,
+  type StructuralEmployee,
   type StructuralStatus,
 } from "../pronus-data";
+
+type CompanyTab = "general" | "coverage" | "employees" | "financial";
 
 type CompanyForm = {
   groupName: string;
@@ -20,6 +23,8 @@ type CompanyForm = {
   cnpj: string;
   contractStatus: CompanyContractStatus;
   status: StructuralStatus;
+  contractDueDate: string;
+  selectedPackage: string;
   eSocialValidFrom: string;
   eSocialValidTo: string;
   taxClassification: string;
@@ -38,6 +43,24 @@ type CompanyForm = {
   contactEmail: string;
 };
 
+type EmployeeForm = {
+  fullName: string;
+  cpf: string;
+  birthDate: string;
+  inclusionDate: string;
+  department: string;
+  jobPosition: string;
+  email: string;
+  phone: string;
+};
+
+type SubmittedSearch = {
+  contractStatus: CompanyContractStatus | "all";
+  periodEnd: string;
+  periodStart: string;
+  query: string;
+};
+
 const emptyForm: CompanyForm = {
   groupName: "",
   tradeName: "",
@@ -45,6 +68,8 @@ const emptyForm: CompanyForm = {
   cnpj: "",
   contractStatus: "onboarding",
   status: "active",
+  contractDueDate: "",
+  selectedPackage: "",
   eSocialValidFrom: "",
   eSocialValidTo: "",
   taxClassification: "",
@@ -63,6 +88,17 @@ const emptyForm: CompanyForm = {
   contactEmail: "",
 };
 
+const emptyEmployeeForm: EmployeeForm = {
+  fullName: "",
+  cpf: "",
+  birthDate: "",
+  inclusionDate: "",
+  department: "",
+  jobPosition: "",
+  email: "",
+  phone: "",
+};
+
 const contractStatuses: CompanyContractStatus[] = [
   "prospecting",
   "onboarding",
@@ -78,6 +114,104 @@ const structuralStatuses: StructuralStatus[] = [
   "inactive",
 ];
 
+const coverageSeed = [
+  {
+    company: "Industria Horizonte",
+    specialty: "Medicina ocupacional",
+    entitled: 120,
+    used: 68,
+    absenteeism: 7.2,
+  },
+  {
+    company: "Industria Horizonte",
+    specialty: "Psicologia",
+    entitled: 40,
+    used: 19,
+    absenteeism: 4.8,
+  },
+  {
+    company: "Industria Horizonte",
+    specialty: "Fonoaudiologia",
+    entitled: 20,
+    used: 6,
+    absenteeism: 2.1,
+  },
+  {
+    company: "Rede Norte",
+    specialty: "Medicina ocupacional",
+    entitled: 180,
+    used: 111,
+    absenteeism: 8.7,
+  },
+  { company: "Rede Norte", specialty: "Psicologia", entitled: 60, used: 24, absenteeism: 5.3 },
+];
+
+const invoiceSeed = [
+  {
+    company: "Industria Horizonte",
+    number: 1,
+    dueDate: "2026-01-10",
+    amount: 8500,
+    type: "Mensalidade",
+    status: "paid",
+  },
+  {
+    company: "Industria Horizonte",
+    number: 2,
+    dueDate: "2026-02-10",
+    amount: 8500,
+    type: "Mensalidade",
+    status: "paid",
+  },
+  {
+    company: "Industria Horizonte",
+    number: 3,
+    dueDate: "2026-03-10",
+    amount: 8500,
+    type: "Mensalidade",
+    status: "open",
+  },
+  {
+    company: "Industria Horizonte",
+    number: 4,
+    dueDate: "2026-04-10",
+    amount: 1200,
+    type: "Compra avulsa de pacote",
+    status: "overdue",
+  },
+  {
+    company: "Rede Norte",
+    number: 1,
+    dueDate: "2026-01-15",
+    amount: 12400,
+    type: "Mensalidade",
+    status: "paid",
+  },
+  {
+    company: "Rede Norte",
+    number: 2,
+    dueDate: "2026-02-15",
+    amount: 12400,
+    type: "Mensalidade",
+    status: "open",
+  },
+  {
+    company: "Rede Norte",
+    number: 3,
+    dueDate: "2026-03-15",
+    amount: 12400,
+    type: "Mensalidade",
+    status: "overdue",
+  },
+];
+
+const tabs: Array<{ id: CompanyTab; label: string }> = [
+  { id: "general", label: "Geral" },
+  { id: "coverage", label: "Cobertura" },
+  { id: "employees", label: "Colaborador" },
+  { id: "financial", label: "Financeiro" },
+];
+
 function companyToForm(company: StructuralCompany): CompanyForm {
   return {
     ...emptyForm,
@@ -87,6 +221,8 @@ function companyToForm(company: StructuralCompany): CompanyForm {
     cnpj: company.cnpj,
     contractStatus: company.contractStatus ?? "onboarding",
     status: company.status,
+    contractDueDate: company.contractDueDate ?? "",
+    selectedPackage: company.selectedPackage ?? "",
     eSocialValidFrom: company.eSocialValidFrom ?? "",
     eSocialValidTo: company.eSocialValidTo ?? "",
     taxClassification: company.taxClassification ?? "",
@@ -119,22 +255,71 @@ function responseMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function money(value: number) {
+  return value.toLocaleString("pt-BR", { currency: "BRL", style: "currency" });
+}
+
+function dateLabel(value: string | undefined) {
+  if (value === undefined || value.length === 0) {
+    return "Pendente";
+  }
+
+  return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
+}
+
+function invoiceStatusLabel(status: string) {
+  if (status === "paid") {
+    return "Paga";
+  }
+
+  if (status === "overdue") {
+    return "Vencida";
+  }
+
+  return "A pagar";
+}
+
+function invoiceStatusClasses(status: string) {
+  if (status === "paid") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "overdue") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+}
+
 export function CompanyManagementPanel({
   initialCompanies,
-}: Readonly<{ initialCompanies: StructuralCompany[] }>) {
+  initialEmployees,
+}: Readonly<{ initialCompanies: StructuralCompany[]; initialEmployees: StructuralEmployee[] }>) {
   const router = useRouter();
   const [companies, setCompanies] = useState(initialCompanies);
+  const [employees, setEmployees] = useState(initialEmployees);
   const [query, setQuery] = useState("");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
   const [contractStatus, setContractStatus] = useState<CompanyContractStatus | "all">("all");
+  const [submittedSearch, setSubmittedSearch] = useState<SubmittedSearch | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<CompanyTab>("general");
   const [editingCompany, setEditingCompany] = useState<StructuralCompany | null>(null);
   const [form, setForm] = useState<CompanyForm>(emptyForm);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [employeeForm, setEmployeeForm] = useState<EmployeeForm>(emptyEmployeeForm);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const filteredCompanies = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    if (submittedSearch === null) {
+      return [];
+    }
+
+    const normalizedQuery = submittedSearch.query.trim().toLowerCase();
 
     return companies.filter((company) => {
       const companyContractStatus = company.contractStatus ?? "onboarding";
@@ -151,18 +336,61 @@ export function CompanyManagementPanel({
         .join(" ")
         .toLowerCase();
       const matchesQuery = normalizedQuery.length === 0 || searchText.includes(normalizedQuery);
-      const matchesContract = contractStatus === "all" || companyContractStatus === contractStatus;
+      const matchesContract =
+        submittedSearch.contractStatus === "all" ||
+        companyContractStatus === submittedSearch.contractStatus;
 
       return matchesQuery && matchesContract;
     });
-  }, [companies, contractStatus, query]);
+  }, [companies, submittedSearch]);
+  const selectedCompany =
+    filteredCompanies.find((company) => company.id === selectedCompanyId) ?? filteredCompanies[0];
+
+  function submitSearch() {
+    const normalizedQuery = query.trim();
+
+    if (normalizedQuery.length === 0 && contractStatus === "all") {
+      setError("Informe nome, CNPJ ou status para buscar uma empresa.");
+      setSubmittedSearch(null);
+      setSelectedCompanyId(null);
+      return;
+    }
+
+    const nextSearch = { contractStatus, periodEnd, periodStart, query: normalizedQuery };
+    const firstResult = companies.find((company) => {
+      const companyContractStatus = company.contractStatus ?? "onboarding";
+      const searchText = [
+        company.tradeName,
+        company.legalName,
+        company.groupName,
+        company.cnpj,
+        companyContractStatus,
+        companyContractStatusLabels[companyContractStatus],
+        structuralStatusLabels[company.status],
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (normalizedQuery.length === 0 || searchText.includes(normalizedQuery.toLowerCase())) &&
+        (contractStatus === "all" || companyContractStatus === contractStatus)
+      );
+    });
+
+    setError(null);
+    setSuccess(null);
+    setSubmittedSearch(nextSearch);
+    setSelectedCompanyId(firstResult?.id ?? null);
+    setActiveTab("general");
+  }
 
   function openCreateModal() {
     setEditingCompany(null);
     setForm(emptyForm);
     setError(null);
     setSuccess(null);
-    setIsModalOpen(true);
+    setIsCompanyModalOpen(true);
   }
 
   function openEditModal(company: StructuralCompany) {
@@ -170,11 +398,15 @@ export function CompanyManagementPanel({
     setForm(companyToForm(company));
     setError(null);
     setSuccess(null);
-    setIsModalOpen(true);
+    setIsCompanyModalOpen(true);
   }
 
   function updateForm(field: keyof CompanyForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateEmployeeForm(field: keyof EmployeeForm, value: string) {
+    setEmployeeForm((current) => ({ ...current, [field]: value }));
   }
 
   async function submitCompany() {
@@ -207,11 +439,9 @@ export function CompanyManagementPanel({
           ? `${apiUrl}/structural/companies`
           : `${apiUrl}/structural/companies/${editingCompany.id}`,
         {
-          method: editingCompany === null ? "POST" : "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify(form),
+          headers: { "Content-Type": "application/json" },
+          method: editingCompany === null ? "POST" : "PATCH",
         },
       );
       const payload = (await response.json()) as StructuralCompany | { message?: string };
@@ -227,12 +457,69 @@ export function CompanyManagementPanel({
           ? [savedCompany, ...current]
           : current.map((company) => (company.id === savedCompany.id ? savedCompany : company)),
       );
+      setSelectedCompanyId(savedCompany.id);
+      setSubmittedSearch({
+        contractStatus: "all",
+        periodEnd,
+        periodStart,
+        query: savedCompany.tradeName,
+      });
       setSuccess(
         editingCompany === null
           ? "Empresa cadastrada com sucesso."
           : "Cadastro da empresa atualizado.",
       );
-      setIsModalOpen(false);
+      setIsCompanyModalOpen(false);
+      router.refresh();
+    } catch {
+      setError("Nao foi possivel conectar a API local.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function submitEmployee() {
+    if (selectedCompany === undefined) {
+      return;
+    }
+
+    const requiredFields: Array<[keyof EmployeeForm, string]> = [
+      ["fullName", "Nome completo"],
+      ["cpf", "CPF"],
+      ["department", "Setor"],
+      ["jobPosition", "Cargo"],
+    ];
+    const missingField = requiredFields.find(([field]) => employeeForm[field].trim().length === 0);
+
+    if (missingField !== undefined) {
+      setError(`Preencha o campo obrigatorio: ${missingField[1]}.`);
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const response = await fetch(`${apiUrl}/structural/employees`, {
+        body: JSON.stringify({
+          ...employeeForm,
+          companyId: selectedCompany.id,
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      const payload = (await response.json()) as StructuralEmployee | { message?: string };
+
+      if (!response.ok) {
+        setError(responseMessage(payload, "Nao foi possivel cadastrar a vida avulsa."));
+        return;
+      }
+
+      setEmployees((current) => [payload as StructuralEmployee, ...current]);
+      setEmployeeForm(emptyEmployeeForm);
+      setIsEmployeeModalOpen(false);
+      setSuccess("Vida avulsa cadastrada para a empresa.");
       router.refresh();
     } catch {
       setError("Nao foi possivel conectar a API local.");
@@ -244,7 +531,7 @@ export function CompanyManagementPanel({
   return (
     <>
       <section className="rounded-lg border border-slate-200 bg-white">
-        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 lg:grid-cols-[1fr_auto_auto]">
+        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 xl:grid-cols-[1fr_auto_auto_auto]">
           <label className="block">
             <span className="text-xs font-semibold uppercase text-slate-500">Pesquisar</span>
             <input
@@ -254,7 +541,6 @@ export function CompanyManagementPanel({
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-
           <label className="block min-w-48">
             <span className="text-xs font-semibold uppercase text-slate-500">Status contrato</span>
             <select
@@ -272,318 +558,728 @@ export function CompanyManagementPanel({
               ))}
             </select>
           </label>
-
-          <div className="flex items-end">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Field
+              label="Inicio financeiro"
+              type="date"
+              value={periodStart}
+              onChange={setPeriodStart}
+            />
+            <Field label="Fim financeiro" type="date" value={periodEnd} onChange={setPeriodEnd} />
+          </div>
+          <div className="flex items-end gap-2">
             <button
-              className="w-full rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm"
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+              type="button"
+              onClick={submitSearch}
+            >
+              Buscar
+            </button>
+            <button
+              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm"
               type="button"
               onClick={openCreateModal}
             >
-              Incluir nova empresa
+              Incluir empresa
             </button>
           </div>
         </div>
 
+        {error !== null && (
+          <div className="mx-5 mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
         {success !== null && (
           <div className="mx-5 mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
             {success}
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Empresa</th>
-                <th className="px-5 py-3 font-semibold">Contrato</th>
-                <th className="px-5 py-3 font-semibold">eSocial</th>
-                <th className="px-5 py-3 font-semibold">Estrutura</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-                <th className="px-5 py-3 font-semibold">Acoes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredCompanies.map((company) => {
-                const currentContractStatus = company.contractStatus ?? "onboarding";
-
-                return (
-                  <tr key={company.id}>
-                    <td className="px-5 py-4">
-                      <strong className="block font-semibold">{company.tradeName}</strong>
-                      <span className="block text-slate-500">{company.legalName}</span>
-                      <span className="block text-xs text-slate-500">{company.cnpj}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${contractStatusClasses(
-                          currentContractStatus,
-                        )}`}
-                      >
-                        {companyContractStatusLabels[currentContractStatus]}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      <span className="block">
-                        Validade {company.eSocialValidFrom ?? "pendente"}
-                      </span>
-                      <span className="block text-xs text-slate-500">
-                        Class. trib. {company.taxClassification ?? "pendente"} / CNAE{" "}
-                        {company.primaryCnae ?? "pendente"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {company.units} unidades / {company.departments} setores
-                      <span className="block text-xs text-slate-500">
-                        {company.employees} colaboradores
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
-                          company.status,
-                        )}`}
-                      >
-                        {structuralStatusLabels[company.status]}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button
-                        className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
-                        type="button"
-                        onClick={() => openEditModal(company)}
-                      >
-                        Ajustar cadastro
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredCompanies.length === 0 && (
+        {submittedSearch === null ? (
+          <EmptySearch />
+        ) : filteredCompanies.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-slate-500">
             Nenhuma empresa encontrada para os filtros aplicados.
+          </div>
+        ) : (
+          <div className="grid gap-4 p-5 xl:grid-cols-[0.36fr_0.64fr]">
+            <div className="rounded-lg border border-slate-200 bg-slate-50">
+              <div className="border-b border-slate-200 px-4 py-3 text-sm font-semibold">
+                Resultado da busca
+              </div>
+              <div className="divide-y divide-slate-200">
+                {filteredCompanies.map((company) => (
+                  <button
+                    key={company.id}
+                    className={`block w-full px-4 py-3 text-left ${
+                      selectedCompany?.id === company.id ? "bg-white" : "hover:bg-white"
+                    }`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCompanyId(company.id);
+                      setActiveTab("general");
+                    }}
+                  >
+                    <strong className="block text-sm">{company.tradeName}</strong>
+                    <span className="mt-1 block text-xs text-slate-500">{company.cnpj}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedCompany !== undefined && (
+              <CompanyDetails
+                activeTab={activeTab}
+                company={selectedCompany}
+                employees={employees.filter(
+                  (employee) => employee.companyTradeName === selectedCompany.tradeName,
+                )}
+                periodEnd={submittedSearch.periodEnd}
+                periodStart={submittedSearch.periodStart}
+                setActiveTab={setActiveTab}
+                onEdit={() => openEditModal(selectedCompany)}
+                onOpenEmployee={() => {
+                  setEmployeeForm(emptyEmployeeForm);
+                  setIsEmployeeModalOpen(true);
+                }}
+              />
+            )}
           </div>
         )}
       </section>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 px-4 py-6">
-          <div className="w-full max-w-5xl rounded-lg border border-slate-200 bg-white shadow-xl">
-            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-pronus-primary">
-                  Cadastro de empresa
-                </p>
-                <h3 className="mt-1 text-lg font-semibold">
-                  {editingCompany === null ? "Incluir nova empresa" : "Ajustar empresa"}
-                </h3>
-              </div>
-              <button
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-              >
-                Fechar
-              </button>
-            </div>
+      {isCompanyModalOpen && (
+        <CompanyModal
+          editingCompany={editingCompany}
+          error={error}
+          form={form}
+          isSaving={isSaving}
+          updateForm={updateForm}
+          onClose={() => setIsCompanyModalOpen(false)}
+          onSubmit={() => void submitCompany()}
+        />
+      )}
 
-            <div className="max-h-[72vh] overflow-y-auto px-5 py-4">
-              <FormSection title="Identificacao e contrato">
-                <Field
-                  label="Grupo empresarial"
-                  required
-                  value={form.groupName}
-                  onChange={(value) => updateForm("groupName", value)}
-                />
-                <Field
-                  label="Nome fantasia"
-                  required
-                  value={form.tradeName}
-                  onChange={(value) => updateForm("tradeName", value)}
-                />
-                <Field
-                  label="Razao social"
-                  required
-                  value={form.legalName}
-                  onChange={(value) => updateForm("legalName", value)}
-                />
-                <Field
-                  label="CNPJ"
-                  required
-                  value={form.cnpj}
-                  onChange={(value) => updateForm("cnpj", value)}
-                />
-                <SelectField
-                  label="Status do contrato"
-                  value={form.contractStatus}
-                  onChange={(value) => updateForm("contractStatus", value)}
-                  options={contractStatuses.map((status) => ({
-                    label: companyContractStatusLabels[status],
-                    value: status,
-                  }))}
-                />
-                <SelectField
-                  label="Situacao cadastral"
-                  value={form.status}
-                  onChange={(value) => updateForm("status", value)}
-                  options={structuralStatuses.map((status) => ({
-                    label: structuralStatusLabels[status],
-                    value: status,
-                  }))}
-                />
-              </FormSection>
-
-              <FormSection title="eSocial S-1000">
-                <Field
-                  label="Inicio validade"
-                  placeholder="AAAA-MM"
-                  required
-                  value={form.eSocialValidFrom}
-                  onChange={(value) => updateForm("eSocialValidFrom", value)}
-                />
-                <Field
-                  label="Fim validade"
-                  placeholder="AAAA-MM"
-                  value={form.eSocialValidTo}
-                  onChange={(value) => updateForm("eSocialValidTo", value)}
-                />
-                <Field
-                  label="Classificacao tributaria"
-                  required
-                  value={form.taxClassification}
-                  onChange={(value) => updateForm("taxClassification", value)}
-                />
-                <Field
-                  label="CNAE preponderante"
-                  placeholder="7 digitos"
-                  value={form.primaryCnae}
-                  onChange={(value) => updateForm("primaryCnae", value)}
-                />
-                <SelectField
-                  label="Cooperativa"
-                  value={form.cooperativeIndicator}
-                  onChange={(value) => updateForm("cooperativeIndicator", value)}
-                  options={[
-                    { label: "0 - Nao e cooperativa", value: "0" },
-                    { label: "1 - Cooperativa de trabalho", value: "1" },
-                    { label: "2 - Outras cooperativas", value: "2" },
-                  ]}
-                />
-                <SelectField
-                  label="Construtora"
-                  value={form.constructionCompanyIndicator}
-                  onChange={(value) => updateForm("constructionCompanyIndicator", value)}
-                  options={[
-                    { label: "0 - Nao", value: "0" },
-                    { label: "1 - Sim", value: "1" },
-                  ]}
-                />
-                <SelectField
-                  label="Desoneracao folha"
-                  value={form.payrollExemptionIndicator}
-                  onChange={(value) => updateForm("payrollExemptionIndicator", value)}
-                  options={[
-                    { label: "0 - Nao aplicavel", value: "0" },
-                    { label: "1 - Empresa enquadrada", value: "1" },
-                  ]}
-                />
-                <SelectField
-                  label="Registro eletronico"
-                  value={form.electronicRegistrationIndicator}
-                  onChange={(value) => updateForm("electronicRegistrationIndicator", value)}
-                  options={[
-                    { label: "0 - Nao optante", value: "0" },
-                    { label: "1 - Optante", value: "1" },
-                  ]}
-                />
-                <SelectField
-                  label="Entidade educativa"
-                  value={form.educationalEntityIndicator}
-                  onChange={(value) => updateForm("educationalEntityIndicator", value)}
-                  options={[
-                    { label: "N - Nao", value: "N" },
-                    { label: "S - Sim", value: "S" },
-                  ]}
-                />
-                <SelectField
-                  label="Empresa trabalho temporario"
-                  value={form.temporaryWorkCompanyIndicator}
-                  onChange={(value) => updateForm("temporaryWorkCompanyIndicator", value)}
-                  options={[
-                    { label: "N - Nao", value: "N" },
-                    { label: "S - Sim", value: "S" },
-                  ]}
-                />
-                <Field
-                  label="Registro MTE ETT"
-                  value={form.temporaryWorkRegistration}
-                  onChange={(value) => updateForm("temporaryWorkRegistration", value)}
-                />
-              </FormSection>
-
-              <FormSection title="Contato responsavel pelo eSocial">
-                <Field
-                  label="Nome contato"
-                  required
-                  value={form.contactName}
-                  onChange={(value) => updateForm("contactName", value)}
-                />
-                <Field
-                  label="CPF contato"
-                  required
-                  value={form.contactCpf}
-                  onChange={(value) => updateForm("contactCpf", value)}
-                />
-                <Field
-                  label="Telefone fixo"
-                  value={form.contactPhone}
-                  onChange={(value) => updateForm("contactPhone", value)}
-                />
-                <Field
-                  label="Celular"
-                  value={form.contactMobile}
-                  onChange={(value) => updateForm("contactMobile", value)}
-                />
-                <Field
-                  label="E-mail"
-                  required
-                  type="email"
-                  value={form.contactEmail}
-                  onChange={(value) => updateForm("contactEmail", value)}
-                />
-              </FormSection>
-
-              {error !== null && (
-                <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-                  {error}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
-              <button
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSaving}
-                type="button"
-                onClick={() => void submitCompany()}
-              >
-                {isSaving ? "Salvando..." : "Salvar empresa"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {isEmployeeModalOpen && selectedCompany !== undefined && (
+        <EmployeeModal
+          company={selectedCompany}
+          form={employeeForm}
+          isSaving={isSaving}
+          updateForm={updateEmployeeForm}
+          onClose={() => setIsEmployeeModalOpen(false)}
+          onSubmit={() => void submitEmployee()}
+        />
       )}
     </>
+  );
+}
+
+function EmptySearch() {
+  return (
+    <div className="px-5 py-10 text-center text-sm text-slate-500">
+      Use a busca para localizar uma empresa. Nenhum dado e carregado automaticamente nesta tela.
+    </div>
+  );
+}
+
+function CompanyDetails({
+  activeTab,
+  company,
+  employees,
+  onEdit,
+  onOpenEmployee,
+  periodEnd,
+  periodStart,
+  setActiveTab,
+}: Readonly<{
+  activeTab: CompanyTab;
+  company: StructuralCompany;
+  employees: StructuralEmployee[];
+  onEdit: () => void;
+  onOpenEmployee: () => void;
+  periodEnd: string;
+  periodStart: string;
+  setActiveTab: (tab: CompanyTab) => void;
+}>) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white">
+      <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className="text-base font-semibold">{company.tradeName}</h3>
+          <p className="mt-1 text-sm text-slate-600">{company.legalName ?? company.cnpj}</p>
+        </div>
+        <button
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+          type="button"
+          onClick={onEdit}
+        >
+          Ajustar cadastro
+        </button>
+      </div>
+      <div className="flex gap-2 overflow-x-auto border-b border-slate-200 px-5 py-3">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`rounded-md px-3 py-2 text-sm font-semibold ${
+              activeTab === tab.id
+                ? "bg-pronus-primary text-white"
+                : "border border-slate-200 bg-white text-slate-700"
+            }`}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="p-5">
+        {activeTab === "general" && <GeneralTab company={company} />}
+        {activeTab === "coverage" && <CoverageTab company={company} />}
+        {activeTab === "employees" && (
+          <EmployeesTab employees={employees} onOpenEmployee={onOpenEmployee} />
+        )}
+        {activeTab === "financial" && (
+          <FinancialTab company={company} periodEnd={periodEnd} periodStart={periodStart} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GeneralTab({ company }: Readonly<{ company: StructuralCompany }>) {
+  const contractStatus = company.contractStatus ?? "onboarding";
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      <Info label="Razao social" value={company.legalName ?? "Pendente"} />
+      <Info label="CNPJ" value={company.cnpj} />
+      <Info label="Pacote escolhido" value={company.selectedPackage ?? "Pendente"} />
+      <Info label="Data de vencimento" value={dateLabel(company.contractDueDate)} />
+      <Info label="Status do contrato" value={companyContractStatusLabels[contractStatus]} />
+      <Info label="Classificacao tributaria" value={company.taxClassification ?? "Pendente"} />
+      <Info label="CNAE preponderante" value={company.primaryCnae ?? "Pendente"} />
+      <Info label="Contato eSocial" value={company.contactName ?? "Pendente"} />
+    </div>
+  );
+}
+
+function CoverageTab({ company }: Readonly<{ company: StructuralCompany }>) {
+  const coverages = coverageSeed.filter((item) => item.company === company.tradeName);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-left text-sm">
+        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <tr>
+            <th className="px-4 py-3 font-semibold">Cobertura</th>
+            <th className="px-4 py-3 font-semibold">Direito</th>
+            <th className="px-4 py-3 font-semibold">Usadas</th>
+            <th className="px-4 py-3 font-semibold">Absenteismo</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {coverages.map((coverage) => (
+            <tr key={coverage.specialty}>
+              <td className="px-4 py-3 font-semibold">{coverage.specialty}</td>
+              <td className="px-4 py-3">{coverage.entitled}</td>
+              <td className="px-4 py-3">{coverage.used}</td>
+              <td className="px-4 py-3">{coverage.absenteeism}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {coverages.length === 0 && (
+        <div className="py-6 text-sm text-slate-500">Nenhuma cobertura cadastrada.</div>
+      )}
+    </div>
+  );
+}
+
+function EmployeesTab({
+  employees,
+  onOpenEmployee,
+}: Readonly<{ employees: StructuralEmployee[]; onOpenEmployee: () => void }>) {
+  return (
+    <div>
+      <div className="mb-3 flex justify-end">
+        <button
+          aria-label="Inserir vida avulsa"
+          className="rounded-md bg-pronus-primary px-3 py-2 text-sm font-semibold text-white"
+          type="button"
+          onClick={onOpenEmployee}
+        >
+          + Vida avulsa
+        </button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Nome</th>
+              <th className="px-4 py-3 font-semibold">Nascimento</th>
+              <th className="px-4 py-3 font-semibold">Inclusao</th>
+              <th className="px-4 py-3 font-semibold">Exclusao</th>
+              <th className="px-4 py-3 font-semibold">Setor</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {employees.map((employee) => (
+              <tr key={employee.id}>
+                <td className="px-4 py-3 font-semibold">{employee.fullName}</td>
+                <td className="px-4 py-3">{dateLabel(employee.birthDate)}</td>
+                <td className="px-4 py-3">{dateLabel(employee.inclusionDate)}</td>
+                <td className="px-4 py-3">{dateLabel(employee.exclusionDate)}</td>
+                <td className="px-4 py-3">{employee.department}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                      employee.registrationStatus,
+                    )}`}
+                  >
+                    {structuralStatusLabels[employee.registrationStatus]}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function FinancialTab({
+  company,
+  periodEnd,
+  periodStart,
+}: Readonly<{ company: StructuralCompany; periodEnd: string; periodStart: string }>) {
+  const invoices = invoiceSeed.filter((invoice) => {
+    if (invoice.company !== company.tradeName) {
+      return false;
+    }
+
+    if (periodStart.length > 0 && invoice.dueDate < periodStart) {
+      return false;
+    }
+
+    if (periodEnd.length > 0 && invoice.dueDate > periodEnd) {
+      return false;
+    }
+
+    return true;
+  });
+  const paidInvoices = invoices.filter((invoice) => invoice.status === "paid");
+  const openInvoices = invoices.filter((invoice) => invoice.status !== "paid");
+  const total = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const paid = paidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const open = openInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const delinquency = total === 0 ? 0 : Math.round((open / total) * 1000) / 10;
+
+  return (
+    <div>
+      <div className="mb-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <Info label="Parcelas" value={String(invoices.length)} />
+        <Info label="Pagas" value={String(paidInvoices.length)} />
+        <Info label="Em aberto" value={String(openInvoices.length)} />
+        <Info label="Valor total" value={money(total)} />
+        <Info label="Total pago" value={money(paid)} />
+        <Info label="Inadimplencia" value={`${delinquency}%`} />
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Parcela</th>
+              <th className="px-4 py-3 font-semibold">Valor</th>
+              <th className="px-4 py-3 font-semibold">Tipo</th>
+              <th className="px-4 py-3 font-semibold">Vencimento</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {invoices.map((invoice) => (
+              <tr key={`${invoice.company}-${invoice.number}-${invoice.type}`}>
+                <td className="px-4 py-3">{invoice.number}</td>
+                <td className="px-4 py-3">{money(invoice.amount)}</td>
+                <td className="px-4 py-3">{invoice.type}</td>
+                <td className="px-4 py-3">{dateLabel(invoice.dueDate)}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${invoiceStatusClasses(
+                      invoice.status,
+                    )}`}
+                  >
+                    {invoiceStatusLabel(invoice.status)}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Info({ label, value }: Readonly<{ label: string; value: string }>) {
+  return (
+    <article className="rounded-md bg-slate-100 px-3 py-2">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <strong className="mt-1 block text-sm font-semibold text-slate-900">{value}</strong>
+    </article>
+  );
+}
+
+function CompanyModal({
+  editingCompany,
+  error,
+  form,
+  isSaving,
+  onClose,
+  onSubmit,
+  updateForm,
+}: Readonly<{
+  editingCompany: StructuralCompany | null;
+  error: string | null;
+  form: CompanyForm;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  updateForm: (field: keyof CompanyForm, value: string) => void;
+}>) {
+  return (
+    <Modal
+      title={editingCompany === null ? "Incluir nova empresa" : "Ajustar empresa"}
+      onClose={onClose}
+    >
+      <div className="max-h-[72vh] overflow-y-auto px-5 py-4">
+        <FormSection title="Identificacao e contrato">
+          <Field
+            label="Grupo empresarial"
+            required
+            value={form.groupName}
+            onChange={(value) => updateForm("groupName", value)}
+          />
+          <Field
+            label="Nome fantasia"
+            required
+            value={form.tradeName}
+            onChange={(value) => updateForm("tradeName", value)}
+          />
+          <Field
+            label="Razao social"
+            required
+            value={form.legalName}
+            onChange={(value) => updateForm("legalName", value)}
+          />
+          <Field
+            label="CNPJ"
+            required
+            value={form.cnpj}
+            onChange={(value) => updateForm("cnpj", value)}
+          />
+          <Field
+            label="Data vencimento"
+            type="date"
+            value={form.contractDueDate}
+            onChange={(value) => updateForm("contractDueDate", value)}
+          />
+          <Field
+            label="Pacote escolhido"
+            value={form.selectedPackage}
+            onChange={(value) => updateForm("selectedPackage", value)}
+          />
+          <SelectField
+            label="Status do contrato"
+            value={form.contractStatus}
+            onChange={(value) => updateForm("contractStatus", value)}
+            options={contractStatuses.map((status) => ({
+              label: companyContractStatusLabels[status],
+              value: status,
+            }))}
+          />
+          <SelectField
+            label="Situacao cadastral"
+            value={form.status}
+            onChange={(value) => updateForm("status", value)}
+            options={structuralStatuses.map((status) => ({
+              label: structuralStatusLabels[status],
+              value: status,
+            }))}
+          />
+        </FormSection>
+        <FormSection title="eSocial S-1000">
+          <Field
+            label="Inicio validade"
+            placeholder="AAAA-MM"
+            required
+            value={form.eSocialValidFrom}
+            onChange={(value) => updateForm("eSocialValidFrom", value)}
+          />
+          <Field
+            label="Fim validade"
+            placeholder="AAAA-MM"
+            value={form.eSocialValidTo}
+            onChange={(value) => updateForm("eSocialValidTo", value)}
+          />
+          <Field
+            label="Classificacao tributaria"
+            required
+            value={form.taxClassification}
+            onChange={(value) => updateForm("taxClassification", value)}
+          />
+          <Field
+            label="CNAE preponderante"
+            placeholder="7 digitos"
+            value={form.primaryCnae}
+            onChange={(value) => updateForm("primaryCnae", value)}
+          />
+          <SelectField
+            label="Cooperativa"
+            value={form.cooperativeIndicator}
+            onChange={(value) => updateForm("cooperativeIndicator", value)}
+            options={[
+              { label: "0 - Nao e cooperativa", value: "0" },
+              { label: "1 - Cooperativa de trabalho", value: "1" },
+              { label: "2 - Outras cooperativas", value: "2" },
+            ]}
+          />
+          <SelectField
+            label="Construtora"
+            value={form.constructionCompanyIndicator}
+            onChange={(value) => updateForm("constructionCompanyIndicator", value)}
+            options={[
+              { label: "0 - Nao", value: "0" },
+              { label: "1 - Sim", value: "1" },
+            ]}
+          />
+          <SelectField
+            label="Desoneracao folha"
+            value={form.payrollExemptionIndicator}
+            onChange={(value) => updateForm("payrollExemptionIndicator", value)}
+            options={[
+              { label: "0 - Nao aplicavel", value: "0" },
+              { label: "1 - Empresa enquadrada", value: "1" },
+            ]}
+          />
+          <SelectField
+            label="Registro eletronico"
+            value={form.electronicRegistrationIndicator}
+            onChange={(value) => updateForm("electronicRegistrationIndicator", value)}
+            options={[
+              { label: "0 - Nao optante", value: "0" },
+              { label: "1 - Optante", value: "1" },
+            ]}
+          />
+          <SelectField
+            label="Entidade educativa"
+            value={form.educationalEntityIndicator}
+            onChange={(value) => updateForm("educationalEntityIndicator", value)}
+            options={[
+              { label: "N - Nao", value: "N" },
+              { label: "S - Sim", value: "S" },
+            ]}
+          />
+          <SelectField
+            label="Empresa trabalho temporario"
+            value={form.temporaryWorkCompanyIndicator}
+            onChange={(value) => updateForm("temporaryWorkCompanyIndicator", value)}
+            options={[
+              { label: "N - Nao", value: "N" },
+              { label: "S - Sim", value: "S" },
+            ]}
+          />
+          <Field
+            label="Registro MTE ETT"
+            value={form.temporaryWorkRegistration}
+            onChange={(value) => updateForm("temporaryWorkRegistration", value)}
+          />
+        </FormSection>
+        <FormSection title="Contato responsavel pelo eSocial">
+          <Field
+            label="Nome contato"
+            required
+            value={form.contactName}
+            onChange={(value) => updateForm("contactName", value)}
+          />
+          <Field
+            label="CPF contato"
+            required
+            value={form.contactCpf}
+            onChange={(value) => updateForm("contactCpf", value)}
+          />
+          <Field
+            label="Telefone fixo"
+            value={form.contactPhone}
+            onChange={(value) => updateForm("contactPhone", value)}
+          />
+          <Field
+            label="Celular"
+            value={form.contactMobile}
+            onChange={(value) => updateForm("contactMobile", value)}
+          />
+          <Field
+            label="E-mail"
+            required
+            type="email"
+            value={form.contactEmail}
+            onChange={(value) => updateForm("contactEmail", value)}
+          />
+        </FormSection>
+        {error !== null && (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
+      </div>
+      <ModalFooter
+        isSaving={isSaving}
+        onClose={onClose}
+        onSubmit={onSubmit}
+        submitLabel="Salvar empresa"
+      />
+    </Modal>
+  );
+}
+
+function EmployeeModal({
+  company,
+  form,
+  isSaving,
+  onClose,
+  onSubmit,
+  updateForm,
+}: Readonly<{
+  company: StructuralCompany;
+  form: EmployeeForm;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  updateForm: (field: keyof EmployeeForm, value: string) => void;
+}>) {
+  return (
+    <Modal title={`Inserir vida avulsa - ${company.tradeName}`} onClose={onClose}>
+      <div className="px-5 py-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field
+            label="Nome completo"
+            required
+            value={form.fullName}
+            onChange={(value) => updateForm("fullName", value)}
+          />
+          <Field
+            label="CPF"
+            required
+            value={form.cpf}
+            onChange={(value) => updateForm("cpf", value)}
+          />
+          <Field
+            label="Data nascimento"
+            type="date"
+            value={form.birthDate}
+            onChange={(value) => updateForm("birthDate", value)}
+          />
+          <Field
+            label="Data inclusao"
+            type="date"
+            value={form.inclusionDate}
+            onChange={(value) => updateForm("inclusionDate", value)}
+          />
+          <Field
+            label="Setor"
+            required
+            value={form.department}
+            onChange={(value) => updateForm("department", value)}
+          />
+          <Field
+            label="Cargo"
+            required
+            value={form.jobPosition}
+            onChange={(value) => updateForm("jobPosition", value)}
+          />
+          <Field
+            label="E-mail"
+            type="email"
+            value={form.email}
+            onChange={(value) => updateForm("email", value)}
+          />
+          <Field
+            label="Telefone"
+            value={form.phone}
+            onChange={(value) => updateForm("phone", value)}
+          />
+        </div>
+      </div>
+      <ModalFooter
+        isSaving={isSaving}
+        onClose={onClose}
+        onSubmit={onSubmit}
+        submitLabel="Salvar vida"
+      />
+    </Modal>
+  );
+}
+
+function Modal({
+  children,
+  onClose,
+  title,
+}: Readonly<{ children: ReactNode; onClose: () => void; title: string }>) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 px-4 py-6">
+      <div className="w-full max-w-5xl rounded-lg border border-slate-200 bg-white shadow-xl">
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-pronus-primary">
+              Empresas
+            </p>
+            <h3 className="mt-1 text-lg font-semibold">{title}</h3>
+          </div>
+          <button
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+            type="button"
+            onClick={onClose}
+          >
+            Fechar
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalFooter({
+  isSaving,
+  onClose,
+  onSubmit,
+  submitLabel,
+}: Readonly<{
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  submitLabel: string;
+}>) {
+  return (
+    <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
+      <button
+        className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+        type="button"
+        onClick={onClose}
+      >
+        Cancelar
+      </button>
+      <button
+        className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isSaving}
+        type="button"
+        onClick={onSubmit}
+      >
+        {isSaving ? "Salvando..." : submitLabel}
+      </button>
+    </div>
   );
 }
 

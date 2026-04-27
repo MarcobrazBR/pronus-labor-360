@@ -24,6 +24,8 @@ export interface StructuralCompany {
   groupName?: string;
   cnpj: string;
   contractStatus?: CompanyContractStatus;
+  contractDueDate?: string;
+  selectedPackage?: string;
   eSocialValidFrom?: string;
   eSocialValidTo?: string;
   taxClassification?: string;
@@ -50,6 +52,9 @@ export interface StructuralEmployee {
   id: string;
   companyTradeName: string;
   fullName: string;
+  birthDate?: string;
+  inclusionDate?: string;
+  exclusionDate?: string;
   department: string;
   jobPosition: string;
   registrationStatus: StructuralStatus;
@@ -77,7 +82,9 @@ export interface StructuralJobPosition {
   companyTradeName: string;
   departmentName?: string;
   title: string;
+  eSocialCode?: string;
   cboCode?: string;
+  description?: string;
   status: StructuralStatus;
 }
 
@@ -213,6 +220,8 @@ const fallbackCompanies: StructuralCompany[] = [
     legalName: "Industria Horizonte Ltda.",
     cnpj: "12.345.678/0001-90",
     contractStatus: "active",
+    contractDueDate: "2026-12-31",
+    selectedPackage: "Essencial SST + Psicossocial",
     eSocialValidFrom: "2026-04",
     taxClassification: "99",
     primaryCnae: "1091102",
@@ -233,6 +242,8 @@ const fallbackCompanies: StructuralCompany[] = [
     legalName: "Rede Norte Comercio S.A.",
     cnpj: "98.765.432/0001-10",
     contractStatus: "onboarding",
+    contractDueDate: "2026-10-31",
+    selectedPackage: "Completo Ocupacional",
     eSocialValidFrom: "2026-04",
     taxClassification: "99",
     primaryCnae: "4711302",
@@ -305,7 +316,9 @@ const fallbackJobPositions: StructuralJobPosition[] = [
     companyTradeName: "Industria Horizonte",
     departmentName: "Producao",
     title: "Operadora de Maquina",
+    eSocialCode: "CARGO-001",
     cboCode: "7842-05",
+    description: "Opera equipamentos industriais conforme procedimento de seguranca.",
     status: "active",
   },
   {
@@ -313,7 +326,9 @@ const fallbackJobPositions: StructuralJobPosition[] = [
     companyTradeName: "Industria Horizonte",
     departmentName: "Manutencao",
     title: "Tecnico de Seguranca",
+    eSocialCode: "CARGO-002",
     cboCode: "3516-05",
+    description: "Apoia rotinas de seguranca ocupacional e controles preventivos.",
     status: "active",
   },
   {
@@ -321,7 +336,19 @@ const fallbackJobPositions: StructuralJobPosition[] = [
     companyTradeName: "Rede Norte",
     departmentName: "Atendimento",
     title: "Supervisora de Loja",
+    eSocialCode: "CARGO-003",
     cboCode: "5201-10",
+    description: "Coordena equipe de atendimento e operacao de loja.",
+    status: "active",
+  },
+  {
+    id: "job-rede-norte-auxiliar-logistica",
+    companyTradeName: "Rede Norte",
+    departmentName: "Logistica",
+    title: "Auxiliar de Logistica",
+    eSocialCode: "CARGO-004",
+    cboCode: "4141-05",
+    description: "Executa recebimento, conferencia e movimentacao de mercadorias.",
     status: "active",
   },
 ];
@@ -331,6 +358,8 @@ const fallbackEmployees: StructuralEmployee[] = [
     id: "employee-001",
     companyTradeName: "Industria Horizonte",
     fullName: "Ana Cristina Ramos",
+    birthDate: "1989-03-14",
+    inclusionDate: "2026-01-05",
     department: "Producao",
     jobPosition: "Operadora de Maquina",
     registrationStatus: "active",
@@ -339,6 +368,8 @@ const fallbackEmployees: StructuralEmployee[] = [
     id: "employee-002",
     companyTradeName: "Industria Horizonte",
     fullName: "Rafael Moreira Lima",
+    birthDate: "1982-08-21",
+    inclusionDate: "2026-01-05",
     department: "Manutencao",
     jobPosition: "Tecnico de Seguranca",
     registrationStatus: "pending_validation",
@@ -347,6 +378,8 @@ const fallbackEmployees: StructuralEmployee[] = [
     id: "employee-003",
     companyTradeName: "Rede Norte",
     fullName: "Beatriz Almeida Souza",
+    birthDate: "1991-11-02",
+    inclusionDate: "2026-02-12",
     department: "Atendimento",
     jobPosition: "Supervisora de Loja",
     registrationStatus: "active",

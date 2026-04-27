@@ -13,6 +13,8 @@ export interface StructuralCompany {
   legalName: string;
   cnpj: string;
   contractStatus: CompanyContractStatus;
+  contractDueDate?: string;
+  selectedPackage?: string;
   eSocialValidFrom?: string;
   eSocialValidTo?: string;
   taxClassification?: string;
@@ -43,6 +45,9 @@ export interface StructuralEmployee {
   companyTradeName: string;
   fullName: string;
   cpf: string;
+  birthDate?: string;
+  inclusionDate?: string;
+  exclusionDate?: string;
   department: string;
   jobPosition: string;
   email?: string;
@@ -83,6 +88,7 @@ export interface StructuralJobPosition {
   departmentId?: string;
   departmentName?: string;
   title: string;
+  eSocialCode?: string;
   cboCode?: string;
   description?: string;
   status: StructuralStatus;
@@ -106,6 +112,8 @@ export interface CreateStructuralCompanyInput {
   legalName: string;
   cnpj: string;
   contractStatus?: CompanyContractStatus;
+  contractDueDate?: string;
+  selectedPackage?: string;
   eSocialValidFrom?: string;
   eSocialValidTo?: string;
   taxClassification?: string;
@@ -155,6 +163,7 @@ export interface CreateStructuralJobPositionInput {
   companyId: string;
   departmentId?: string;
   title: string;
+  eSocialCode?: string;
   cboCode?: string;
   description?: string;
 }
@@ -162,7 +171,7 @@ export interface CreateStructuralJobPositionInput {
 export type UpdateStructuralJobPositionInput = Partial<
   Pick<
     CreateStructuralJobPositionInput,
-    "companyId" | "departmentId" | "title" | "cboCode" | "description"
+    "companyId" | "departmentId" | "title" | "eSocialCode" | "cboCode" | "description"
   >
 > & {
   status?: StructuralStatus;
@@ -176,6 +185,8 @@ export type UpdateStructuralCompanyInput = Partial<
     | "legalName"
     | "cnpj"
     | "contractStatus"
+    | "contractDueDate"
+    | "selectedPackage"
     | "eSocialValidFrom"
     | "eSocialValidTo"
     | "taxClassification"
@@ -203,6 +214,9 @@ export interface CreateStructuralEmployeeInput {
   companyId: string;
   fullName: string;
   cpf: string;
+  birthDate?: string;
+  inclusionDate?: string;
+  exclusionDate?: string;
   department: string;
   jobPosition: string;
   email?: string;
@@ -212,7 +226,16 @@ export interface CreateStructuralEmployeeInput {
 export type UpdateStructuralEmployeeInput = Partial<
   Pick<
     CreateStructuralEmployeeInput,
-    "companyId" | "fullName" | "cpf" | "department" | "jobPosition" | "email" | "phone"
+    | "companyId"
+    | "fullName"
+    | "cpf"
+    | "birthDate"
+    | "inclusionDate"
+    | "exclusionDate"
+    | "department"
+    | "jobPosition"
+    | "email"
+    | "phone"
   >
 > & {
   registrationStatus?: StructuralStatus;
