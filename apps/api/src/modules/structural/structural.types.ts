@@ -180,3 +180,59 @@ export interface StructuralEmployeeImportResult {
   skipped: StructuralEmployeeImportIssue[];
   errors: StructuralEmployeeImportIssue[];
 }
+
+export interface EmployeeAccessLookupInput {
+  cpf: string;
+}
+
+export interface EmployeeAccessProfile {
+  employeeId: string;
+  companyTradeName: string;
+  fullName: string;
+  cpf: string;
+  department: string;
+  jobPosition: string;
+  email?: string;
+  phone?: string;
+  registrationStatus: StructuralStatus;
+}
+
+export type EmployeeDivergenceField = "email" | "phone" | "department" | "jobPosition";
+
+export interface EmployeeAccessSubmittedData {
+  email?: string;
+  phone?: string;
+  department?: string;
+  jobPosition?: string;
+}
+
+export interface SubmitEmployeeDivergenceInput {
+  employeeId: string;
+  submittedData: EmployeeAccessSubmittedData;
+}
+
+export interface EmployeeDivergenceChange {
+  field: EmployeeDivergenceField;
+  currentValue: string;
+  submittedValue: string;
+}
+
+export type EmployeeDivergenceStatus = "pending" | "approved" | "rejected";
+
+export interface EmployeeDivergenceRequest {
+  id: string;
+  employeeId: string;
+  companyTradeName: string;
+  fullName: string;
+  cpf: string;
+  changes: EmployeeDivergenceChange[];
+  status: EmployeeDivergenceStatus;
+  reviewerName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateEmployeeDivergenceInput {
+  status: EmployeeDivergenceStatus;
+  reviewerName?: string;
+}

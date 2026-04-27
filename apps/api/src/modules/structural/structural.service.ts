@@ -6,6 +6,11 @@ import type {
   CreateStructuralEmployeeInput,
   CreateStructuralJobPositionInput,
   CreateStructuralUnitInput,
+  EmployeeAccessLookupInput,
+  EmployeeAccessProfile,
+  EmployeeDivergenceChange,
+  EmployeeDivergenceRequest,
+  EmployeeDivergenceStatus,
   ImportStructuralEmployeesInput,
   StructuralCompany,
   StructuralDepartment,
@@ -15,8 +20,10 @@ import type {
   StructuralJobPosition,
   StructuralStatus,
   StructuralSummary,
+  SubmitEmployeeDivergenceInput,
   UpdateStructuralCompanyInput,
   UpdateStructuralDepartmentInput,
+  UpdateEmployeeDivergenceInput,
   UpdateStructuralEmployeeInput,
   UpdateStructuralJobPositionInput,
   UpdateStructuralUnitInput,
@@ -30,6 +37,7 @@ const validStatuses = new Set<StructuralStatus>([
   "blocked",
   "inactive",
 ]);
+const divergenceStatuses = new Set<EmployeeDivergenceStatus>(["pending", "approved", "rejected"]);
 
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
@@ -87,6 +95,14 @@ function normalizeStatus(value: unknown, field: string): StructuralStatus | unde
   }
 
   return value as StructuralStatus;
+}
+
+function normalizeDivergenceStatus(value: unknown): EmployeeDivergenceStatus {
+  if (typeof value !== "string" || !divergenceStatuses.has(value as EmployeeDivergenceStatus)) {
+    throw new BadRequestException("Status de divergencia invalido");
+  }
+
+  return value as EmployeeDivergenceStatus;
 }
 
 function normalizeCnpj(value: unknown): string {
@@ -208,6 +224,10 @@ function pickRowValue(row: Record<string, string>, keys: string[]): string | und
   }
 
   return undefined;
+}
+
+function valueOrEmpty(value: string | undefined): string {
+  return value?.trim() ?? "";
 }
 
 const startedAt = now();
@@ -464,6 +484,26 @@ const employees: StructuralEmployee[] = [
     department: "Atendimento",
     jobPosition: "Supervisora de Loja",
     registrationStatus: "active",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+  },
+];
+
+const employeeDivergences: EmployeeDivergenceRequest[] = [
+  {
+    id: "divergence-001",
+    employeeId: "employee-002",
+    companyTradeName: "Industria Horizonte",
+    fullName: "Rafael Moreira Lima",
+    cpf: "987.654.321-00",
+    changes: [
+      {
+        field: "phone",
+        currentValue: "",
+        submittedValue: "11 98888-7777",
+      },
+    ],
+    status: "pending",
     createdAt: startedAt,
     updatedAt: startedAt,
   },
@@ -895,6 +935,80 @@ export class StructuralService {
     return this.updateEmployee(id, { registrationStatus: "inactive" });
   }
 
+  lookupEmployeeAccess(input: EmployeeAccessLookupInput): EmployeeAccessProfile {
+    const cpf = normalizeCpf(input.cpf);
+    const employee = employees.find((item) => onlyDigits(item.cpf) === onlyDigits(cpf));
+
+    if (employee === undefined || employee.registrationStatus === "inactive") {
+      throw new NotFoundException("CPF nao encontrado na base de colaboradores");
+    }
+
+    return this.toEmployeeAccessProfile(employee);
+  }
+
+  listEmployeeDivergences(): EmployeeDivergenceRequest[] {
+    return employeeDivergences;
+  }
+
+  submitEmployeeDivergence(input: SubmitEmployeeDivergenceInput): EmployeeDivergenceRequest {
+    const employee = this.findEmployee(input.employeeId);
+    const changes = this.buildDivergenceChanges(employee, input.submittedData);
+
+    if (changes.length === 0) {
+      throw new BadRequestException("Nenhuma divergencia encontrada nos dados enviados");
+    }
+
+    const createdAt = now();
+    const divergence: EmployeeDivergenceRequest = {
+      id: randomUUID(),
+      employeeId: employee.id,
+      companyTradeName: employee.companyTradeName,
+      fullName: employee.fullName,
+      cpf: employee.cpf,
+      changes,
+      status: "pending",
+      createdAt,
+      updatedAt: createdAt,
+    };
+
+    employeeDivergences.unshift(divergence);
+    employee.registrationStatus = "blocked";
+    employee.updatedAt = createdAt;
+
+    return divergence;
+  }
+
+  updateEmployeeDivergence(
+    id: string,
+    input: UpdateEmployeeDivergenceInput,
+  ): EmployeeDivergenceRequest {
+    const divergence = this.findEmployeeDivergence(id);
+    const status = normalizeDivergenceStatus(input.status);
+
+    divergence.status = status;
+    divergence.reviewerName = optionalText(input.reviewerName, "reviewerName") ?? divergence.reviewerName;
+    divergence.updatedAt = now();
+
+    if (status === "approved") {
+      const employee = this.findEmployee(divergence.employeeId);
+
+      for (const change of divergence.changes) {
+        employee[change.field] = change.submittedValue;
+      }
+
+      employee.registrationStatus = "active";
+      employee.updatedAt = divergence.updatedAt;
+    }
+
+    if (status === "rejected") {
+      const employee = this.findEmployee(divergence.employeeId);
+      employee.registrationStatus = "active";
+      employee.updatedAt = divergence.updatedAt;
+    }
+
+    return divergence;
+  }
+
   importEmployees(input: ImportStructuralEmployeesInput): StructuralEmployeeImportResult {
     const dryRun = input.dryRun ?? true;
     const rows = parseCsv(requireText(input.content, "content"), input.delimiter);
@@ -1045,6 +1159,58 @@ export class StructuralService {
     }
 
     return employee;
+  }
+
+  private findEmployeeDivergence(id: string): EmployeeDivergenceRequest {
+    const divergence = employeeDivergences.find((item) => item.id === id);
+
+    if (divergence === undefined) {
+      throw new NotFoundException("Divergencia cadastral nao encontrada");
+    }
+
+    return divergence;
+  }
+
+  private toEmployeeAccessProfile(employee: StructuralEmployee): EmployeeAccessProfile {
+    return {
+      employeeId: employee.id,
+      companyTradeName: employee.companyTradeName,
+      fullName: employee.fullName,
+      cpf: employee.cpf,
+      department: employee.department,
+      jobPosition: employee.jobPosition,
+      email: employee.email,
+      phone: employee.phone,
+      registrationStatus: employee.registrationStatus,
+    };
+  }
+
+  private buildDivergenceChanges(
+    employee: StructuralEmployee,
+    submittedData: SubmitEmployeeDivergenceInput["submittedData"],
+  ): EmployeeDivergenceChange[] {
+    const fields: EmployeeDivergenceChange["field"][] = [
+      "email",
+      "phone",
+      "department",
+      "jobPosition",
+    ];
+    const changes: EmployeeDivergenceChange[] = [];
+
+    for (const field of fields) {
+      const submittedValue = valueOrEmpty(submittedData[field]);
+      const currentValue = valueOrEmpty(employee[field]);
+
+      if (submittedValue.length > 0 && submittedValue !== currentValue) {
+        changes.push({
+          field,
+          currentValue,
+          submittedValue,
+        });
+      }
+    }
+
+    return changes;
   }
 
   private ensureUniqueUnitName(companyId: string, name: string, currentId?: string): void {

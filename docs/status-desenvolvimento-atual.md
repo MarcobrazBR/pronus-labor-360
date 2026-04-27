@@ -45,12 +45,19 @@ Estado encontrado:
   - `POST /structural/employees/import`
   - `PATCH /structural/employees/:id`
   - `DELETE /structural/employees/:id`
+- Criado fluxo inicial de primeiro acesso do colaborador:
+  - `POST /employee-access/lookup`
+  - `GET /employee-access/divergences`
+  - `POST /employee-access/divergences`
+  - `PATCH /employee-access/divergences/:id`
 - API estrutural agora valida campos obrigatorios, normaliza CPF/CNPJ, bloqueia duplicidades e faz inativacao logica.
 - API estrutural agora cobre empresa, unidade, setor, cargo e colaborador.
 - Importacao inicial de colaboradores via CSV adicionada, com modo `dryRun`, validacao por CNPJ ou empresa padrao, contagem de linhas validas, puladas e com erro.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
 - Portal PRONUS passou a consumir a API local com fallback para dados-semente.
 - Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
+- Portal Colaborador agora possui consulta por CPF, conferencia cadastral e envio de divergencia.
+- Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
 - Painel PRONUS agora exibe:
   - resumo de empresas, colaboradores, acoes NR-01 e campanhas;
   - unidades, setores e cargos;
@@ -65,7 +72,7 @@ Estado encontrado:
 - Trocar persistencia temporaria em memoria por Prisma/Supabase.
 - Evoluir importacao para reconciliar unidade/setor/cargo com cadastros estruturais existentes.
 - Implementar autenticacao e permissoes.
-- Criar fluxo real de divergencia cadastral no primeiro acesso.
+- Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
 - Implementar nucleos funcionais de NR-01/GRO/PGR e risco psicossocial.
 - Criar testes automatizados quando os fluxos deixarem de ser somente fundacao.
 
@@ -78,3 +85,4 @@ Estado encontrado:
 - Teste HTTP de criacao, vinculacao e inativacao de unidade/setor/cargo na API local.
 - Teste HTTP de importacao CSV em `dryRun` e criacao real, seguido de inativacao logica do colaborador importado.
 - Typecheck do Portal PRONUS apos criacao do painel interativo de importacao.
+- Teste HTTP de lookup por CPF, envio de divergencia cadastral e revisao da divergencia.
