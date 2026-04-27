@@ -60,13 +60,24 @@ Estado encontrado:
   - `GET /nr01/action-plan`
   - `POST /nr01/action-plan`
   - `PATCH /nr01/action-plan/:id`
+- Criado modulo inicial de risco psicossocial:
+  - `GET /psychosocial/summary`
+  - `GET /psychosocial/questions`
+  - `GET /psychosocial/campaigns`
+  - `GET /psychosocial/campaigns/:id`
+  - `POST /psychosocial/campaigns`
+  - `PATCH /psychosocial/campaigns/:id`
+  - `GET /psychosocial/sector-signals`
+  - `POST /psychosocial/answers`
 - API estrutural agora valida campos obrigatorios, normaliza CPF/CNPJ, bloqueia duplicidades e faz inativacao logica.
 - API estrutural agora cobre empresa, unidade, setor, cargo e colaborador.
 - Importacao inicial de colaboradores via CSV adicionada, com modo `dryRun`, validacao por CNPJ ou empresa padrao, contagem de linhas validas, puladas e com erro.
+- API psicossocial agora possui campanhas, questionario-base, envio inicial de respostas, calculo de adesao, classificacao de risco e sinais por setor com indicacao de privacidade.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
 - Portal PRONUS passou a consumir a API local com fallback para dados-semente.
 - Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
 - Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
+- Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral e envio de divergencia.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
 - Painel PRONUS agora exibe:
@@ -85,7 +96,7 @@ Estado encontrado:
 - Implementar autenticacao e permissoes.
 - Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
 - Evoluir NR-01/GRO/PGR para formularios completos, documentos e evidencias anexas.
-- Implementar nucleo funcional de risco psicossocial.
+- Evoluir risco psicossocial para fluxo completo do colaborador, anonimato por regra minima, relatorios tecnicos e plano de intervencao.
 - Criar testes automatizados quando os fluxos deixarem de ser somente fundacao.
 
 ## Validacoes Executadas
@@ -99,3 +110,5 @@ Estado encontrado:
 - Typecheck do Portal PRONUS apos criacao do painel interativo de importacao.
 - Teste HTTP de lookup por CPF, envio de divergencia cadastral e revisao da divergencia.
 - Typecheck da API e Portal PRONUS apos criacao do modulo NR-01/PGR inicial.
+- Typecheck da API e Portal PRONUS apos criacao do modulo psicossocial inicial.
+- Teste HTTP de resumo, listagem de campanhas e envio de resposta psicossocial.

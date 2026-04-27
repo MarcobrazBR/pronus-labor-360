@@ -91,6 +91,50 @@ interface Nr01ActionPlanItem {
   evidenceCount: number;
 }
 
+type PsychosocialCampaignStatus =
+  | "draft"
+  | "active"
+  | "threshold_reached"
+  | "expired"
+  | "extended"
+  | "closed"
+  | "analysis_in_progress"
+  | "completed";
+
+interface PsychosocialSummary {
+  generatedAt: string;
+  campaigns: number;
+  activeCampaigns: number;
+  thresholdReached: number;
+  averageResponseRate: number;
+  highOrCriticalSectors: number;
+  pendingInterviews: number;
+}
+
+interface PsychosocialCampaign {
+  id: string;
+  companyTradeName: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  targetParticipants: number;
+  responseCount: number;
+  responseRate: number;
+  status: PsychosocialCampaignStatus;
+}
+
+interface PsychosocialSectorSignal {
+  id: string;
+  companyTradeName: string;
+  sectorName: string;
+  participants: number;
+  responses: number;
+  responseRate: number;
+  riskLevel: RiskLevel;
+  privacyStatus: "visible" | "aggregated";
+  recommendation: string;
+}
+
 const fallbackSummary: StructuralSummary = {
   companies: 2,
   units: 6,
@@ -123,8 +167,8 @@ const fallbackCompanies: StructuralCompany[] = [
 
 const modules = [
   { name: "Cadastro estrutural", owner: "Operacao", progress: 72, status: "Em desenvolvimento" },
-  { name: "NR-01 / GRO / PGR", owner: "SST", progress: 28, status: "Modelagem" },
-  { name: "Risco psicossocial", owner: "Psicologia", progress: 22, status: "Modelagem" },
+  { name: "NR-01 / GRO / PGR", owner: "SST", progress: 40, status: "Base inicial" },
+  { name: "Risco psicossocial", owner: "Psicologia", progress: 34, status: "Base inicial" },
   { name: "Documentos iniciais", owner: "Operacao", progress: 12, status: "Fila" },
 ];
 
@@ -261,6 +305,88 @@ const fallbackNr01Actions: Nr01ActionPlanItem[] = [
   },
 ];
 
+const fallbackPsychosocialSummary: PsychosocialSummary = {
+  generatedAt: "2026-04-27T00:00:00.000Z",
+  campaigns: 2,
+  activeCampaigns: 2,
+  thresholdReached: 1,
+  averageResponseRate: 84,
+  highOrCriticalSectors: 1,
+  pendingInterviews: 1,
+};
+
+const fallbackPsychosocialCampaigns: PsychosocialCampaign[] = [
+  {
+    id: "campaign-horizonte-2026-01",
+    companyTradeName: "Industria Horizonte",
+    name: "Campanha Psicossocial 2026 - Industria Horizonte",
+    startDate: "2026-04-01",
+    endDate: "2026-05-01",
+    targetParticipants: 148,
+    responseCount: 134,
+    responseRate: 91,
+    status: "threshold_reached",
+  },
+  {
+    id: "campaign-rede-norte-2026-01",
+    companyTradeName: "Rede Norte",
+    name: "Campanha Psicossocial 2026 - Rede Norte",
+    startDate: "2026-04-10",
+    endDate: "2026-05-10",
+    targetParticipants: 326,
+    responseCount: 251,
+    responseRate: 77,
+    status: "active",
+  },
+];
+
+const fallbackPsychosocialSignals: PsychosocialSectorSignal[] = [
+  {
+    id: "signal-horizonte-producao",
+    companyTradeName: "Industria Horizonte",
+    sectorName: "Producao",
+    participants: 82,
+    responses: 75,
+    responseRate: 91,
+    riskLevel: "moderate",
+    privacyStatus: "visible",
+    recommendation: "Monitorar carga de trabalho e reforcar comunicacao com liderancas.",
+  },
+  {
+    id: "signal-horizonte-manutencao",
+    companyTradeName: "Industria Horizonte",
+    sectorName: "Manutencao",
+    participants: 5,
+    responses: 5,
+    responseRate: 100,
+    riskLevel: "high",
+    privacyStatus: "visible",
+    recommendation: "Priorizar entrevista tecnica e revisao de organizacao de plantao.",
+  },
+  {
+    id: "signal-rede-norte-atendimento",
+    companyTradeName: "Rede Norte",
+    sectorName: "Atendimento",
+    participants: 120,
+    responses: 92,
+    responseRate: 77,
+    riskLevel: "low",
+    privacyStatus: "visible",
+    recommendation: "Manter monitoramento e incentivar adesao ate 89%.",
+  },
+  {
+    id: "signal-rede-norte-grupo-agregado",
+    companyTradeName: "Rede Norte",
+    sectorName: "Setores agregados",
+    participants: 9,
+    responses: 7,
+    responseRate: 78,
+    riskLevel: "moderate",
+    privacyStatus: "aggregated",
+    recommendation: "Dados agrupados para preservar privacidade de setores pequenos.",
+  },
+];
+
 const fallbackEmployees: StructuralEmployee[] = [
   {
     id: "employee-001",
@@ -288,32 +414,6 @@ const fallbackEmployees: StructuralEmployee[] = [
   },
 ];
 
-const psychosocialSignals: Array<{
-  sector: string;
-  company: string;
-  respondents: string;
-  riskLevel: RiskLevel;
-}> = [
-  {
-    sector: "Producao",
-    company: "Industria Horizonte",
-    respondents: "91%",
-    riskLevel: "moderate",
-  },
-  {
-    sector: "Atendimento",
-    company: "Rede Norte",
-    respondents: "77%",
-    riskLevel: "low",
-  },
-  {
-    sector: "Manutencao",
-    company: "Industria Horizonte",
-    respondents: "5 pessoas",
-    riskLevel: "high",
-  },
-];
-
 const structuralStatusLabels: Record<StructuralStatus, string> = {
   active: "Ativo",
   pending_validation: "Validacao",
@@ -326,6 +426,17 @@ const nr01ActionStatusLabels: Record<Nr01ActionPlanItem["status"], string> = {
   in_progress: "Em execucao",
   done: "Concluida",
   overdue: "Vencida",
+};
+
+const psychosocialCampaignStatusLabels: Record<PsychosocialCampaignStatus, string> = {
+  draft: "Rascunho",
+  active: "Ativa",
+  threshold_reached: "Amostra atingida",
+  expired: "Expirada",
+  extended: "Prorrogada",
+  closed: "Encerrada",
+  analysis_in_progress: "Em analise",
+  completed: "Concluida",
 };
 
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
@@ -376,6 +487,26 @@ function actionStatusClasses(status: Nr01ActionPlanItem["status"]) {
   return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
 }
 
+function campaignStatusClasses(status: PsychosocialCampaignStatus) {
+  if (status === "threshold_reached" || status === "completed") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "active" || status === "analysis_in_progress") {
+    return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+  }
+
+  if (status === "expired") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  if (status === "extended") {
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+  }
+
+  return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
+
 export default async function PronusHomePage() {
   const [
     summary,
@@ -387,6 +518,9 @@ export default async function PronusHomePage() {
     nr01Summary,
     nr01Risks,
     nr01Actions,
+    psychosocialSummary,
+    psychosocialCampaigns,
+    psychosocialSignals,
   ] = await Promise.all([
     fetchApi<StructuralSummary>("/structural/summary", fallbackSummary),
     fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
@@ -397,6 +531,12 @@ export default async function PronusHomePage() {
     fetchApi<Nr01Summary>("/nr01/summary", fallbackNr01Summary),
     fetchApi<Nr01Risk[]>("/nr01/risks", fallbackNr01Risks),
     fetchApi<Nr01ActionPlanItem[]>("/nr01/action-plan", fallbackNr01Actions),
+    fetchApi<PsychosocialSummary>("/psychosocial/summary", fallbackPsychosocialSummary),
+    fetchApi<PsychosocialCampaign[]>("/psychosocial/campaigns", fallbackPsychosocialCampaigns),
+    fetchApi<PsychosocialSectorSignal[]>(
+      "/psychosocial/sector-signals",
+      fallbackPsychosocialSignals,
+    ),
   ]);
 
   const summaryCards = [
@@ -419,6 +559,11 @@ export default async function PronusHomePage() {
       label: "Acoes NR-01",
       value: String(nr01Summary.openActions + nr01Summary.overdueActions),
       detail: `${nr01Summary.overdueActions} vencida`,
+    },
+    {
+      label: "Campanhas psicossociais",
+      value: String(psychosocialSummary.activeCampaigns),
+      detail: `${psychosocialSummary.thresholdReached} com amostra minima`,
     },
   ];
 
@@ -471,7 +616,7 @@ export default async function PronusHomePage() {
             </div>
           </header>
 
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {summaryCards.map((card) => (
               <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
                 <p className="text-sm font-medium text-slate-500">{card.label}</p>
@@ -670,10 +815,7 @@ export default async function PronusHomePage() {
               </div>
               <div className="divide-y divide-slate-100">
                 {nr01Actions.slice(0, 4).map((action) => (
-                  <article
-                    key={action.id}
-                    className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto]"
-                  >
+                  <article key={action.id} className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto]">
                     <div>
                       <h4 className="text-sm font-semibold">{action.title}</h4>
                       <p className="mt-1 text-sm text-slate-600">
@@ -697,6 +839,91 @@ export default async function PronusHomePage() {
             </div>
           </section>
 
+          <section className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <h3 className="text-base font-semibold">Campanhas psicossociais</h3>
+              </div>
+              <div className="grid gap-3 border-b border-slate-100 p-5 sm:grid-cols-3">
+                <div className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Campanhas</p>
+                  <strong className="mt-1 block text-xl">{psychosocialSummary.campaigns}</strong>
+                </div>
+                <div className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Adesao media</p>
+                  <strong className="mt-1 block text-xl">
+                    {psychosocialSummary.averageResponseRate}%
+                  </strong>
+                </div>
+                <div className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Entrevistas</p>
+                  <strong className="mt-1 block text-xl">
+                    {psychosocialSummary.pendingInterviews}
+                  </strong>
+                </div>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {psychosocialCampaigns.slice(0, 3).map((campaign) => (
+                  <article
+                    key={campaign.id}
+                    className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto]"
+                  >
+                    <div>
+                      <h4 className="text-sm font-semibold">{campaign.name}</h4>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {campaign.companyTradeName} / {campaign.responseCount} de{" "}
+                        {campaign.targetParticipants} respostas
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Janela{" "}
+                        {new Date(`${campaign.startDate}T00:00:00`).toLocaleDateString("pt-BR")} a{" "}
+                        {new Date(`${campaign.endDate}T00:00:00`).toLocaleDateString("pt-BR")} /
+                        adesao {campaign.responseRate}%
+                      </p>
+                    </div>
+                    <span
+                      className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${campaignStatusClasses(
+                        campaign.status,
+                      )}`}
+                    >
+                      {psychosocialCampaignStatusLabels[campaign.status]}
+                    </span>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <h3 className="text-base font-semibold">Sinais psicossociais por setor</h3>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {psychosocialSignals.slice(0, 4).map((signal) => (
+                  <article key={signal.id} className="grid gap-3 px-5 py-4 lg:grid-cols-[1fr_auto]">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm font-semibold">{signal.sectorName}</h4>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                          {signal.privacyStatus === "aggregated" ? "Agregado" : "Visivel"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {signal.companyTradeName} / {signal.responses} de {signal.participants}{" "}
+                        respostas ({signal.responseRate}%)
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">{signal.recommendation}</p>
+                    </div>
+                    <span
+                      className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${riskLevelColorClasses[signal.riskLevel]}`}
+                    >
+                      {riskLevelLabels[signal.riskLevel]}
+                    </span>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
           <EmployeeImportPanel
             companies={companies.map((company) => ({
               id: company.id,
@@ -712,7 +939,10 @@ export default async function PronusHomePage() {
               </div>
               <div className="divide-y divide-slate-100">
                 {employees.map((employee) => (
-                  <article key={employee.id} className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_auto]">
+                  <article
+                    key={employee.id}
+                    className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_auto]"
+                  >
                     <div>
                       <h4 className="text-sm font-semibold">{employee.fullName}</h4>
                       <p className="mt-1 text-sm text-slate-600">
@@ -733,27 +963,39 @@ export default async function PronusHomePage() {
 
             <div className="rounded-lg border border-slate-200 bg-white">
               <div className="border-b border-slate-200 px-5 py-4">
-                <h3 className="text-base font-semibold">Sinais psicossociais</h3>
+                <h3 className="text-base font-semibold">Governanca psicossocial</h3>
               </div>
-              <div className="divide-y divide-slate-100">
-                {psychosocialSignals.map((signal) => (
-                  <article
-                    key={`${signal.company}-${signal.sector}`}
-                    className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_auto]"
-                  >
-                    <div>
-                      <h4 className="text-sm font-semibold">{signal.sector}</h4>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {signal.company} / respostas {signal.respondents}
-                      </p>
-                    </div>
-                    <span
-                      className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${riskLevelColorClasses[signal.riskLevel]}`}
-                    >
-                      {riskLevelLabels[signal.riskLevel]}
-                    </span>
-                  </article>
-                ))}
+              <div className="grid gap-3 p-5 sm:grid-cols-3 xl:grid-cols-1">
+                <article className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Setores altos/criticos</p>
+                  <strong className="mt-1 block text-xl">
+                    {psychosocialSummary.highOrCriticalSectors}
+                  </strong>
+                  <span className="mt-1 block text-xs text-slate-600">
+                    prioridade para escuta tecnica
+                  </span>
+                </article>
+                <article className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Amostra minima</p>
+                  <strong className="mt-1 block text-xl">
+                    {psychosocialSummary.thresholdReached}
+                  </strong>
+                  <span className="mt-1 block text-xs text-slate-600">
+                    campanhas acima de 89% de adesao
+                  </span>
+                </article>
+                <article className="rounded-md bg-slate-100 px-3 py-2">
+                  <p className="text-xs font-medium text-slate-500">Privacidade</p>
+                  <strong className="mt-1 block text-xl">
+                    {
+                      psychosocialSignals.filter((signal) => signal.privacyStatus === "aggregated")
+                        .length
+                    }
+                  </strong>
+                  <span className="mt-1 block text-xs text-slate-600">
+                    recortes protegidos por agregacao
+                  </span>
+                </article>
               </div>
             </div>
           </section>
