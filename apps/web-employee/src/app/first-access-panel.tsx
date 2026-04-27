@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PsychosocialQuestionnairePanel } from "./psychosocial-questionnaire-panel";
 
 type StructuralStatus = "active" | "pending_validation" | "blocked" | "inactive";
 
@@ -125,7 +126,7 @@ export function FirstAccessPanel() {
   }
 
   return (
-    <section className="w-full max-w-5xl rounded-lg border border-slate-200 bg-white shadow-sm">
+    <section className="w-full max-w-6xl rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="grid gap-6 p-5 lg:grid-cols-[0.8fr_1.2fr] lg:p-6">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-pronus-primary">
@@ -225,6 +226,8 @@ export function FirstAccessPanel() {
           )}
         </div>
       </div>
+
+      {profile !== null && <PsychosocialQuestionnairePanel profile={profile} />}
     </section>
   );
 }

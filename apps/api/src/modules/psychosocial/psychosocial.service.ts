@@ -127,6 +127,10 @@ function normalizeScore(value: unknown): number {
   return value;
 }
 
+function riskScoreForQuestion(question: PsychosocialQuestion, score: number): number {
+  return question.reverseScored ? 6 - score : score;
+}
+
 const startedAt = now();
 
 const questions: PsychosocialQuestion[] = [
@@ -357,17 +361,19 @@ export class PsychosocialService {
     const campaign = this.findCampaign(input.campaignId);
     const sectorName = requireText(input.sectorName, "sectorName");
 
-    if (input.scores.length === 0) {
+    if (!Array.isArray(input.scores) || input.scores.length === 0) {
       throw new BadRequestException("Questionario sem respostas");
     }
 
-    const validQuestionIds = new Set(questions.map((question) => question.id));
+    const questionsById = new Map(questions.map((question) => [question.id, question]));
     const normalizedScores = input.scores.map((answer) => {
-      if (!validQuestionIds.has(answer.questionId)) {
+      const question = questionsById.get(answer.questionId);
+
+      if (question === undefined) {
         throw new BadRequestException("Questao psicossocial invalida");
       }
 
-      return normalizeScore(answer.score);
+      return riskScoreForQuestion(question, normalizeScore(answer.score));
     });
     const averageScore =
       Math.round(

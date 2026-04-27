@@ -73,17 +73,33 @@ Ja existe:
 - endpoints para empresas, unidades, setores, cargos e colaboradores;
 - importacao inicial de colaboradores via CSV com modo de simulacao;
 - painel operacional inicial no Portal PRONUS;
+- fluxo de primeiro acesso do colaborador com conferencia cadastral;
+- painel RH Cliente para acompanhar divergencias cadastrais;
+- base inicial NR-01/GRO/PGR com inventario de riscos e plano de acao;
+- base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
+- questionario psicossocial inicial no Portal Colaborador;
 - documentacao funcional e tecnica em `docs/`.
 
 Ainda esta em andamento:
 
 - persistencia real com Prisma/Supabase;
 - autenticacao e permissoes;
-- upload visual completo de planilhas;
-- fluxo de primeiro acesso e divergencia cadastral;
-- modulos funcionais de NR-01/GRO/PGR;
-- fluxo de risco psicossocial;
+- reconciliacao avancada de planilhas com unidades, setores e cargos;
+- formularios completos de NR-01/GRO/PGR, documentos e evidencias anexas;
+- relatorios psicossociais, anonimato por regra minima e plano de intervencao;
 - documentos, auditoria e dashboards avancados.
+
+## Sinais De Tracao Do MVP
+
+O MVP ja demonstra a tese central do produto: uma base unica que conecta operacao, RH e colaborador sem perder governanca.
+
+- A operacao PRONUS ja visualiza empresas, CNPJs, estrutura, colaboradores, NR-01 e risco psicossocial em um painel inicial.
+- O RH Cliente ja tem uma porta de entrada para acompanhar pendencias cadastrais e reduzir retrabalho.
+- O colaborador ja consegue localizar o cadastro, sinalizar divergencias e responder o primeiro questionario psicossocial.
+- A API ja organiza dominios separados para estrutura, primeiro acesso, NR-01 e risco psicossocial.
+- A arquitetura ja esta preparada para evoluir para banco real, autenticacao, permissoes, documentos e automacoes.
+
+Essa combinacao torna o Pronus Labor 360 mais que um sistema interno. Ele aponta para uma plataforma vertical de saude ocupacional, com potencial de receita recorrente, inteligencia regulatoria e dados operacionais de alto valor para empresas que precisam cuidar de pessoas com rastreabilidade.
 
 ## Stack Definida
 
@@ -119,7 +135,7 @@ pnpm dev:api
 4. Primeiro acesso do colaborador e divergencia cadastral.
 5. Nucleo NR-01/GRO/PGR.
 6. Campanhas de risco psicossocial.
-7. Dashboard RH Cliente.
+7. Questionario psicossocial do colaborador.
 8. Documentos iniciais e auditoria.
 
 ## Tese De Produto
