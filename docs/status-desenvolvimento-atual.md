@@ -42,10 +42,12 @@ Estado encontrado:
   - `GET /structural/employees`
   - `GET /structural/employees/:id`
   - `POST /structural/employees`
+  - `POST /structural/employees/import`
   - `PATCH /structural/employees/:id`
   - `DELETE /structural/employees/:id`
 - API estrutural agora valida campos obrigatorios, normaliza CPF/CNPJ, bloqueia duplicidades e faz inativacao logica.
 - API estrutural agora cobre empresa, unidade, setor, cargo e colaborador.
+- Importacao inicial de colaboradores via CSV adicionada, com modo `dryRun`, validacao por CNPJ ou empresa padrao, contagem de linhas validas, puladas e com erro.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
 - Portal PRONUS passou a consumir a API local com fallback para dados-semente.
 - Painel PRONUS agora exibe:
@@ -60,7 +62,7 @@ Estado encontrado:
 
 - Conectar API ao Prisma/Supabase quando `DATABASE_URL` estiver definido.
 - Trocar persistencia temporaria em memoria por Prisma/Supabase.
-- Implementar importacao de colaboradores por planilha.
+- Evoluir importacao de colaboradores para upload real de arquivo no Portal PRONUS.
 - Implementar autenticacao e permissoes.
 - Criar fluxo real de divergencia cadastral no primeiro acesso.
 - Implementar nucleos funcionais de NR-01/GRO/PGR e risco psicossocial.
@@ -73,3 +75,4 @@ Estado encontrado:
 - `pnpm build`
 - Teste HTTP de criacao, vinculacao e inativacao de empresa/colaborador na API local.
 - Teste HTTP de criacao, vinculacao e inativacao de unidade/setor/cargo na API local.
+- Teste HTTP de importacao CSV em `dryRun` e criacao real, seguido de inativacao logica do colaborador importado.

@@ -6,9 +6,12 @@ import type {
   CreateStructuralEmployeeInput,
   CreateStructuralJobPositionInput,
   CreateStructuralUnitInput,
+  ImportStructuralEmployeesInput,
   StructuralCompany,
   StructuralDepartment,
   StructuralEmployee,
+  StructuralEmployeeImportIssue,
+  StructuralEmployeeImportResult,
   StructuralJobPosition,
   StructuralStatus,
   StructuralSummary,
@@ -108,6 +111,103 @@ function normalizeCpf(value: unknown): string {
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function normalizeHeader(value: string): string {
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function detectDelimiter(headerLine: string): "," | ";" {
+  const semicolonCount = (headerLine.match(/;/g) ?? []).length;
+  const commaCount = (headerLine.match(/,/g) ?? []).length;
+  return semicolonCount >= commaCount ? ";" : ",";
+}
+
+function parseCsvLine(line: string, delimiter: "," | ";"): string[] {
+  const values: string[] = [];
+  let current = "";
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === "\"" && quoted && nextChar === "\"") {
+      current += "\"";
+      index += 1;
+      continue;
+    }
+
+    if (char === "\"") {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (char === delimiter && !quoted) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values;
+}
+
+function parseCsv(content: string, delimiter?: "," | ";"): Array<{
+  rowNumber: number;
+  row: Record<string, string>;
+}> {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) {
+    throw new BadRequestException("CSV deve conter cabecalho e pelo menos uma linha de dados");
+  }
+
+  const headerLine = lines[0];
+
+  if (headerLine === undefined) {
+    throw new BadRequestException("CSV sem cabecalho");
+  }
+
+  const selectedDelimiter = delimiter ?? detectDelimiter(headerLine);
+  const headers = parseCsvLine(headerLine, selectedDelimiter).map(normalizeHeader);
+
+  return lines.slice(1).map((line, index) => {
+    const values = parseCsvLine(line, selectedDelimiter);
+    const row: Record<string, string> = {};
+
+    headers.forEach((header, headerIndex) => {
+      row[header] = values[headerIndex] ?? "";
+    });
+
+    return {
+      rowNumber: index + 2,
+      row,
+    };
+  });
+}
+
+function pickRowValue(row: Record<string, string>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = row[key];
+
+    if (value !== undefined && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
 }
 
 const startedAt = now();
@@ -739,9 +839,13 @@ export class StructuralService {
 
   updateEmployee(id: string, input: UpdateStructuralEmployeeInput): StructuralEmployee {
     const employee = this.findEmployee(id);
+    const previousCompany = this.findCompany(employee.companyId);
     const company =
-      input.companyId === undefined ? this.findCompany(employee.companyId) : this.findCompany(input.companyId);
+      input.companyId === undefined ? previousCompany : this.findCompany(input.companyId);
     const cpf = input.cpf === undefined ? undefined : normalizeCpf(input.cpf);
+    const previousStatus = employee.registrationStatus;
+    const nextStatus =
+      normalizeStatus(input.registrationStatus, "registrationStatus") ?? employee.registrationStatus;
 
     if (
       cpf !== undefined &&
@@ -755,10 +859,20 @@ export class StructuralService {
       throw new ConflictException("Ja existe colaborador com este CPF nesta empresa");
     }
 
-    if (company.id !== employee.companyId) {
-      const previousCompany = this.findCompany(employee.companyId);
+    if (company.id !== employee.companyId && activeStatuses.has(previousStatus)) {
       previousCompany.employees = Math.max(previousCompany.employees - 1, 0);
       previousCompany.updatedAt = now();
+    }
+
+    if (company.id !== employee.companyId && activeStatuses.has(nextStatus)) {
+      company.employees += 1;
+    }
+
+    if (company.id === employee.companyId && activeStatuses.has(previousStatus) && nextStatus === "inactive") {
+      company.employees = Math.max(company.employees - 1, 0);
+    }
+
+    if (company.id === employee.companyId && previousStatus === "inactive" && activeStatuses.has(nextStatus)) {
       company.employees += 1;
     }
 
@@ -770,9 +884,9 @@ export class StructuralService {
     employee.jobPosition = optionalText(input.jobPosition, "jobPosition") ?? employee.jobPosition;
     employee.email = optionalText(input.email, "email") ?? employee.email;
     employee.phone = optionalText(input.phone, "phone") ?? employee.phone;
-    employee.registrationStatus =
-      normalizeStatus(input.registrationStatus, "registrationStatus") ?? employee.registrationStatus;
+    employee.registrationStatus = nextStatus;
     employee.updatedAt = now();
+    company.updatedAt = employee.updatedAt;
 
     return employee;
   }
@@ -781,11 +895,113 @@ export class StructuralService {
     return this.updateEmployee(id, { registrationStatus: "inactive" });
   }
 
+  importEmployees(input: ImportStructuralEmployeesInput): StructuralEmployeeImportResult {
+    const dryRun = input.dryRun ?? true;
+    const rows = parseCsv(requireText(input.content, "content"), input.delimiter);
+    const createdEmployees: StructuralEmployee[] = [];
+    const skipped: StructuralEmployeeImportIssue[] = [];
+    const errors: StructuralEmployeeImportIssue[] = [];
+
+    for (const { rowNumber, row } of rows) {
+      try {
+        const company = this.resolveCompanyForImport(row, input.defaultCompanyId);
+        const fullName = requireText(
+          pickRowValue(row, ["nomecompleto", "nome", "fullname", "name"]),
+          "nome",
+        );
+        const cpf = normalizeCpf(pickRowValue(row, ["cpf"]));
+        const department = requireText(
+          pickRowValue(row, ["setor", "department", "departamento"]),
+          "setor",
+        );
+        const jobPosition = requireText(
+          pickRowValue(row, ["cargo", "jobposition", "funcao"]),
+          "cargo",
+        );
+
+        if (
+          employees.some(
+            (employee) =>
+              employee.companyId === company.id && onlyDigits(employee.cpf) === onlyDigits(cpf),
+          )
+        ) {
+          skipped.push({
+            rowNumber,
+            row,
+            message: "Colaborador ja cadastrado para esta empresa",
+          });
+          continue;
+        }
+
+        if (!dryRun) {
+          const employee = this.createEmployee({
+            companyId: company.id,
+            fullName,
+            cpf,
+            department,
+            jobPosition,
+            email: pickRowValue(row, ["email", "emailcorporativo"]),
+            phone: pickRowValue(row, ["telefone", "phone", "whatsapp", "celular"]),
+          });
+
+          createdEmployees.push(employee);
+        }
+      } catch (error) {
+        errors.push({
+          rowNumber,
+          row,
+          message: error instanceof Error ? error.message : "Erro desconhecido na linha",
+        });
+      }
+    }
+
+    const createdRows = createdEmployees.length;
+    const skippedRows = skipped.length;
+    const errorRows = errors.length;
+
+    return {
+      dryRun,
+      totalRows: rows.length,
+      validRows: rows.length - skippedRows - errorRows,
+      createdRows,
+      skippedRows,
+      errorRows,
+      createdEmployees,
+      skipped,
+      errors,
+    };
+  }
+
   private findCompany(id: string): StructuralCompany {
     const company = companies.find((item) => item.id === id);
 
     if (company === undefined) {
       throw new NotFoundException("Empresa nao encontrada");
+    }
+
+    return company;
+  }
+
+  private resolveCompanyForImport(
+    row: Record<string, string>,
+    defaultCompanyId?: string,
+  ): StructuralCompany {
+    const companyId = pickRowValue(row, ["companyid", "empresaid", "idempresa"]) ?? defaultCompanyId;
+
+    if (companyId !== undefined) {
+      return this.findCompany(companyId);
+    }
+
+    const cnpj = pickRowValue(row, ["cnpj", "companycnpj", "empresacnpj"]);
+
+    if (cnpj === undefined) {
+      throw new BadRequestException("Linha sem companyId/defaultCompanyId ou CNPJ");
+    }
+
+    const company = companies.find((item) => onlyDigits(item.cnpj) === onlyDigits(cnpj));
+
+    if (company === undefined) {
+      throw new NotFoundException("Empresa nao encontrada pelo CNPJ informado");
     }
 
     return company;

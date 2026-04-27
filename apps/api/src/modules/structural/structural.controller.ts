@@ -6,6 +6,7 @@ import type {
   CreateStructuralEmployeeInput,
   CreateStructuralJobPositionInput,
   CreateStructuralUnitInput,
+  ImportStructuralEmployeesInput,
   UpdateStructuralCompanyInput,
   UpdateStructuralDepartmentInput,
   UpdateStructuralEmployeeInput,
@@ -135,6 +136,11 @@ export class StructuralController {
   @Post("employees")
   createEmployee(@Body() body: CreateStructuralEmployeeInput) {
     return this.structuralService.createEmployee(body);
+  }
+
+  @Post("employees/import")
+  importEmployees(@Body() body: ImportStructuralEmployeesInput) {
+    return this.structuralService.importEmployees(body);
   }
 
   @Patch("employees/:id")

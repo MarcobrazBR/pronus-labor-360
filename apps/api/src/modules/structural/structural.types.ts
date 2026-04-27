@@ -155,3 +155,28 @@ export type UpdateStructuralEmployeeInput = Partial<
 > & {
   registrationStatus?: StructuralStatus;
 };
+
+export interface ImportStructuralEmployeesInput {
+  content: string;
+  delimiter?: "," | ";";
+  dryRun?: boolean;
+  defaultCompanyId?: string;
+}
+
+export interface StructuralEmployeeImportIssue {
+  rowNumber: number;
+  message: string;
+  row: Record<string, string>;
+}
+
+export interface StructuralEmployeeImportResult {
+  dryRun: boolean;
+  totalRows: number;
+  validRows: number;
+  createdRows: number;
+  skippedRows: number;
+  errorRows: number;
+  createdEmployees: StructuralEmployee[];
+  skipped: StructuralEmployeeImportIssue[];
+  errors: StructuralEmployeeImportIssue[];
+}
