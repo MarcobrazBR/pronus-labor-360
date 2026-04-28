@@ -5,6 +5,12 @@ export type CompanyContractStatus =
   | "active"
   | "suspended"
   | "closed";
+export type StructuralAudience =
+  | "client"
+  | "client_hr"
+  | "client_manager"
+  | "pronus_administrative"
+  | "pronus_clinical";
 
 export interface StructuralCompany {
   id: string;
@@ -70,12 +76,13 @@ export interface StructuralUnit {
 
 export interface StructuralDepartment {
   id: string;
-  companyId: string;
-  companyTradeName: string;
+  companyId?: string;
+  companyTradeName?: string;
   unitId?: string;
   unitName?: string;
   name: string;
   code?: string;
+  audience: StructuralAudience;
   status: StructuralStatus;
   createdAt: string;
   updatedAt: string;
@@ -83,11 +90,12 @@ export interface StructuralDepartment {
 
 export interface StructuralJobPosition {
   id: string;
-  companyId: string;
-  companyTradeName: string;
+  companyId?: string;
+  companyTradeName?: string;
   departmentId?: string;
   departmentName?: string;
   title: string;
+  audience: StructuralAudience;
   eSocialCode?: string;
   cboCode?: string;
   description?: string;
@@ -147,22 +155,24 @@ export type UpdateStructuralUnitInput = Partial<
 };
 
 export interface CreateStructuralDepartmentInput {
-  companyId: string;
+  companyId?: string;
   unitId?: string;
   name: string;
   code?: string;
+  audience?: StructuralAudience;
 }
 
 export type UpdateStructuralDepartmentInput = Partial<
-  Pick<CreateStructuralDepartmentInput, "companyId" | "unitId" | "name" | "code">
+  Pick<CreateStructuralDepartmentInput, "companyId" | "unitId" | "name" | "code" | "audience">
 > & {
   status?: StructuralStatus;
 };
 
 export interface CreateStructuralJobPositionInput {
-  companyId: string;
+  companyId?: string;
   departmentId?: string;
   title: string;
+  audience?: StructuralAudience;
   eSocialCode?: string;
   cboCode?: string;
   description?: string;
@@ -171,7 +181,7 @@ export interface CreateStructuralJobPositionInput {
 export type UpdateStructuralJobPositionInput = Partial<
   Pick<
     CreateStructuralJobPositionInput,
-    "companyId" | "departmentId" | "title" | "eSocialCode" | "cboCode" | "description"
+    "companyId" | "departmentId" | "title" | "audience" | "eSocialCode" | "cboCode" | "description"
   >
 > & {
   status?: StructuralStatus;

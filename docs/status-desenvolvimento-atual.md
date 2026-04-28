@@ -89,9 +89,10 @@ Estado encontrado:
 - Menu Empresas do Portal PRONUS agora foi dividido em subniveis operacionais:
   - `/empresas` como resumo simples de empresas com pendencias de ajuste;
   - `/empresas/busca` para buscar empresa e incluir/ajustar cadastro;
-  - `/empresas/cargos` para pesquisar e cadastrar cargos com referencia eSocial/CBO;
-  - `/empresas/setores` para pesquisar e cadastrar setores por empresa/unidade.
-- Busca Empresa agora apresenta resultado por abas: Geral, Cobertura, Colaborador e Financeiro, com inclusao de vida avulsa e consolidado financeiro por intervalo informado.
+  - `/empresas/cargos` para pesquisar e cadastrar cargos por perfil de uso, com referencia eSocial/CBO;
+  - `/empresas/setores` para pesquisar e cadastrar setores por perfil de uso.
+- Cargos e setores agora funcionam como catalogos transversais por perfil: cliente, RH cliente, gestor cliente, administrativo PRONUS e corpo clinico PRONUS.
+- Busca Empresa agora apresenta resultado em lista com abertura por lupa e abas: Geral, Cobertura, Colaborador e Financeiro, com inclusao de vida avulsa e consolidado financeiro por intervalo informado.
 - Telas de busca de empresa, cargos e setores nao carregam listas por padrao; os dados aparecem somente apos uma pesquisa do operador.
 - Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
@@ -140,3 +141,6 @@ Estado encontrado:
 - Build geral do monorepo apos criacao dos subniveis de Empresas.
 - Teste HTTP das rotas `/empresas`, `/empresas/busca`, `/empresas/cargos` e `/empresas/setores`.
 - Teste interativo no navegador cobrindo busca de empresa, abas Geral/Cobertura/Colaborador/Financeiro, botao de vida avulsa e buscas de Cargos/Setores.
+- Typecheck da API e Portal PRONUS apos ajuste de cargos/setores para catalogo por perfil.
+- Build geral do monorepo apos ajuste de UX e modelo de cargos/setores.
+- Teste interativo no navegador validando lista com lupa na busca de empresas, abertura sob demanda das abas, financeiro sem cards estreitos e Cargos/Setores sem filtro por empresa.

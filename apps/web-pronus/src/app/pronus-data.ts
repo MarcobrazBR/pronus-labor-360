@@ -7,6 +7,12 @@ export type CompanyContractStatus =
   | "active"
   | "suspended"
   | "closed";
+export type StructuralAudience =
+  | "client"
+  | "client_hr"
+  | "client_manager"
+  | "pronus_administrative"
+  | "pronus_clinical";
 
 export interface StructuralSummary {
   companies: number;
@@ -70,18 +76,20 @@ export interface StructuralUnit {
 
 export interface StructuralDepartment {
   id: string;
-  companyTradeName: string;
+  companyTradeName?: string;
   unitName?: string;
   name: string;
   code?: string;
+  audience: StructuralAudience;
   status: StructuralStatus;
 }
 
 export interface StructuralJobPosition {
   id: string;
-  companyTradeName: string;
+  companyTradeName?: string;
   departmentName?: string;
   title: string;
+  audience: StructuralAudience;
   eSocialCode?: string;
   cboCode?: string;
   description?: string;
@@ -185,6 +193,14 @@ export const companyContractStatusLabels: Record<CompanyContractStatus, string> 
   closed: "Encerrado",
 };
 
+export const structuralAudienceLabels: Record<StructuralAudience, string> = {
+  client: "Cliente",
+  client_hr: "RH cliente",
+  client_manager: "Gestor cliente",
+  pronus_administrative: "Administrativo PRONUS",
+  pronus_clinical: "Corpo clinico PRONUS",
+};
+
 export const nr01ActionStatusLabels: Record<Nr01ActionPlanItem["status"], string> = {
   open: "Aberta",
   in_progress: "Em execucao",
@@ -206,8 +222,8 @@ export const psychosocialCampaignStatusLabels: Record<PsychosocialCampaignStatus
 const fallbackSummary: StructuralSummary = {
   companies: 2,
   units: 6,
-  departments: 6,
-  jobPositions: 4,
+  departments: 5,
+  jobPositions: 6,
   employees: 474,
   pendingValidations: 1,
 };
@@ -290,6 +306,7 @@ const fallbackDepartments: StructuralDepartment[] = [
     unitName: "Matriz",
     name: "Producao",
     code: "PROD",
+    audience: "client",
     status: "active",
   },
   {
@@ -298,6 +315,7 @@ const fallbackDepartments: StructuralDepartment[] = [
     unitName: "Matriz",
     name: "Manutencao",
     code: "MAN",
+    audience: "client",
     status: "active",
   },
   {
@@ -306,6 +324,21 @@ const fallbackDepartments: StructuralDepartment[] = [
     unitName: "Loja 01",
     name: "Atendimento",
     code: "ATD",
+    audience: "client",
+    status: "active",
+  },
+  {
+    id: "department-pronus-administrativo",
+    name: "Administrativo PRONUS",
+    code: "PRONUS-ADM",
+    audience: "pronus_administrative",
+    status: "active",
+  },
+  {
+    id: "department-pronus-corpo-clinico",
+    name: "Corpo Clinico PRONUS",
+    code: "PRONUS-CLIN",
+    audience: "pronus_clinical",
     status: "active",
   },
 ];
@@ -316,6 +349,7 @@ const fallbackJobPositions: StructuralJobPosition[] = [
     companyTradeName: "Industria Horizonte",
     departmentName: "Producao",
     title: "Operadora de Maquina",
+    audience: "client",
     eSocialCode: "CARGO-001",
     cboCode: "7842-05",
     description: "Opera equipamentos industriais conforme procedimento de seguranca.",
@@ -326,6 +360,7 @@ const fallbackJobPositions: StructuralJobPosition[] = [
     companyTradeName: "Industria Horizonte",
     departmentName: "Manutencao",
     title: "Tecnico de Seguranca",
+    audience: "client",
     eSocialCode: "CARGO-002",
     cboCode: "3516-05",
     description: "Apoia rotinas de seguranca ocupacional e controles preventivos.",
@@ -336,6 +371,7 @@ const fallbackJobPositions: StructuralJobPosition[] = [
     companyTradeName: "Rede Norte",
     departmentName: "Atendimento",
     title: "Supervisora de Loja",
+    audience: "client_manager",
     eSocialCode: "CARGO-003",
     cboCode: "5201-10",
     description: "Coordena equipe de atendimento e operacao de loja.",
@@ -346,9 +382,30 @@ const fallbackJobPositions: StructuralJobPosition[] = [
     companyTradeName: "Rede Norte",
     departmentName: "Logistica",
     title: "Auxiliar de Logistica",
+    audience: "client",
     eSocialCode: "CARGO-004",
     cboCode: "4141-05",
     description: "Executa recebimento, conferencia e movimentacao de mercadorias.",
+    status: "active",
+  },
+  {
+    id: "job-pronus-analista-administrativo",
+    departmentName: "Administrativo PRONUS",
+    title: "Analista Administrativo PRONUS",
+    audience: "pronus_administrative",
+    eSocialCode: "CARGO-005",
+    cboCode: "4110-10",
+    description: "Apoia rotina administrativa, relacionamento com clientes e controles internos.",
+    status: "active",
+  },
+  {
+    id: "job-pronus-medico-ocupacional",
+    departmentName: "Corpo Clinico PRONUS",
+    title: "Medico do Trabalho",
+    audience: "pronus_clinical",
+    eSocialCode: "CARGO-006",
+    cboCode: "2251-40",
+    description: "Atua em avaliacao clinica ocupacional, PCMSO e suporte tecnico ao cliente.",
     status: "active",
   },
 ];

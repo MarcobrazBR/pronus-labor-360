@@ -74,7 +74,8 @@ Ja existe:
 - importacao inicial de colaboradores via CSV com modo de simulacao;
 - painel operacional inicial no Portal PRONUS com navegacao por paginas;
 - modulo Empresas do Portal PRONUS organizado em resumo, busca, cargos e setores;
-- busca de empresas com abas de dados gerais, cobertura contratual, colaboradores e financeiro;
+- busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, colaboradores e financeiro;
+- cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
 - fluxo de primeiro acesso do colaborador com conferencia cadastral;
 - painel RH Cliente para acompanhar divergencias cadastrais;
 - base inicial NR-01/GRO/PGR com inventario de riscos e plano de acao;

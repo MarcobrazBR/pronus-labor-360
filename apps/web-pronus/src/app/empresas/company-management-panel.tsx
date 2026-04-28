@@ -343,8 +343,7 @@ export function CompanyManagementPanel({
       return matchesQuery && matchesContract;
     });
   }, [companies, submittedSearch]);
-  const selectedCompany =
-    filteredCompanies.find((company) => company.id === selectedCompanyId) ?? filteredCompanies[0];
+  const selectedCompany = filteredCompanies.find((company) => company.id === selectedCompanyId);
 
   function submitSearch() {
     const normalizedQuery = query.trim();
@@ -356,32 +355,10 @@ export function CompanyManagementPanel({
       return;
     }
 
-    const nextSearch = { contractStatus, periodEnd, periodStart, query: normalizedQuery };
-    const firstResult = companies.find((company) => {
-      const companyContractStatus = company.contractStatus ?? "onboarding";
-      const searchText = [
-        company.tradeName,
-        company.legalName,
-        company.groupName,
-        company.cnpj,
-        companyContractStatus,
-        companyContractStatusLabels[companyContractStatus],
-        structuralStatusLabels[company.status],
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return (
-        (normalizedQuery.length === 0 || searchText.includes(normalizedQuery.toLowerCase())) &&
-        (contractStatus === "all" || companyContractStatus === contractStatus)
-      );
-    });
-
     setError(null);
     setSuccess(null);
-    setSubmittedSearch(nextSearch);
-    setSelectedCompanyId(firstResult?.id ?? null);
+    setSubmittedSearch({ contractStatus, periodEnd, periodStart, query: normalizedQuery });
+    setSelectedCompanyId(null);
     setActiveTab("general");
   }
 
@@ -531,7 +508,24 @@ export function CompanyManagementPanel({
   return (
     <>
       <section className="rounded-lg border border-slate-200 bg-white">
-        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 xl:grid-cols-[1fr_auto_auto_auto]">
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-base font-semibold">Consulta operacional</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Localize a empresa e abra o cadastro somente quando precisar analisar detalhes.
+            </p>
+          </div>
+          <button
+            aria-label="Incluir empresa"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-pronus-primary text-xl font-semibold leading-none text-white shadow-sm"
+            title="Incluir empresa"
+            type="button"
+            onClick={openCreateModal}
+          >
+            +
+          </button>
+        </div>
+        <div className="grid gap-3 px-5 py-4 lg:grid-cols-[minmax(18rem,1.4fr)_minmax(13rem,0.8fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)]">
           <label className="block">
             <span className="text-xs font-semibold uppercase text-slate-500">Pesquisar</span>
             <input
@@ -558,31 +552,22 @@ export function CompanyManagementPanel({
               ))}
             </select>
           </label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Field
-              label="Inicio financeiro"
-              type="date"
-              value={periodStart}
-              onChange={setPeriodStart}
-            />
-            <Field label="Fim financeiro" type="date" value={periodEnd} onChange={setPeriodEnd} />
-          </div>
-          <div className="flex items-end gap-2">
-            <button
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
-              type="button"
-              onClick={submitSearch}
-            >
-              Buscar
-            </button>
-            <button
-              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm"
-              type="button"
-              onClick={openCreateModal}
-            >
-              Incluir empresa
-            </button>
-          </div>
+          <Field
+            label="Inicio financeiro"
+            type="date"
+            value={periodStart}
+            onChange={setPeriodStart}
+          />
+          <Field label="Fim financeiro" type="date" value={periodEnd} onChange={setPeriodEnd} />
+        </div>
+        <div className="flex justify-end border-t border-slate-100 px-5 py-4">
+          <button
+            className="rounded-md border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700"
+            type="button"
+            onClick={submitSearch}
+          >
+            Buscar
+          </button>
         </div>
 
         {error !== null && (
@@ -603,47 +588,94 @@ export function CompanyManagementPanel({
             Nenhuma empresa encontrada para os filtros aplicados.
           </div>
         ) : (
-          <div className="grid gap-4 p-5 xl:grid-cols-[0.36fr_0.64fr]">
-            <div className="rounded-lg border border-slate-200 bg-slate-50">
-              <div className="border-b border-slate-200 px-4 py-3 text-sm font-semibold">
-                Resultado da busca
-              </div>
-              <div className="divide-y divide-slate-200">
-                {filteredCompanies.map((company) => (
-                  <button
-                    key={company.id}
-                    className={`block w-full px-4 py-3 text-left ${
-                      selectedCompany?.id === company.id ? "bg-white" : "hover:bg-white"
-                    }`}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCompanyId(company.id);
-                      setActiveTab("general");
-                    }}
-                  >
-                    <strong className="block text-sm">{company.tradeName}</strong>
-                    <span className="mt-1 block text-xs text-slate-500">{company.cnpj}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="p-5">
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Empresa</th>
+                    <th className="px-4 py-3 font-semibold">CNPJ</th>
+                    <th className="px-4 py-3 font-semibold">Contrato</th>
+                    <th className="px-4 py-3 font-semibold">Situacao</th>
+                    <th className="px-4 py-3 text-right font-semibold">Cadastro</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredCompanies.map((company) => {
+                    const companyContractStatus = company.contractStatus ?? "onboarding";
+                    const isSelected = selectedCompany?.id === company.id;
+
+                    return (
+                      <tr key={company.id} className={isSelected ? "bg-slate-50" : undefined}>
+                        <td className="px-4 py-3">
+                          <strong className="block font-semibold">{company.tradeName}</strong>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            {company.legalName ?? "Razao social pendente"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">{company.cnpj}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${contractStatusClasses(
+                              companyContractStatus,
+                            )}`}
+                          >
+                            {companyContractStatusLabels[companyContractStatus]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                              company.status,
+                            )}`}
+                          >
+                            {structuralStatusLabels[company.status]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            aria-label={`Abrir cadastro de ${company.tradeName}`}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-base font-semibold text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
+                            title="Abrir cadastro"
+                            type="button"
+                            onClick={() => {
+                              setSelectedCompanyId(company.id);
+                              setActiveTab("general");
+                            }}
+                          >
+                            ⌕
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
-            {selectedCompany !== undefined && (
-              <CompanyDetails
-                activeTab={activeTab}
-                company={selectedCompany}
-                employees={employees.filter(
-                  (employee) => employee.companyTradeName === selectedCompany.tradeName,
-                )}
-                periodEnd={submittedSearch.periodEnd}
-                periodStart={submittedSearch.periodStart}
-                setActiveTab={setActiveTab}
-                onEdit={() => openEditModal(selectedCompany)}
-                onOpenEmployee={() => {
-                  setEmployeeForm(emptyEmployeeForm);
-                  setIsEmployeeModalOpen(true);
-                }}
-              />
+            {selectedCompany === undefined ? (
+              <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-500">
+                Clique na lupa ao lado da empresa para abrir cadastro, coberturas, colaboradores e
+                financeiro.
+              </div>
+            ) : (
+              <div className="mt-5">
+                <CompanyDetails
+                  activeTab={activeTab}
+                  company={selectedCompany}
+                  employees={employees.filter(
+                    (employee) => employee.companyTradeName === selectedCompany.tradeName,
+                  )}
+                  periodEnd={submittedSearch.periodEnd}
+                  periodStart={submittedSearch.periodStart}
+                  setActiveTab={setActiveTab}
+                  onEdit={() => openEditModal(selectedCompany)}
+                  onOpenEmployee={() => {
+                    setEmployeeForm(emptyEmployeeForm);
+                    setIsEmployeeModalOpen(true);
+                  }}
+                />
+              </div>
             )}
           </div>
         )}
@@ -879,7 +911,7 @@ function FinancialTab({
 
   return (
     <div>
-      <div className="mb-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Info label="Parcelas" value={String(invoices.length)} />
         <Info label="Pagas" value={String(paidInvoices.length)} />
         <Info label="Em aberto" value={String(openInvoices.length)} />
@@ -925,9 +957,11 @@ function FinancialTab({
 
 function Info({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
-    <article className="rounded-md bg-slate-100 px-3 py-2">
+    <article className="min-w-0 rounded-md bg-slate-100 px-3 py-2">
       <p className="text-xs font-medium text-slate-500">{label}</p>
-      <strong className="mt-1 block text-sm font-semibold text-slate-900">{value}</strong>
+      <strong className="mt-1 block break-words text-sm font-semibold text-slate-900">
+        {value}
+      </strong>
     </article>
   );
 }

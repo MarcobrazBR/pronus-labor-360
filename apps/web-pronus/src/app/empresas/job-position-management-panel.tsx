@@ -5,36 +5,42 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import {
   statusClasses,
+  structuralAudienceLabels,
   structuralStatusLabels,
-  type StructuralCompany,
-  type StructuralDepartment,
+  type StructuralAudience,
   type StructuralJobPosition,
   type StructuralStatus,
 } from "../pronus-data";
 
 type SearchState = {
-  companyId: string;
+  audience: StructuralAudience | "all";
   query: string;
   status: StructuralStatus | "all";
 };
 
 type JobPositionForm = {
+  audience: StructuralAudience;
   cboCode: string;
-  companyId: string;
-  departmentId: string;
   description: string;
   eSocialCode: string;
   title: string;
 };
 
 const emptyForm: JobPositionForm = {
+  audience: "client",
   cboCode: "",
-  companyId: "",
-  departmentId: "",
   description: "",
   eSocialCode: "",
   title: "",
 };
+
+const audiences: StructuralAudience[] = [
+  "client",
+  "client_hr",
+  "client_manager",
+  "pronus_administrative",
+  "pronus_clinical",
+];
 
 const statuses: StructuralStatus[] = ["active", "pending_validation", "blocked", "inactive"];
 
@@ -52,18 +58,14 @@ function responseMessage(payload: unknown, fallback: string) {
 }
 
 export function JobPositionManagementPanel({
-  initialCompanies,
-  initialDepartments,
   initialJobPositions,
 }: Readonly<{
-  initialCompanies: StructuralCompany[];
-  initialDepartments: StructuralDepartment[];
   initialJobPositions: StructuralJobPosition[];
 }>) {
   const router = useRouter();
   const [jobPositions, setJobPositions] = useState(initialJobPositions);
   const [query, setQuery] = useState("");
-  const [companyId, setCompanyId] = useState("all");
+  const [audience, setAudience] = useState<StructuralAudience | "all">("all");
   const [status, setStatus] = useState<StructuralStatus | "all">("all");
   const [submittedSearch, setSubmittedSearch] = useState<SearchState | null>(null);
   const [form, setForm] = useState<JobPositionForm>(emptyForm);
@@ -72,91 +74,63 @@ export function JobPositionManagementPanel({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const filteredDepartments = useMemo(() => {
-    if (form.companyId.length === 0) {
-      return [];
-    }
-
-    const company = initialCompanies.find((item) => item.id === form.companyId);
-
-    if (company === undefined) {
-      return [];
-    }
-
-    return initialDepartments.filter(
-      (department) => department.companyTradeName === company.tradeName,
-    );
-  }, [form.companyId, initialCompanies, initialDepartments]);
-
   const results = useMemo(() => {
     if (submittedSearch === null) {
       return [];
     }
 
     const normalizedQuery = submittedSearch.query.trim().toLowerCase();
-    const selectedCompany =
-      submittedSearch.companyId === "all"
-        ? undefined
-        : initialCompanies.find((company) => company.id === submittedSearch.companyId);
 
     return jobPositions.filter((jobPosition) => {
       const text = [
         jobPosition.title,
-        jobPosition.companyTradeName,
-        jobPosition.departmentName,
         jobPosition.eSocialCode,
         jobPosition.cboCode,
         jobPosition.description,
+        structuralAudienceLabels[jobPosition.audience],
         structuralStatusLabels[jobPosition.status],
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       const matchesQuery = normalizedQuery.length === 0 || text.includes(normalizedQuery);
-      const matchesCompany =
-        selectedCompany === undefined || jobPosition.companyTradeName === selectedCompany.tradeName;
+      const matchesAudience =
+        submittedSearch.audience === "all" || jobPosition.audience === submittedSearch.audience;
       const matchesStatus =
         submittedSearch.status === "all" || jobPosition.status === submittedSearch.status;
 
-      return matchesQuery && matchesCompany && matchesStatus;
+      return matchesQuery && matchesAudience && matchesStatus;
     });
-  }, [initialCompanies, jobPositions, submittedSearch]);
+  }, [jobPositions, submittedSearch]);
 
   function updateForm(field: keyof JobPositionForm, value: string) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-      ...(field === "companyId" ? { departmentId: "" } : {}),
-    }));
+    setForm((current) => ({ ...current, [field]: value }));
   }
 
   function submitSearch() {
     const normalizedQuery = query.trim();
 
-    if (normalizedQuery.length === 0 && companyId === "all" && status === "all") {
-      setError("Informe descricao, empresa, status, codigo eSocial ou CBO para pesquisar.");
+    if (normalizedQuery.length === 0 && audience === "all" && status === "all") {
+      setError("Informe descricao, perfil, status, codigo eSocial ou CBO para pesquisar.");
       setSubmittedSearch(null);
       return;
     }
 
     setError(null);
     setSuccess(null);
-    setSubmittedSearch({ companyId, query: normalizedQuery, status });
+    setSubmittedSearch({ audience, query: normalizedQuery, status });
   }
 
   function openCreateModal() {
-    setForm({
-      ...emptyForm,
-      companyId: initialCompanies[0]?.id ?? "",
-    });
+    setForm(emptyForm);
     setError(null);
     setSuccess(null);
     setIsModalOpen(true);
   }
 
   async function submitJobPosition() {
-    if (form.companyId.length === 0 || form.title.trim().length === 0) {
-      setError("Informe a empresa e a descricao do cargo.");
+    if (form.title.trim().length === 0) {
+      setError("Informe a descricao do cargo.");
       return;
     }
 
@@ -172,14 +146,7 @@ export function JobPositionManagementPanel({
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
       const response = await fetch(`${apiUrl}/structural/job-positions`, {
-        body: JSON.stringify({
-          cboCode: form.cboCode,
-          companyId: form.companyId,
-          departmentId: form.departmentId || undefined,
-          description: form.description,
-          eSocialCode: form.eSocialCode,
-          title: form.title,
-        }),
+        body: JSON.stringify(form),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -193,12 +160,12 @@ export function JobPositionManagementPanel({
       const created = payload as StructuralJobPosition;
       setJobPositions((current) => [created, ...current]);
       setSubmittedSearch({
-        companyId: "all",
+        audience: "all",
         query: created.title,
         status: "all",
       });
       setIsModalOpen(false);
-      setSuccess("Cargo cadastrado com referencia para o eSocial.");
+      setSuccess("Cargo cadastrado com perfil de uso e referencia para eSocial.");
       router.refresh();
     } catch {
       setError("Nao foi possivel conectar a API local.");
@@ -210,7 +177,7 @@ export function JobPositionManagementPanel({
   return (
     <>
       <section className="rounded-lg border border-slate-200 bg-white">
-        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 xl:grid-cols-[1fr_auto_auto_auto]">
+        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 lg:grid-cols-[1fr_220px_180px_auto]">
           <label className="block">
             <span className="text-xs font-semibold uppercase text-slate-500">Pesquisar</span>
             <input
@@ -221,14 +188,14 @@ export function JobPositionManagementPanel({
             />
           </label>
           <Select
-            label="Empresa"
-            value={companyId}
-            onChange={setCompanyId}
+            label="Perfil"
+            value={audience}
+            onChange={(value) => setAudience(value as StructuralAudience | "all")}
             options={[
-              { label: "Todas", value: "all" },
-              ...initialCompanies.map((company) => ({
-                label: company.tradeName,
-                value: company.id,
+              { label: "Todos", value: "all" },
+              ...audiences.map((item) => ({
+                label: structuralAudienceLabels[item],
+                value: item,
               })),
             ]}
           />
@@ -253,16 +220,18 @@ export function JobPositionManagementPanel({
               Buscar
             </button>
             <button
-              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm"
+              aria-label="Cadastrar cargo"
+              className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-xl font-semibold leading-none text-white shadow-sm"
+              title="Cadastrar cargo"
               type="button"
               onClick={openCreateModal}
             >
-              Novo cargo
+              +
             </button>
           </div>
         </div>
 
-        {error !== null && (
+        {error !== null && !isModalOpen && (
           <div className="mx-5 mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
             {error}
           </div>
@@ -285,8 +254,7 @@ export function JobPositionManagementPanel({
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Cargo</th>
-                  <th className="px-4 py-3 font-semibold">Empresa</th>
-                  <th className="px-4 py-3 font-semibold">Setor</th>
+                  <th className="px-4 py-3 font-semibold">Perfil</th>
                   <th className="px-4 py-3 font-semibold">eSocial</th>
                   <th className="px-4 py-3 font-semibold">CBO</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
@@ -297,12 +265,11 @@ export function JobPositionManagementPanel({
                   <tr key={jobPosition.id}>
                     <td className="px-4 py-3">
                       <strong className="block font-semibold">{jobPosition.title}</strong>
-                      <span className="mt-1 block max-w-sm text-xs text-slate-500">
+                      <span className="mt-1 block max-w-md text-xs text-slate-500">
                         {jobPosition.description ?? "Sem descricao complementar"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{jobPosition.companyTradeName}</td>
-                    <td className="px-4 py-3">{jobPosition.departmentName ?? "Sem setor"}</td>
+                    <td className="px-4 py-3">{structuralAudienceLabels[jobPosition.audience]}</td>
                     <td className="px-4 py-3">{jobPosition.eSocialCode ?? "Pendente"}</td>
                     <td className="px-4 py-3">{jobPosition.cboCode ?? "Pendente"}</td>
                     <td className="px-4 py-3">
@@ -326,25 +293,13 @@ export function JobPositionManagementPanel({
         <Modal title="Cadastrar cargo" onClose={() => setIsModalOpen(false)}>
           <div className="grid gap-3 px-5 py-4 md:grid-cols-2">
             <Select
-              label="Empresa"
-              value={form.companyId}
-              onChange={(value) => updateForm("companyId", value)}
-              options={initialCompanies.map((company) => ({
-                label: company.tradeName,
-                value: company.id,
+              label="Perfil"
+              value={form.audience}
+              onChange={(value) => updateForm("audience", value)}
+              options={audiences.map((item) => ({
+                label: structuralAudienceLabels[item],
+                value: item,
               }))}
-            />
-            <Select
-              label="Setor"
-              value={form.departmentId}
-              onChange={(value) => updateForm("departmentId", value)}
-              options={[
-                { label: "Sem setor definido", value: "" },
-                ...filteredDepartments.map((department) => ({
-                  label: department.name,
-                  value: department.id,
-                })),
-              ]}
             />
             <Field
               label="Descricao do cargo"
@@ -436,7 +391,7 @@ function Select({
   value: string;
 }>) {
   return (
-    <label className="block min-w-48">
+    <label className="block min-w-0">
       <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
       <select
         className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"

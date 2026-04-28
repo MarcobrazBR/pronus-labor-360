@@ -5,32 +5,38 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import {
   statusClasses,
+  structuralAudienceLabels,
   structuralStatusLabels,
-  type StructuralCompany,
+  type StructuralAudience,
   type StructuralDepartment,
   type StructuralStatus,
-  type StructuralUnit,
 } from "../pronus-data";
 
 type SearchState = {
-  companyId: string;
+  audience: StructuralAudience | "all";
   query: string;
   status: StructuralStatus | "all";
 };
 
 type DepartmentForm = {
+  audience: StructuralAudience;
   code: string;
-  companyId: string;
   name: string;
-  unitId: string;
 };
 
 const emptyForm: DepartmentForm = {
+  audience: "client",
   code: "",
-  companyId: "",
   name: "",
-  unitId: "",
 };
+
+const audiences: StructuralAudience[] = [
+  "client",
+  "client_hr",
+  "client_manager",
+  "pronus_administrative",
+  "pronus_clinical",
+];
 
 const statuses: StructuralStatus[] = ["active", "pending_validation", "blocked", "inactive"];
 
@@ -48,18 +54,14 @@ function responseMessage(payload: unknown, fallback: string) {
 }
 
 export function DepartmentManagementPanel({
-  initialCompanies,
   initialDepartments,
-  initialUnits,
 }: Readonly<{
-  initialCompanies: StructuralCompany[];
   initialDepartments: StructuralDepartment[];
-  initialUnits: StructuralUnit[];
 }>) {
   const router = useRouter();
   const [departments, setDepartments] = useState(initialDepartments);
   const [query, setQuery] = useState("");
-  const [companyId, setCompanyId] = useState("all");
+  const [audience, setAudience] = useState<StructuralAudience | "all">("all");
   const [status, setStatus] = useState<StructuralStatus | "all">("all");
   const [submittedSearch, setSubmittedSearch] = useState<SearchState | null>(null);
   const [form, setForm] = useState<DepartmentForm>(emptyForm);
@@ -68,87 +70,61 @@ export function DepartmentManagementPanel({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const filteredUnits = useMemo(() => {
-    if (form.companyId.length === 0) {
-      return [];
-    }
-
-    const company = initialCompanies.find((item) => item.id === form.companyId);
-
-    if (company === undefined) {
-      return [];
-    }
-
-    return initialUnits.filter((unit) => unit.companyTradeName === company.tradeName);
-  }, [form.companyId, initialCompanies, initialUnits]);
-
   const results = useMemo(() => {
     if (submittedSearch === null) {
       return [];
     }
 
     const normalizedQuery = submittedSearch.query.trim().toLowerCase();
-    const selectedCompany =
-      submittedSearch.companyId === "all"
-        ? undefined
-        : initialCompanies.find((company) => company.id === submittedSearch.companyId);
 
     return departments.filter((department) => {
       const text = [
         department.name,
         department.code,
-        department.companyTradeName,
-        department.unitName,
+        structuralAudienceLabels[department.audience],
         structuralStatusLabels[department.status],
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       const matchesQuery = normalizedQuery.length === 0 || text.includes(normalizedQuery);
-      const matchesCompany =
-        selectedCompany === undefined || department.companyTradeName === selectedCompany.tradeName;
+      const matchesAudience =
+        submittedSearch.audience === "all" || department.audience === submittedSearch.audience;
       const matchesStatus =
         submittedSearch.status === "all" || department.status === submittedSearch.status;
 
-      return matchesQuery && matchesCompany && matchesStatus;
+      return matchesQuery && matchesAudience && matchesStatus;
     });
-  }, [departments, initialCompanies, submittedSearch]);
+  }, [departments, submittedSearch]);
 
   function updateForm(field: keyof DepartmentForm, value: string) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-      ...(field === "companyId" ? { unitId: "" } : {}),
-    }));
+    setForm((current) => ({ ...current, [field]: value }));
   }
 
   function submitSearch() {
     const normalizedQuery = query.trim();
 
-    if (normalizedQuery.length === 0 && companyId === "all" && status === "all") {
-      setError("Informe setor, codigo, empresa ou status para pesquisar.");
+    if (normalizedQuery.length === 0 && audience === "all" && status === "all") {
+      setError("Informe setor, codigo, perfil ou status para pesquisar.");
       setSubmittedSearch(null);
       return;
     }
 
     setError(null);
     setSuccess(null);
-    setSubmittedSearch({ companyId, query: normalizedQuery, status });
+    setSubmittedSearch({ audience, query: normalizedQuery, status });
   }
 
   function openCreateModal() {
-    setForm({
-      ...emptyForm,
-      companyId: initialCompanies[0]?.id ?? "",
-    });
+    setForm(emptyForm);
     setError(null);
     setSuccess(null);
     setIsModalOpen(true);
   }
 
   async function submitDepartment() {
-    if (form.companyId.length === 0 || form.name.trim().length === 0) {
-      setError("Informe a empresa e o nome do setor.");
+    if (form.name.trim().length === 0) {
+      setError("Informe o nome do setor.");
       return;
     }
 
@@ -159,12 +135,7 @@ export function DepartmentManagementPanel({
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
       const response = await fetch(`${apiUrl}/structural/departments`, {
-        body: JSON.stringify({
-          code: form.code,
-          companyId: form.companyId,
-          name: form.name,
-          unitId: form.unitId || undefined,
-        }),
+        body: JSON.stringify(form),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -178,12 +149,12 @@ export function DepartmentManagementPanel({
       const created = payload as StructuralDepartment;
       setDepartments((current) => [created, ...current]);
       setSubmittedSearch({
-        companyId: "all",
+        audience: "all",
         query: created.name,
         status: "all",
       });
       setIsModalOpen(false);
-      setSuccess("Setor cadastrado e pronto para uso em empresas e colaboradores.");
+      setSuccess("Setor cadastrado com perfil de uso para empresas e colaboradores.");
       router.refresh();
     } catch {
       setError("Nao foi possivel conectar a API local.");
@@ -195,25 +166,25 @@ export function DepartmentManagementPanel({
   return (
     <>
       <section className="rounded-lg border border-slate-200 bg-white">
-        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 xl:grid-cols-[1fr_auto_auto_auto]">
+        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 lg:grid-cols-[1fr_220px_180px_auto]">
           <label className="block">
             <span className="text-xs font-semibold uppercase text-slate-500">Pesquisar</span>
             <input
               className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-              placeholder="Setor, codigo ou unidade"
+              placeholder="Setor ou codigo"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
           <Select
-            label="Empresa"
-            value={companyId}
-            onChange={setCompanyId}
+            label="Perfil"
+            value={audience}
+            onChange={(value) => setAudience(value as StructuralAudience | "all")}
             options={[
-              { label: "Todas", value: "all" },
-              ...initialCompanies.map((company) => ({
-                label: company.tradeName,
-                value: company.id,
+              { label: "Todos", value: "all" },
+              ...audiences.map((item) => ({
+                label: structuralAudienceLabels[item],
+                value: item,
               })),
             ]}
           />
@@ -238,16 +209,18 @@ export function DepartmentManagementPanel({
               Buscar
             </button>
             <button
-              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm"
+              aria-label="Cadastrar setor"
+              className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-xl font-semibold leading-none text-white shadow-sm"
+              title="Cadastrar setor"
               type="button"
               onClick={openCreateModal}
             >
-              Novo setor
+              +
             </button>
           </div>
         </div>
 
-        {error !== null && (
+        {error !== null && !isModalOpen && (
           <div className="mx-5 mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
             {error}
           </div>
@@ -270,8 +243,7 @@ export function DepartmentManagementPanel({
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Setor</th>
-                  <th className="px-4 py-3 font-semibold">Empresa</th>
-                  <th className="px-4 py-3 font-semibold">Unidade</th>
+                  <th className="px-4 py-3 font-semibold">Perfil</th>
                   <th className="px-4 py-3 font-semibold">Codigo</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                 </tr>
@@ -280,8 +252,7 @@ export function DepartmentManagementPanel({
                 {results.map((department) => (
                   <tr key={department.id}>
                     <td className="px-4 py-3 font-semibold">{department.name}</td>
-                    <td className="px-4 py-3">{department.companyTradeName}</td>
-                    <td className="px-4 py-3">{department.unitName ?? "Sem unidade"}</td>
+                    <td className="px-4 py-3">{structuralAudienceLabels[department.audience]}</td>
                     <td className="px-4 py-3">{department.code ?? "Pendente"}</td>
                     <td className="px-4 py-3">
                       <span
@@ -304,25 +275,13 @@ export function DepartmentManagementPanel({
         <Modal title="Cadastrar setor" onClose={() => setIsModalOpen(false)}>
           <div className="grid gap-3 px-5 py-4 md:grid-cols-2">
             <Select
-              label="Empresa"
-              value={form.companyId}
-              onChange={(value) => updateForm("companyId", value)}
-              options={initialCompanies.map((company) => ({
-                label: company.tradeName,
-                value: company.id,
+              label="Perfil"
+              value={form.audience}
+              onChange={(value) => updateForm("audience", value)}
+              options={audiences.map((item) => ({
+                label: structuralAudienceLabels[item],
+                value: item,
               }))}
-            />
-            <Select
-              label="Unidade"
-              value={form.unitId}
-              onChange={(value) => updateForm("unitId", value)}
-              options={[
-                { label: "Sem unidade definida", value: "" },
-                ...filteredUnits.map((unit) => ({
-                  label: unit.name,
-                  value: unit.id,
-                })),
-              ]}
             />
             <Field
               label="Nome do setor"
@@ -399,7 +358,7 @@ function Select({
   value: string;
 }>) {
   return (
-    <label className="block min-w-48">
+    <label className="block min-w-0">
       <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
       <select
         className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"

@@ -5,7 +5,7 @@ import { loadStructuralData } from "../../pronus-data";
 export const dynamic = "force-dynamic";
 
 export default async function JobPositionsPage() {
-  const { companies, departments, jobPositions } = await loadStructuralData();
+  const { jobPositions } = await loadStructuralData();
 
   return (
     <>
@@ -18,11 +18,7 @@ export default async function JobPositionsPage() {
 
       <CompanyModuleNav />
 
-      <JobPositionManagementPanel
-        initialCompanies={companies}
-        initialDepartments={departments}
-        initialJobPositions={jobPositions}
-      />
+      <JobPositionManagementPanel initialJobPositions={jobPositions} />
     </>
   );
 }

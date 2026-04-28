@@ -5,7 +5,7 @@ import { loadStructuralData } from "../../pronus-data";
 export const dynamic = "force-dynamic";
 
 export default async function DepartmentsPage() {
-  const { companies, departments, units } = await loadStructuralData();
+  const { departments } = await loadStructuralData();
 
   return (
     <>
@@ -18,11 +18,7 @@ export default async function DepartmentsPage() {
 
       <CompanyModuleNav />
 
-      <DepartmentManagementPanel
-        initialCompanies={companies}
-        initialDepartments={departments}
-        initialUnits={units}
-      />
+      <DepartmentManagementPanel initialDepartments={departments} />
     </>
   );
 }

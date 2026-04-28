@@ -18,6 +18,7 @@ import type {
   EmployeeDivergenceRequest,
   EmployeeDivergenceStatus,
   ImportStructuralEmployeesInput,
+  StructuralAudience,
   StructuralCompany,
   StructuralDepartment,
   StructuralEmployee,
@@ -43,6 +44,13 @@ const contractStatuses = new Set<CompanyContractStatus>([
   "active",
   "suspended",
   "closed",
+]);
+const structuralAudiences = new Set<StructuralAudience>([
+  "client",
+  "client_hr",
+  "client_manager",
+  "pronus_administrative",
+  "pronus_clinical",
 ]);
 const validStatuses = new Set<StructuralStatus>([
   "active",
@@ -120,6 +128,18 @@ function normalizeContractStatus(value: unknown): CompanyContractStatus | undefi
   }
 
   return value as CompanyContractStatus;
+}
+
+function normalizeAudience(value: unknown): StructuralAudience | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || !structuralAudiences.has(value as StructuralAudience)) {
+    throw new BadRequestException("Perfil de uso invalido");
+  }
+
+  return value as StructuralAudience;
 }
 
 function normalizeDivergenceStatus(value: unknown): EmployeeDivergenceStatus {
@@ -423,6 +443,7 @@ const departments: StructuralDepartment[] = [
     unitName: "Matriz",
     name: "Producao",
     code: "PROD",
+    audience: "client",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -435,6 +456,7 @@ const departments: StructuralDepartment[] = [
     unitName: "Matriz",
     name: "Manutencao",
     code: "MAN",
+    audience: "client",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -447,6 +469,7 @@ const departments: StructuralDepartment[] = [
     unitName: "Centro de Distribuicao",
     name: "Recursos Humanos",
     code: "RH",
+    audience: "client_hr",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -459,6 +482,7 @@ const departments: StructuralDepartment[] = [
     unitName: "Loja 01",
     name: "Atendimento",
     code: "ATD",
+    audience: "client",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -471,6 +495,7 @@ const departments: StructuralDepartment[] = [
     unitName: "Centro de Distribuicao",
     name: "Logistica",
     code: "LOG",
+    audience: "client",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -483,6 +508,25 @@ const departments: StructuralDepartment[] = [
     unitName: "Administrativo",
     name: "Administrativo",
     code: "ADM",
+    audience: "client_manager",
+    status: "active",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+  },
+  {
+    id: "department-pronus-administrativo",
+    name: "Administrativo PRONUS",
+    code: "PRONUS-ADM",
+    audience: "pronus_administrative",
+    status: "active",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+  },
+  {
+    id: "department-pronus-corpo-clinico",
+    name: "Corpo Clinico PRONUS",
+    code: "PRONUS-CLIN",
+    audience: "pronus_clinical",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -497,6 +541,7 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-horizonte-producao",
     departmentName: "Producao",
     title: "Operadora de Maquina",
+    audience: "client",
     eSocialCode: "CARGO-001",
     cboCode: "7842-05",
     description: "Opera equipamentos industriais conforme procedimento de seguranca.",
@@ -511,6 +556,7 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-horizonte-manutencao",
     departmentName: "Manutencao",
     title: "Tecnico de Seguranca",
+    audience: "client",
     eSocialCode: "CARGO-002",
     cboCode: "3516-05",
     description: "Apoia rotinas de seguranca ocupacional e controles preventivos.",
@@ -525,6 +571,7 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-rede-norte-atendimento",
     departmentName: "Atendimento",
     title: "Supervisora de Loja",
+    audience: "client_manager",
     eSocialCode: "CARGO-003",
     cboCode: "5201-10",
     description: "Coordena equipe de atendimento e operacao de loja.",
@@ -539,9 +586,36 @@ const jobPositions: StructuralJobPosition[] = [
     departmentId: "department-rede-norte-logistica",
     departmentName: "Logistica",
     title: "Auxiliar de Logistica",
+    audience: "client",
     eSocialCode: "CARGO-004",
     cboCode: "4141-05",
     description: "Executa recebimento, conferencia e movimentacao de mercadorias.",
+    status: "active",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+  },
+  {
+    id: "job-pronus-analista-administrativo",
+    departmentId: "department-pronus-administrativo",
+    departmentName: "Administrativo PRONUS",
+    title: "Analista Administrativo PRONUS",
+    audience: "pronus_administrative",
+    eSocialCode: "CARGO-005",
+    cboCode: "4110-10",
+    description: "Apoia rotina administrativa, relacionamento com clientes e controles internos.",
+    status: "active",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+  },
+  {
+    id: "job-pronus-medico-ocupacional",
+    departmentId: "department-pronus-corpo-clinico",
+    departmentName: "Corpo Clinico PRONUS",
+    title: "Medico do Trabalho",
+    audience: "pronus_clinical",
+    eSocialCode: "CARGO-006",
+    cboCode: "2251-40",
+    description: "Atua em avaliacao clinica ocupacional, PCMSO e suporte tecnico ao cliente.",
     status: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -859,75 +933,103 @@ export class StructuralService {
   }
 
   createDepartment(input: CreateStructuralDepartmentInput): StructuralDepartment {
-    const company = this.findCompany(input.companyId);
     const unit = input.unitId === undefined ? undefined : this.findUnit(input.unitId);
+    const company =
+      input.companyId === undefined
+        ? unit === undefined
+          ? undefined
+          : this.findCompany(unit.companyId)
+        : this.findCompany(input.companyId);
     const name = requireText(input.name, "name");
+    const audience = normalizeAudience(input.audience) ?? "client";
 
-    if (unit !== undefined && unit.companyId !== company.id) {
+    if (unit !== undefined && company !== undefined && unit.companyId !== company.id) {
       throw new BadRequestException("Unidade nao pertence a empresa informada");
     }
 
-    this.ensureUniqueDepartmentName(company.id, name);
+    this.ensureUniqueDepartmentName(audience, name);
 
     const createdAt = now();
     const department: StructuralDepartment = {
       id: randomUUID(),
-      companyId: company.id,
-      companyTradeName: company.tradeName,
+      companyId: company?.id,
+      companyTradeName: company?.tradeName,
       unitId: unit?.id,
       unitName: unit?.name,
       name,
       code: optionalText(input.code, "code"),
+      audience,
       status: "active",
       createdAt,
       updatedAt: createdAt,
     };
 
     departments.unshift(department);
-    company.departments += 1;
-    company.updatedAt = createdAt;
+    if (company !== undefined) {
+      company.departments += 1;
+      company.updatedAt = createdAt;
+    }
 
     return department;
   }
 
   updateDepartment(id: string, input: UpdateStructuralDepartmentInput): StructuralDepartment {
     const department = this.findDepartment(id);
-    const previousCompany = this.findCompany(department.companyId);
+    const previousCompany =
+      department.companyId === undefined ? undefined : this.findCompany(department.companyId);
+    const requestedCompanyId =
+      input.companyId === undefined
+        ? department.companyId
+        : optionalText(input.companyId, "companyId");
+    const requestedUnitId =
+      input.unitId === undefined ? department.unitId : optionalText(input.unitId, "unitId");
+    const unit = requestedUnitId === undefined ? undefined : this.findUnit(requestedUnitId);
     const company =
-      input.companyId === undefined ? previousCompany : this.findCompany(input.companyId);
-    const unit = input.unitId === undefined ? undefined : this.findUnit(input.unitId);
+      requestedCompanyId === undefined
+        ? unit === undefined
+          ? undefined
+          : this.findCompany(unit.companyId)
+        : this.findCompany(requestedCompanyId);
     const name = optionalText(input.name, "name") ?? department.name;
+    const audience = normalizeAudience(input.audience) ?? department.audience;
     const nextStatus = normalizeStatus(input.status, "status") ?? department.status;
 
-    if (unit !== undefined && unit.companyId !== company.id) {
+    if (unit !== undefined && company !== undefined && unit.companyId !== company.id) {
       throw new BadRequestException("Unidade nao pertence a empresa informada");
     }
 
-    this.ensureUniqueDepartmentName(company.id, name, department.id);
+    this.ensureUniqueDepartmentName(audience, name, department.id);
 
-    if (company.id !== previousCompany.id) {
-      previousCompany.departments = Math.max(previousCompany.departments - 1, 0);
-      previousCompany.updatedAt = now();
-      company.departments += 1;
+    if (company?.id !== previousCompany?.id) {
+      if (previousCompany !== undefined) {
+        previousCompany.departments = Math.max(previousCompany.departments - 1, 0);
+        previousCompany.updatedAt = now();
+      }
+      if (company !== undefined) {
+        company.departments += 1;
+      }
     }
 
-    if (department.status !== "inactive" && nextStatus === "inactive") {
+    if (company !== undefined && department.status !== "inactive" && nextStatus === "inactive") {
       company.departments = Math.max(company.departments - 1, 0);
     }
 
-    if (department.status === "inactive" && nextStatus !== "inactive") {
+    if (company !== undefined && department.status === "inactive" && nextStatus !== "inactive") {
       company.departments += 1;
     }
 
-    department.companyId = company.id;
-    department.companyTradeName = company.tradeName;
-    department.unitId = unit?.id ?? department.unitId;
-    department.unitName = unit?.name ?? department.unitName;
+    department.companyId = company?.id;
+    department.companyTradeName = company?.tradeName;
+    department.unitId = unit?.id;
+    department.unitName = unit?.name;
     department.name = name;
     department.code = optionalText(input.code, "code") ?? department.code;
+    department.audience = audience;
     department.status = nextStatus;
     department.updatedAt = now();
-    company.updatedAt = department.updatedAt;
+    if (company !== undefined) {
+      company.updatedAt = department.updatedAt;
+    }
 
     this.syncDepartmentNameOnJobPositions(department);
     return department;
@@ -946,25 +1048,37 @@ export class StructuralService {
   }
 
   createJobPosition(input: CreateStructuralJobPositionInput): StructuralJobPosition {
-    const company = this.findCompany(input.companyId);
     const department =
       input.departmentId === undefined ? undefined : this.findDepartment(input.departmentId);
+    const company =
+      input.companyId === undefined
+        ? department?.companyId === undefined
+          ? undefined
+          : this.findCompany(department.companyId)
+        : this.findCompany(input.companyId);
     const title = requireText(input.title, "title");
+    const audience = normalizeAudience(input.audience) ?? department?.audience ?? "client";
 
-    if (department !== undefined && department.companyId !== company.id) {
+    if (
+      department !== undefined &&
+      company !== undefined &&
+      department.companyId !== undefined &&
+      department.companyId !== company.id
+    ) {
       throw new BadRequestException("Setor nao pertence a empresa informada");
     }
 
-    this.ensureUniqueJobTitle(company.id, title, department?.id);
+    this.ensureUniqueJobTitle(audience, title);
 
     const createdAt = now();
     const jobPosition: StructuralJobPosition = {
       id: randomUUID(),
-      companyId: company.id,
-      companyTradeName: company.tradeName,
+      companyId: company?.id,
+      companyTradeName: company?.tradeName,
       departmentId: department?.id,
       departmentName: department?.name,
       title,
+      audience,
       eSocialCode: optionalText(input.eSocialCode, "eSocialCode"),
       cboCode: optionalText(input.cboCode, "cboCode"),
       description: optionalText(input.description, "description"),
@@ -979,25 +1093,39 @@ export class StructuralService {
 
   updateJobPosition(id: string, input: UpdateStructuralJobPositionInput): StructuralJobPosition {
     const jobPosition = this.findJobPosition(id);
-    const company =
+    const requestedCompanyId =
       input.companyId === undefined
-        ? this.findCompany(jobPosition.companyId)
-        : this.findCompany(input.companyId);
+        ? jobPosition.companyId
+        : optionalText(input.companyId, "companyId");
     const department =
       input.departmentId === undefined ? undefined : this.findDepartment(input.departmentId);
+    const company =
+      requestedCompanyId === undefined
+        ? department?.companyId === undefined
+          ? undefined
+          : this.findCompany(department.companyId)
+        : this.findCompany(requestedCompanyId);
     const title = optionalText(input.title, "title") ?? jobPosition.title;
+    const audience =
+      normalizeAudience(input.audience) ?? department?.audience ?? jobPosition.audience;
 
-    if (department !== undefined && department.companyId !== company.id) {
+    if (
+      department !== undefined &&
+      company !== undefined &&
+      department.companyId !== undefined &&
+      department.companyId !== company.id
+    ) {
       throw new BadRequestException("Setor nao pertence a empresa informada");
     }
 
-    this.ensureUniqueJobTitle(company.id, title, department?.id ?? jobPosition.departmentId, id);
+    this.ensureUniqueJobTitle(audience, title, id);
 
-    jobPosition.companyId = company.id;
-    jobPosition.companyTradeName = company.tradeName;
+    jobPosition.companyId = company?.id;
+    jobPosition.companyTradeName = company?.tradeName;
     jobPosition.departmentId = department?.id ?? jobPosition.departmentId;
     jobPosition.departmentName = department?.name ?? jobPosition.departmentName;
     jobPosition.title = title;
+    jobPosition.audience = audience;
     jobPosition.eSocialCode =
       optionalText(input.eSocialCode, "eSocialCode") ?? jobPosition.eSocialCode;
     jobPosition.cboCode = optionalText(input.cboCode, "cboCode") ?? jobPosition.cboCode;
@@ -1426,37 +1554,39 @@ export class StructuralService {
     }
   }
 
-  private ensureUniqueDepartmentName(companyId: string, name: string, currentId?: string): void {
+  private ensureUniqueDepartmentName(
+    audience: StructuralAudience,
+    name: string,
+    currentId?: string,
+  ): void {
     const normalizedName = name.toLowerCase();
     const duplicated = departments.some(
       (department) =>
         department.id !== currentId &&
-        department.companyId === companyId &&
+        department.audience === audience &&
         department.name.toLowerCase() === normalizedName,
     );
 
     if (duplicated) {
-      throw new ConflictException("Ja existe setor com este nome nesta empresa");
+      throw new ConflictException("Ja existe setor com este nome neste perfil");
     }
   }
 
   private ensureUniqueJobTitle(
-    companyId: string,
+    audience: StructuralAudience,
     title: string,
-    departmentId?: string,
     currentId?: string,
   ): void {
     const normalizedTitle = title.toLowerCase();
     const duplicated = jobPositions.some(
       (jobPosition) =>
         jobPosition.id !== currentId &&
-        jobPosition.companyId === companyId &&
-        jobPosition.departmentId === departmentId &&
+        jobPosition.audience === audience &&
         jobPosition.title.toLowerCase() === normalizedTitle,
     );
 
     if (duplicated) {
-      throw new ConflictException("Ja existe cargo com este titulo neste setor");
+      throw new ConflictException("Ja existe cargo com este titulo neste perfil");
     }
   }
 
