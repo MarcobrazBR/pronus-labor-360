@@ -896,89 +896,95 @@ function UsersTab({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="min-w-[1320px] text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Nome</th>
-              <th className="whitespace-nowrap px-4 py-3 font-semibold">CPF</th>
-              <th className="px-4 py-3 font-semibold">Cadastro</th>
-              <th className="px-4 py-3 font-semibold">Perfil</th>
-              <th className="px-4 py-3 font-semibold">Vinculo</th>
-              <th className="px-4 py-3 font-semibold">Cargo</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Acoes</th>
-              <th className="px-4 py-3 font-semibold">Senha</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {!hasSearched ? (
-              <tr>
-                <td className="px-4 py-6 text-sm text-slate-500" colSpan={9}>
-                  Use a pesquisa para listar usuarios. A tela permanece limpa ate existir uma
-                  consulta.
-                </td>
-              </tr>
-            ) : filteredUsers.length === 0 ? (
-              <tr>
-                <td className="px-4 py-6 text-sm text-slate-500" colSpan={9}>
-                  Nenhum usuario encontrado para os criterios informados.
-                </td>
-              </tr>
-            ) : (
-              filteredUsers.map((person) => (
-                <tr key={person.id}>
-                  <td className="px-4 py-3">
-                    <strong className="block font-semibold">{person.name}</strong>
-                    <span className="mt-1 block text-xs text-slate-500">{person.email}</span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">{person.cpf}</td>
-                  <td className="whitespace-nowrap px-4 py-3">{dateLabel(person.registeredAt)}</td>
-                  <td className="px-4 py-3">{structuralAudienceLabels[person.audience]}</td>
-                  <td className="px-4 py-3">{person.company ?? "PRONUS"}</td>
-                  <td className="px-4 py-3">{person.jobPosition}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[person.status]}`}
-                    >
-                      {statusLabels[person.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      aria-label={`Acoes de ${person.name}`}
-                      className="w-36 rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
-                      value=""
-                      onChange={(event) => {
-                        const nextStatus = event.target.value;
+      <div className="rounded-lg border border-slate-200">
+        <div className="hidden grid-cols-[minmax(210px,1.4fr)_minmax(140px,0.8fr)_minmax(155px,1fr)_minmax(120px,0.8fr)_minmax(160px,1fr)_130px_46px] gap-3 rounded-t-lg bg-slate-50 px-4 py-3 text-xs font-semibold uppercase text-slate-500 2xl:grid">
+          <span>Usuario</span>
+          <span>Cadastro</span>
+          <span>Perfil</span>
+          <span>Status</span>
+          <span>Cargo</span>
+          <span>Acoes</span>
+          <span>Senha</span>
+        </div>
 
-                        if (isPersonStatus(nextStatus)) {
-                          onUpdateStatus(person.id, nextStatus);
-                        }
-                      }}
-                    >
-                      <option value="">Selecionar</option>
-                      {person.status !== "active" && <option value="active">Ativar</option>}
-                      {person.status === "active" && <option value="suspended">Suspender</option>}
-                      {person.status !== "cancelled" && <option value="cancelled">Cancelar</option>}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      aria-label={`Resete de senha de ${person.name}`}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
-                      title="Resete de senha"
-                      type="button"
-                      onClick={() => onResetPassword(person)}
-                    >
-                      <KeyIcon />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        {!hasSearched ? (
+          <div className="px-4 py-6 text-sm text-slate-500">
+            Use a pesquisa para listar usuarios. A tela permanece limpa ate existir uma consulta.
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="px-4 py-6 text-sm text-slate-500">
+            Nenhum usuario encontrado para os criterios informados.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {filteredUsers.map((person) => (
+              <article
+                key={person.id}
+                className="grid gap-4 px-4 py-4 text-sm 2xl:grid-cols-[minmax(210px,1.4fr)_minmax(140px,0.8fr)_minmax(155px,1fr)_minmax(120px,0.8fr)_minmax(160px,1fr)_130px_46px] 2xl:items-center"
+              >
+                <div>
+                  <strong className="block font-semibold">{person.name}</strong>
+                  <span className="mt-1 block text-xs text-slate-500">{person.email}</span>
+                  <span className="mt-1 block whitespace-nowrap text-xs font-semibold text-slate-700">
+                    {person.cpf}
+                  </span>
+                </div>
+                <InfoStack label="Cadastro" value={dateLabel(person.registeredAt)} />
+                <InfoStack
+                  label="Perfil"
+                  value={`${structuralAudienceLabels[person.audience]} / ${person.company ?? "PRONUS"}`}
+                />
+                <div>
+                  <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 2xl:hidden">
+                    Status
+                  </span>
+                  <span
+                    className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[person.status]}`}
+                  >
+                    {statusLabels[person.status]}
+                  </span>
+                </div>
+                <InfoStack label="Cargo" value={person.jobPosition} />
+                <div>
+                  <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 2xl:hidden">
+                    Acoes
+                  </span>
+                  <select
+                    aria-label={`Acoes de ${person.name}`}
+                    className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+                    value=""
+                    onChange={(event) => {
+                      const nextStatus = event.target.value;
+
+                      if (isPersonStatus(nextStatus)) {
+                        onUpdateStatus(person.id, nextStatus);
+                      }
+                    }}
+                  >
+                    <option value="">Selecionar</option>
+                    {person.status !== "active" && <option value="active">Ativar</option>}
+                    {person.status === "active" && <option value="suspended">Suspender</option>}
+                    {person.status !== "cancelled" && <option value="cancelled">Cancelar</option>}
+                  </select>
+                </div>
+                <div>
+                  <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 2xl:hidden">
+                    Senha
+                  </span>
+                  <button
+                    aria-label={`Resete de senha de ${person.name}`}
+                    className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
+                    title="Resete de senha"
+                    type="button"
+                    onClick={() => onResetPassword(person)}
+                  >
+                    <KeyIcon />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1527,6 +1533,17 @@ function RatesTab({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function InfoStack({ label, value }: Readonly<{ label: string; value: string }>) {
+  return (
+    <div>
+      <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 2xl:hidden">
+        {label}
+      </span>
+      <span className="block break-words text-sm text-slate-700">{value}</span>
     </div>
   );
 }

@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Nr01PgrPage() {
   const { summary, risks, actions } = await loadNr01Data();
+  const riskTabs = ["Inventario", "Plano de acao", "Evidencias", "Documentos"];
   const summaryCards = [
     { label: "Riscos", value: summary.risks, detail: "inventario inicial" },
     {
@@ -23,9 +24,28 @@ export default async function Nr01PgrPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-pronus-primary">
             SST e conformidade
           </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-normal">NR-01 / GRO / PGR</h2>
+          <h2 className="mt-1 text-2xl font-semibold tracking-normal">Risco Ocupacional</h2>
         </div>
       </header>
+
+      <nav
+        className="mb-5 flex flex-wrap gap-2 text-sm font-semibold"
+        aria-label="Risco ocupacional"
+      >
+        {riskTabs.map((tab, index) => (
+          <button
+            key={tab}
+            className={`rounded-md px-3 py-2 ${
+              index === 0
+                ? "bg-pronus-primary text-white"
+                : "border border-slate-200 bg-white text-slate-700"
+            }`}
+            type="button"
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (

@@ -173,7 +173,7 @@ export interface PsychosocialSectorSignal {
 
 export const modules = [
   { name: "Cadastro estrutural", owner: "Operacao", progress: 72, status: "Em desenvolvimento" },
-  { name: "NR-01 / GRO / PGR", owner: "SST", progress: 40, status: "Base inicial" },
+  { name: "Risco ocupacional", owner: "SST", progress: 40, status: "Base inicial" },
   { name: "Risco psicossocial", owner: "Psicologia", progress: 34, status: "Base inicial" },
   { name: "Documentos iniciais", owner: "Operacao", progress: 12, status: "Fila" },
 ];

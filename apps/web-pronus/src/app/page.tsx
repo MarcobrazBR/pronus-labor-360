@@ -34,7 +34,7 @@ export default async function PronusDashboardPage() {
       detail: `${structural.summary.pendingValidations} pendencia cadastral`,
     },
     {
-      label: "Acoes NR-01",
+      label: "Risco ocupacional",
       value: String(nr01.summary.openActions + nr01.summary.overdueActions),
       detail: `${nr01.summary.overdueActions} vencida`,
     },

@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const navigationItems = [
-  { label: "Painel", href: "/" },
-  { label: "Empresas", href: "/empresas" },
-  { label: "Colaboradores", href: "/colaboradores" },
-  { label: "NR-01/PGR", href: "/nr01-pgr" },
-  { label: "Psicossocial", href: "/psicossocial" },
-  { label: "Documentos", href: "/documentos" },
+  { label: "PAINEL", href: "/" },
+  { label: "EMPRESAS", href: "/empresas" },
+  { label: "COLABORADORES", href: "/colaboradores" },
+  { label: "RISCO OCUPACIONAL", href: "/nr01-pgr" },
+  { label: "PSICOSSOCIAL", href: "/psicossocial" },
+  { label: "DOCUMENTOS", href: "/documentos" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -35,15 +35,15 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
           <div className="sticky top-5 rounded-lg border border-white/70 bg-white/95 p-4 shadow-sm">
             <div className="mb-7">
               <img alt="Pronus Labor" className="h-16 w-auto" src="/brand/pronus-logo.png" />
-              <h1 className="mt-4 text-lg font-semibold">Portal PRONUS</h1>
+              <h1 className="mt-4 text-lg font-semibold uppercase tracking-wide">PORTAL PRONUS</h1>
             </div>
             <div className="mb-5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Operacao
+                OPERAÇÕES
               </p>
             </div>
             <nav
-              className="space-y-2 text-sm font-semibold text-slate-600"
+              className="space-y-2 text-sm font-semibold uppercase tracking-wide text-slate-600"
               aria-label="Menu principal"
             >
               {navigationItems.map((item) => {
@@ -76,10 +76,10 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
           <div className="mb-5 rounded-lg border border-white/70 bg-white/90 p-4 shadow-sm xl:hidden">
             <div className="mb-4">
               <img alt="Pronus Labor" className="h-12 w-auto" src="/brand/pronus-logo.png" />
-              <h1 className="mt-2 text-lg font-semibold">Portal PRONUS</h1>
+              <h1 className="mt-2 text-lg font-semibold uppercase tracking-wide">PORTAL PRONUS</h1>
             </div>
             <nav
-              className="flex gap-2 overflow-x-auto pb-1 text-sm font-medium"
+              className="flex gap-2 overflow-x-auto pb-1 text-sm font-semibold uppercase tracking-wide"
               aria-label="Menu principal"
             >
               {navigationItems.map((item) => {

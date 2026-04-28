@@ -101,12 +101,12 @@ Estado encontrado:
 - Portais PRONUS, RH Cliente e Colaborador agora possuem tela de login por CPF com troca obrigatoria de senha no primeiro acesso com senha padrao.
 - Portal PRONUS recebeu refinamento visual de shell, navegacao e logo oficial, aplicando consistencia, feedback, prevencao de erro e reconhecimento visual.
 - Favicon do produto foi configurado nos tres portais.
-- Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
+- Portal PRONUS agora exibe painel inicial de risco ocupacional com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
 - Painel PRONUS agora exibe:
-  - resumo de empresas, clientes, acoes NR-01 e campanhas;
+  - resumo de empresas, clientes, risco ocupacional e campanhas;
   - unidades, setores e cargos;
   - tabela de empresas/CNPJs;
   - avancos por modulo;
@@ -150,6 +150,7 @@ Estado encontrado:
 - Teste no navegador de `Colaboradores` com aba Usuarios, acoes de status/reset, Agenda, Feriados, Tabela e logins dos portais PRONUS, RH Cliente e Colaborador.
 - Modulo Colaboradores ajustado para busca obrigatoria antes da listagem de usuarios, inclusao local de usuario pelo botao `+`, acoes em lista, reset de senha por icone e refinamento visual da navegacao lateral.
 - Typecheck, teste no navegador e build do Portal PRONUS apos refinamento de Usuarios e navegacao lateral.
+- Portal PRONUS ajustado para abrir Empresas diretamente em Busca Empresa, remover o dashboard inicial de Empresas, renomear NR-01/PGR para Risco Ocupacional e eliminar rolagem horizontal da lista de Usuarios.
 - Teste HTTP de criacao de empresa com campos eSocial/contratuais.
 - Teste clicavel no navegador da tela Empresas: pesquisa e modal de inclusao.
 - Typecheck da API e Portal PRONUS apos reorganizacao do modulo Empresas em Busca, Cargos e Setores.
@@ -160,3 +161,4 @@ Estado encontrado:
 - Build geral do monorepo apos ajuste de UX e modelo de cargos/setores.
 - Teste interativo no navegador validando lista com lupa na busca de empresas, abertura sob demanda das abas, financeiro sem cards estreitos e Cargos/Setores sem filtro por empresa.
 - Typecheck do Portal PRONUS apos separacao entre Clientes, RH, equipe PRONUS, permissoes e agenda.
+- Typecheck, build e teste no navegador do Portal PRONUS apos remover dashboard de Empresas, redirecionar Empresas para Busca Empresa, ajustar menu lateral em caixa alta, renomear NR-01/PGR para Risco Ocupacional e eliminar rolagem horizontal da lista de Usuarios.

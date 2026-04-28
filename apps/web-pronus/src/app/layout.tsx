@@ -4,7 +4,7 @@ import { PronusShell } from "./pronus-shell";
 
 export const metadata: Metadata = {
   title: "Portal PRONUS | Pronus Labor 360",
-  description: "Operacao administrativa, SST, NR-01/PGR e risco psicossocial.",
+  description: "Operacao administrativa, SST, risco ocupacional e risco psicossocial.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
