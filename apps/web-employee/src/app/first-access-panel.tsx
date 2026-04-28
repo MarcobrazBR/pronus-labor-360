@@ -129,9 +129,7 @@ export function FirstAccessPanel() {
     <section className="w-full max-w-6xl rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="grid gap-6 p-5 lg:grid-cols-[0.8fr_1.2fr] lg:p-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-pronus-primary">
-            Pronus Labor 360
-          </p>
+          <img alt="Pronus Labor" className="h-12 w-auto" src="/brand/pronus-logo.png" />
           <h1 className="mt-2 text-2xl font-semibold">Portal Colaborador</h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             Confirme seu cadastro antes de acessar questionarios, termos e demais etapas da jornada

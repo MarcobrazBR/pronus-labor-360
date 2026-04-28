@@ -24,21 +24,18 @@ function isActive(pathname: string, href: string) {
 export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
 
+  if (pathname.startsWith("/login")) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-pronus-background text-pronus-text">
       <div className="mx-auto flex min-h-screen max-w-[1500px] gap-7 px-5 py-5 lg:px-8">
         <aside className="hidden w-72 shrink-0 xl:block">
           <div className="sticky top-5 rounded-lg border border-white/70 bg-white/90 p-4 shadow-sm">
-            <div className="mb-7 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-pronus-primary text-sm font-bold text-white">
-                PL360
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-pronus-primary">
-                  Pronus Labor 360
-                </p>
-                <h1 className="mt-0.5 text-lg font-semibold">Portal PRONUS</h1>
-              </div>
+            <div className="mb-7">
+              <img alt="Pronus Labor" className="h-12 w-auto" src="/brand/pronus-logo.png" />
+              <h1 className="mt-3 text-lg font-semibold">Portal PRONUS</h1>
             </div>
             <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -76,16 +73,9 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
 
         <div className="min-w-0 flex-1">
           <div className="mb-5 rounded-lg border border-white/70 bg-white/90 p-4 shadow-sm xl:hidden">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-pronus-primary text-xs font-bold text-white">
-                PL360
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-pronus-primary">
-                  Pronus Labor 360
-                </p>
-                <h1 className="mt-0.5 text-lg font-semibold">Portal PRONUS</h1>
-              </div>
+            <div className="mb-4">
+              <img alt="Pronus Labor" className="h-10 w-auto" src="/brand/pronus-logo.png" />
+              <h1 className="mt-2 text-lg font-semibold">Portal PRONUS</h1>
             </div>
             <nav
               className="flex gap-2 overflow-x-auto pb-1 text-sm font-medium"

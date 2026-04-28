@@ -15,7 +15,7 @@ export default async function EmployeesPage() {
           </p>
           <h2 className="mt-1 text-2xl font-semibold tracking-normal">Colaboradores</h2>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">
-            Area para RH das empresas, colaboradores internos PRONUS, permissoes do sistema e agenda
+            Area para usuarios do RH e da PRONUS, permissoes, agenda, feriados e tabela de pagamento
             do corpo clinico.
           </p>
         </div>

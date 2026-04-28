@@ -77,7 +77,9 @@ Ja existe:
 - aba Clientes dentro do modulo Empresas para funcionarios das contratantes, com importacao e consulta sob busca;
 - busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, clientes e financeiro;
 - cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
-- modulo Colaboradores voltado a RH cliente, colaboradores internos PRONUS, permissoes do sistema e agenda do corpo clinico;
+- modulo Colaboradores com Usuarios, permissoes do sistema, agenda do corpo clinico, feriados e tabela de pagamento profissional;
+- telas de login por CPF para Portal PRONUS, Portal RH Cliente e Portal Colaborador, com troca obrigatoria quando o usuario acessa pela senha padrao;
+- logo oficial aplicada aos portais e favicon do produto configurado;
 - fluxo de primeiro acesso do colaborador com conferencia cadastral;
 - painel RH Cliente para acompanhar divergencias cadastrais;
 - base inicial NR-01/GRO/PGR com inventario de riscos e plano de acao;

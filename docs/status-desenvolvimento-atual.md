@@ -80,7 +80,7 @@ Estado encontrado:
 - Portal PRONUS reorganizado com navegacao real por paginas:
   - `/` para painel executivo;
   - `/empresas` para empresas, unidades, setores e cargos;
-  - `/colaboradores` para RH cliente, colaboradores internos PRONUS, permissoes e agenda;
+  - `/colaboradores` para usuarios, permissoes, agenda, feriados e tabela do corpo clinico;
   - `/nr01-pgr` para inventario de riscos e plano de acao;
   - `/psicossocial` para campanhas e sinais psicossociais;
   - `/documentos` para fila documental inicial.
@@ -95,8 +95,12 @@ Estado encontrado:
 - Cargos e setores agora funcionam como catalogos transversais por perfil: cliente, RH cliente, gestor cliente, administrativo PRONUS e corpo clinico PRONUS.
 - Busca Empresa agora apresenta resultado em lista com abertura por lupa e abas: Geral, Cobertura, Clientes e Financeiro, com inclusao de vida avulsa e consolidado financeiro por intervalo informado.
 - Telas de busca de empresa, cargos e setores nao carregam listas por padrao; os dados aparecem somente apos uma pesquisa do operador.
-- Modulo Colaboradores agora foi separado de clientes das empresas e passou a organizar RH cliente, colaboradores internos PRONUS, permissoes por cargo e agenda do corpo clinico.
-- Portal PRONUS recebeu refinamento visual de shell, navegacao e blocos de marca, aplicando consistencia, feedback, prevencao de erro e reconhecimento visual.
+- Modulo Colaboradores agora foi separado de clientes das empresas e passou a organizar usuarios, permissoes por cargo, agenda do corpo clinico, bloqueios, feriados e tabela de pagamento profissional.
+- Usuarios agora possuem CPF, data de cadastro, status operacional, acoes de ativar/suspender/cancelar e reset de senha para senha padrao de primeiro acesso.
+- Agenda do corpo clinico agora calcula vagas pelo tempo de consulta, permite marcar dias de atendimento de segunda a sexta e registrar bloqueios por profissional e datas especificas.
+- Portais PRONUS, RH Cliente e Colaborador agora possuem tela de login por CPF com troca obrigatoria de senha no primeiro acesso com senha padrao.
+- Portal PRONUS recebeu refinamento visual de shell, navegacao e logo oficial, aplicando consistencia, feedback, prevencao de erro e reconhecimento visual.
+- Favicon do produto foi configurado nos tres portais.
 - Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
@@ -141,6 +145,9 @@ Estado encontrado:
 - Typecheck e build do Portal PRONUS apos separacao entre clientes, RH cliente e colaboradores internos PRONUS.
 - Teste no navegador de `/empresas/clientes` com tela limpa por padrao e consulta sob busca, `/empresas/busca` com abertura por lupa, abas de cadastro/financeiro e `/colaboradores` com permissoes e agenda.
 - Build geral do monorepo apos ajustes de Clientes, Colaboradores, permissoes, agenda e refinamento visual.
+- Typecheck dos tres portais apos login por CPF, logo oficial, favicon e evolucao do modulo Colaboradores.
+- Build geral do monorepo apos criacao dos logins, logo oficial, favicon e agenda/tabela/feriados.
+- Teste no navegador de `Colaboradores` com aba Usuarios, acoes de status/reset, Agenda, Feriados, Tabela e logins dos portais PRONUS, RH Cliente e Colaborador.
 - Teste HTTP de criacao de empresa com campos eSocial/contratuais.
 - Teste clicavel no navegador da tela Empresas: pesquisa e modal de inclusao.
 - Typecheck da API e Portal PRONUS apos reorganizacao do modulo Empresas em Busca, Cargos e Setores.

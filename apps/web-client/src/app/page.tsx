@@ -92,9 +92,7 @@ export default async function ClientHomePage() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-pronus-primary">
-              Pronus Labor 360
-            </p>
+            <img alt="Pronus Labor" className="h-12 w-auto" src="/brand/pronus-logo.png" />
             <h1 className="mt-1 text-2xl font-semibold">Portal RH Cliente</h1>
           </div>
           <span className="w-fit rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
@@ -104,7 +102,10 @@ export default async function ClientHomePage() {
 
         <section className="grid gap-4 md:grid-cols-3">
           {indicators.map((indicator) => (
-            <article key={indicator.label} className="rounded-lg border border-slate-200 bg-white p-5">
+            <article
+              key={indicator.label}
+              className="rounded-lg border border-slate-200 bg-white p-5"
+            >
               <p className="text-sm text-slate-600">{indicator.label}</p>
               <strong className="mt-2 block text-2xl">{indicator.value}</strong>
             </article>

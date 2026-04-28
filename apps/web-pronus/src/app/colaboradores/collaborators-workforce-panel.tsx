@@ -7,14 +7,16 @@ import {
   type StructuralJobPosition,
 } from "../pronus-data";
 
-type CollaboratorsTab = "rh" | "pronus" | "permissions" | "schedule";
+type CollaboratorsTab = "users" | "permissions" | "schedule" | "holidays" | "rates";
 
-type PersonStatus = "active" | "pending" | "blocked";
+type PersonStatus = "active" | "pending" | "suspended" | "cancelled";
 
 type Person = {
   id: string;
   name: string;
+  cpf: string;
   email: string;
+  registeredAt: string;
   company?: string;
   department: string;
   jobPosition: string;
@@ -36,24 +38,72 @@ type PermissionProfile = {
   permissions: Record<PermissionKey, boolean>;
 };
 
+type Weekday = "mon" | "tue" | "wed" | "thu" | "fri";
+
 type ScheduleItem = {
   id: string;
   clinician: string;
   specialty: string;
-  date: string;
+  startDate: string;
   start: string;
   end: string;
-  capacity: number;
-  status: "available" | "full" | "blocked";
+  appointmentMinutes: number;
+  weekdays: Weekday[];
+  status: "available" | "blocked";
 };
 
 type ScheduleForm = Omit<ScheduleItem, "id" | "status">;
 
+type BlockForm = {
+  clinician: string;
+  date: string;
+  dates: string[];
+};
+
+type BlockedSchedule = {
+  id: string;
+  clinician: string;
+  dates: string[];
+  reason: string;
+};
+
+type HolidayItem = {
+  id: string;
+  date: string;
+  name: string;
+  scope: string;
+  status: "active" | "inactive";
+};
+
+type HolidayForm = Omit<HolidayItem, "id" | "status">;
+
+type RateItem = {
+  id: string;
+  clinician: string;
+  appointmentMinutes: number;
+  value: number;
+  startDate: string;
+  endDate?: string;
+};
+
+type RateForm = Omit<RateItem, "id" | "endDate">;
+
+const standardPassword = "pronu123";
+
 const tabs: Array<{ id: CollaboratorsTab; label: string }> = [
-  { id: "rh", label: "RH clientes" },
-  { id: "pronus", label: "Colaboradores PRONUS" },
+  { id: "users", label: "Usuarios" },
   { id: "permissions", label: "Permissoes do sistema" },
   { id: "schedule", label: "Agenda" },
+  { id: "holidays", label: "Feriados" },
+  { id: "rates", label: "Tabela" },
+];
+
+const weekdays: Array<{ id: Weekday; label: string; title: string }> = [
+  { id: "mon", label: "Seg", title: "Segunda-feira" },
+  { id: "tue", label: "Ter", title: "Terca-feira" },
+  { id: "wed", label: "Qua", title: "Quarta-feira" },
+  { id: "thu", label: "Qui", title: "Quinta-feira" },
+  { id: "fri", label: "Sex", title: "Sexta-feira" },
 ];
 
 const permissionLabels: Record<PermissionKey, string> = {
@@ -68,20 +118,24 @@ const permissionLabels: Record<PermissionKey, string> = {
 const statusClasses: Record<PersonStatus, string> = {
   active: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
   pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
-  blocked: "bg-red-50 text-red-700 ring-1 ring-red-200",
+  suspended: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+  cancelled: "bg-red-50 text-red-700 ring-1 ring-red-200",
 };
 
 const statusLabels: Record<PersonStatus, string> = {
   active: "Ativo",
-  pending: "Validacao",
-  blocked: "Bloqueado",
+  pending: "Primeiro acesso",
+  suspended: "Suspenso",
+  cancelled: "Cancelado",
 };
 
-const rhPeople: Person[] = [
+const initialUsers: Person[] = [
   {
     id: "rh-industria-mariana",
     name: "Mariana Costa",
+    cpf: "123.456.789-09",
     email: "rh@industriahorizonte.com.br",
+    registeredAt: "2026-03-02",
     company: "Industria Horizonte",
     department: "Recursos Humanos",
     jobPosition: "RH cliente",
@@ -91,20 +145,21 @@ const rhPeople: Person[] = [
   {
     id: "rh-rede-paulo",
     name: "Paulo Mendes",
+    cpf: "321.654.987-00",
     email: "rh@redenorte.com.br",
+    registeredAt: "2026-03-18",
     company: "Rede Norte",
     department: "Recursos Humanos",
     jobPosition: "Gestor cliente",
     audience: "client_manager",
     status: "pending",
   },
-];
-
-const pronusPeople: Person[] = [
   {
     id: "pronus-ana-admin",
     name: "Ana Paula Martins",
+    cpf: "456.789.123-88",
     email: "ana.martins@pronus.com.br",
+    registeredAt: "2026-02-10",
     department: "Administrativo PRONUS",
     jobPosition: "Analista Administrativo PRONUS",
     audience: "pronus_administrative",
@@ -113,7 +168,9 @@ const pronusPeople: Person[] = [
   {
     id: "pronus-dr-carlos",
     name: "Carlos Henrique Nunes",
+    cpf: "654.987.321-11",
     email: "carlos.nunes@pronus.com.br",
+    registeredAt: "2026-02-12",
     department: "Corpo Clinico PRONUS",
     jobPosition: "Medico do Trabalho",
     audience: "pronus_clinical",
@@ -122,7 +179,9 @@ const pronusPeople: Person[] = [
   {
     id: "pronus-psi-larissa",
     name: "Larissa Moreira",
+    cpf: "789.123.456-22",
     email: "larissa.moreira@pronus.com.br",
+    registeredAt: "2026-02-13",
     department: "Corpo Clinico PRONUS",
     jobPosition: "Psicologa Ocupacional",
     audience: "pronus_clinical",
@@ -198,44 +257,119 @@ const initialSchedule: ScheduleItem[] = [
     id: "schedule-001",
     clinician: "Carlos Henrique Nunes",
     specialty: "Medicina ocupacional",
-    date: "2026-05-04",
+    startDate: "2026-05-04",
     start: "08:00",
     end: "12:00",
-    capacity: 12,
+    appointmentMinutes: 20,
+    weekdays: ["mon", "wed", "fri"],
     status: "available",
   },
   {
     id: "schedule-002",
     clinician: "Larissa Moreira",
     specialty: "Psicologia",
-    date: "2026-05-04",
+    startDate: "2026-05-04",
     start: "13:00",
     end: "17:00",
-    capacity: 8,
+    appointmentMinutes: 30,
+    weekdays: ["tue", "thu"],
     status: "available",
   },
 ];
 
+const initialBlockedSchedules: BlockedSchedule[] = [
+  {
+    id: "block-001",
+    clinician: "Carlos Henrique Nunes",
+    dates: ["2026-05-15"],
+    reason: "Treinamento externo",
+  },
+];
+
+const initialHolidays: HolidayItem[] = [
+  {
+    id: "holiday-001",
+    date: "2026-12-25",
+    name: "Natal",
+    scope: "Nacional",
+    status: "active",
+  },
+  {
+    id: "holiday-002",
+    date: "2026-01-01",
+    name: "Confraternizacao universal",
+    scope: "Nacional",
+    status: "active",
+  },
+];
+
+const initialRates: RateItem[] = [
+  {
+    id: "rate-001",
+    clinician: "Carlos Henrique Nunes",
+    appointmentMinutes: 20,
+    value: 72,
+    startDate: "2026-02-01",
+  },
+  {
+    id: "rate-002",
+    clinician: "Larissa Moreira",
+    appointmentMinutes: 30,
+    value: 90,
+    startDate: "2026-02-01",
+  },
+];
+
 const emptyScheduleForm: ScheduleForm = {
-  capacity: 8,
+  appointmentMinutes: 20,
   clinician: "Carlos Henrique Nunes",
-  date: "",
   end: "",
   specialty: "Medicina ocupacional",
   start: "",
+  startDate: "",
+  weekdays: ["mon", "wed", "fri"],
+};
+
+const emptyBlockForm: BlockForm = {
+  clinician: "Carlos Henrique Nunes",
+  date: "",
+  dates: [],
+};
+
+const emptyHolidayForm: HolidayForm = {
+  date: "",
+  name: "",
+  scope: "Nacional",
+};
+
+const emptyRateForm: RateForm = {
+  appointmentMinutes: 20,
+  clinician: "Carlos Henrique Nunes",
+  startDate: "",
+  value: 0,
 };
 
 export function CollaboratorsWorkforcePanel({
   jobPositions,
 }: Readonly<{ jobPositions: StructuralJobPosition[] }>) {
-  const [activeTab, setActiveTab] = useState<CollaboratorsTab>("rh");
+  const [activeTab, setActiveTab] = useState<CollaboratorsTab>("users");
+  const [users, setUsers] = useState(initialUsers);
   const [permissions, setPermissions] = useState(initialPermissions);
   const [schedule, setSchedule] = useState(initialSchedule);
+  const [blockedSchedules, setBlockedSchedules] = useState(initialBlockedSchedules);
+  const [holidays, setHolidays] = useState(initialHolidays);
+  const [rates, setRates] = useState(initialRates);
   const [scheduleForm, setScheduleForm] = useState<ScheduleForm>(emptyScheduleForm);
+  const [blockForm, setBlockForm] = useState<BlockForm>(emptyBlockForm);
+  const [holidayForm, setHolidayForm] = useState<HolidayForm>(emptyHolidayForm);
+  const [rateForm, setRateForm] = useState<RateForm>(emptyRateForm);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [isBlockOpen, setIsBlockOpen] = useState(false);
+  const [isHolidayOpen, setIsHolidayOpen] = useState(false);
+  const [isRateOpen, setIsRateOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const clinicalPeople = pronusPeople.filter((person) => person.audience === "pronus_clinical");
+  const clinicalPeople = users.filter((person) => person.audience === "pronus_clinical");
   const roleOptions = useMemo(
     () =>
       jobPositions.filter(
@@ -247,6 +381,19 @@ export function CollaboratorsWorkforcePanel({
       ),
     [jobPositions],
   );
+
+  function updateUserStatus(id: string, status: PersonStatus) {
+    setUsers((current) =>
+      current.map((person) => (person.id === id ? { ...person, status } : person)),
+    );
+    setMessage(`Usuario ${statusLabels[status].toLowerCase()} com sucesso.`);
+  }
+
+  function resetPassword(person: Person) {
+    setMessage(
+      `Senha de ${person.name} redefinida para ${standardPassword}. O proximo acesso exigira troca de senha.`,
+    );
+  }
 
   function togglePermission(profileIndex: number, permission: PermissionKey) {
     setPermissions((current) =>
@@ -268,32 +415,137 @@ export function CollaboratorsWorkforcePanel({
   function updateScheduleForm(field: keyof ScheduleForm, value: string) {
     setScheduleForm((current) => ({
       ...current,
-      [field]: field === "capacity" ? Number(value) : value,
+      [field]: field === "appointmentMinutes" ? Number(value) : value,
+    }));
+  }
+
+  function toggleWeekday(day: Weekday) {
+    setScheduleForm((current) => ({
+      ...current,
+      weekdays: current.weekdays.includes(day)
+        ? current.weekdays.filter((weekday) => weekday !== day)
+        : [...current.weekdays, day],
     }));
   }
 
   function submitSchedule() {
     if (
       scheduleForm.clinician.length === 0 ||
-      scheduleForm.date.length === 0 ||
+      scheduleForm.startDate.length === 0 ||
       scheduleForm.start.length === 0 ||
-      scheduleForm.end.length === 0
+      scheduleForm.end.length === 0 ||
+      scheduleForm.weekdays.length === 0 ||
+      scheduleForm.appointmentMinutes <= 0
     ) {
-      setMessage("Preencha profissional, data, inicio e fim para criar agenda.");
+      setMessage("Preencha profissional, vigencia, horario, tempo da consulta e dias da semana.");
       return;
     }
 
     setSchedule((current) => [
       {
         ...scheduleForm,
-        id: `schedule-${current.length + 1}-${scheduleForm.date}`,
+        id: `schedule-${current.length + 1}-${scheduleForm.startDate}`,
         status: "available",
       },
       ...current,
     ]);
     setIsScheduleOpen(false);
     setScheduleForm(emptyScheduleForm);
-    setMessage("Agenda cadastrada para o corpo clinico PRONUS.");
+    setMessage("Agenda cadastrada com calculo automatico de vagas por dia.");
+  }
+
+  function addBlockedDate() {
+    if (blockForm.date.length === 0 || blockForm.dates.includes(blockForm.date)) {
+      return;
+    }
+
+    setBlockForm((current) => ({
+      ...current,
+      date: "",
+      dates: [...current.dates, current.date].sort(),
+    }));
+  }
+
+  function removeBlockedDate(date: string) {
+    setBlockForm((current) => ({
+      ...current,
+      dates: current.dates.filter((item) => item !== date),
+    }));
+  }
+
+  function submitBlock() {
+    if (blockForm.clinician.length === 0 || blockForm.dates.length === 0) {
+      setMessage("Selecione profissional e ao menos uma data para bloquear agenda.");
+      return;
+    }
+
+    setBlockedSchedules((current) => [
+      {
+        clinician: blockForm.clinician,
+        dates: blockForm.dates,
+        id: `block-${current.length + 1}`,
+        reason: "Bloqueio operacional",
+      },
+      ...current,
+    ]);
+    setBlockForm(emptyBlockForm);
+    setIsBlockOpen(false);
+    setMessage("Agenda bloqueada para as datas selecionadas.");
+  }
+
+  function submitHoliday() {
+    if (holidayForm.name.trim().length === 0 || holidayForm.date.length === 0) {
+      setMessage("Preencha nome e data do feriado.");
+      return;
+    }
+
+    setHolidays((current) => [
+      {
+        ...holidayForm,
+        id: `holiday-${current.length + 1}`,
+        status: "active",
+      },
+      ...current,
+    ]);
+    setHolidayForm(emptyHolidayForm);
+    setIsHolidayOpen(false);
+    setMessage("Feriado cadastrado e removido da disponibilidade do cliente.");
+  }
+
+  function submitRate() {
+    if (
+      rateForm.clinician.length === 0 ||
+      rateForm.startDate.length === 0 ||
+      rateForm.appointmentMinutes <= 0 ||
+      rateForm.value <= 0
+    ) {
+      setMessage("Preencha profissional, tempo, valor e data de inicio da tabela.");
+      return;
+    }
+
+    const today = todayIso();
+
+    setRates((current) => [
+      {
+        ...rateForm,
+        id: `rate-${current.length + 1}`,
+      },
+      ...current.map((rate) =>
+        rate.clinician === rateForm.clinician && rate.endDate === undefined
+          ? { ...rate, endDate: today }
+          : rate,
+      ),
+    ]);
+    setRateForm(emptyRateForm);
+    setIsRateOpen(false);
+    setMessage("Tabela cadastrada e tabela anterior do profissional inativada quando existente.");
+  }
+
+  function inactivateRate(id: string) {
+    setRates((current) =>
+      current.map((rate) => (rate.id === id ? { ...rate, endDate: todayIso() } : rate)),
+    );
+    setMessage("Tabela inativada com data fim registrada.");
   }
 
   return (
@@ -326,9 +578,15 @@ export function CollaboratorsWorkforcePanel({
         </div>
       )}
 
-      {activeTab === "rh" && <PeopleTable people={rhPeople} title="Clientes RH" />}
-      {activeTab === "pronus" && (
-        <PeopleTable people={pronusPeople} title="Colaboradores internos PRONUS" />
+      {activeTab === "users" && (
+        <UsersTab
+          users={users}
+          onAdd={() =>
+            setMessage("Inclusao de usuario preparada para o proximo passo do cadastro.")
+          }
+          onResetPassword={resetPassword}
+          onUpdateStatus={updateUserStatus}
+        />
       )}
       {activeTab === "permissions" && (
         <PermissionsTab
@@ -339,51 +597,108 @@ export function CollaboratorsWorkforcePanel({
       )}
       {activeTab === "schedule" && (
         <ScheduleTab
+          blockForm={blockForm}
+          blockedSchedules={blockedSchedules}
           clinicalPeople={clinicalPeople}
           form={scheduleForm}
+          isBlockOpen={isBlockOpen}
           isOpen={isScheduleOpen}
           schedule={schedule}
+          setBlockForm={setBlockForm}
+          setIsBlockOpen={setIsBlockOpen}
           setIsOpen={setIsScheduleOpen}
           updateForm={updateScheduleForm}
+          onAddBlockedDate={addBlockedDate}
+          onRemoveBlockedDate={removeBlockedDate}
           onSubmit={submitSchedule}
+          onSubmitBlock={submitBlock}
+          onToggleWeekday={toggleWeekday}
+        />
+      )}
+      {activeTab === "holidays" && (
+        <HolidaysTab
+          form={holidayForm}
+          holidays={holidays}
+          isOpen={isHolidayOpen}
+          setForm={setHolidayForm}
+          setIsOpen={setIsHolidayOpen}
+          onSubmit={submitHoliday}
+        />
+      )}
+      {activeTab === "rates" && (
+        <RatesTab
+          clinicalPeople={clinicalPeople}
+          form={rateForm}
+          isOpen={isRateOpen}
+          rates={rates}
+          setForm={setRateForm}
+          setIsOpen={setIsRateOpen}
+          onInactivate={inactivateRate}
+          onSubmit={submitRate}
         />
       )}
     </section>
   );
 }
 
-function PeopleTable({ people, title }: Readonly<{ people: Person[]; title: string }>) {
+function UsersTab({
+  onAdd,
+  onResetPassword,
+  onUpdateStatus,
+  users,
+}: Readonly<{
+  onAdd: () => void;
+  onResetPassword: (person: Person) => void;
+  onUpdateStatus: (id: string, status: PersonStatus) => void;
+  users: Person[];
+}>) {
   return (
     <div className="p-5">
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h3 className="text-base font-semibold">{title}</h3>
+          <h3 className="text-base font-semibold">Usuarios</h3>
           <p className="mt-1 text-sm text-slate-500">
-            Lista operacional de pessoas com acesso ao ecossistema PRONUS.
+            Pessoas com acesso ao Portal PRONUS administrativo ou ao Portal RH cliente.
           </p>
         </div>
-        <span className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-          {people.length} registros
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+            {users.length} registros
+          </span>
+          <button
+            aria-label="Incluir usuario"
+            className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-xl font-semibold leading-none text-white"
+            title="Incluir usuario"
+            type="button"
+            onClick={onAdd}
+          >
+            +
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-[1180px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3 font-semibold">Nome</th>
+              <th className="px-4 py-3 font-semibold">CPF</th>
+              <th className="px-4 py-3 font-semibold">Cadastro</th>
               <th className="px-4 py-3 font-semibold">Perfil</th>
               <th className="px-4 py-3 font-semibold">Vinculo</th>
               <th className="px-4 py-3 font-semibold">Cargo</th>
               <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Acoes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {people.map((person) => (
+            {users.map((person) => (
               <tr key={person.id}>
                 <td className="px-4 py-3">
                   <strong className="block font-semibold">{person.name}</strong>
                   <span className="mt-1 block text-xs text-slate-500">{person.email}</span>
                 </td>
+                <td className="px-4 py-3">{person.cpf}</td>
+                <td className="px-4 py-3">{dateLabel(person.registeredAt)}</td>
                 <td className="px-4 py-3">{structuralAudienceLabels[person.audience]}</td>
                 <td className="px-4 py-3">{person.company ?? "PRONUS"}</td>
                 <td className="px-4 py-3">{person.jobPosition}</td>
@@ -393,6 +708,28 @@ function PeopleTable({ people, title }: Readonly<{ people: Person[]; title: stri
                   >
                     {statusLabels[person.status]}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    {person.status !== "active" && (
+                      <ActionButton onClick={() => onUpdateStatus(person.id, "active")}>
+                        Ativar
+                      </ActionButton>
+                    )}
+                    {person.status === "active" && (
+                      <ActionButton onClick={() => onUpdateStatus(person.id, "suspended")}>
+                        Suspender
+                      </ActionButton>
+                    )}
+                    {person.status !== "cancelled" && (
+                      <ActionButton onClick={() => onUpdateStatus(person.id, "cancelled")}>
+                        Cancelar
+                      </ActionButton>
+                    )}
+                    <ActionButton onClick={() => onResetPassword(person)}>
+                      Resetar senha
+                    </ActionButton>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -472,98 +809,216 @@ function PermissionsTab({
 }
 
 function ScheduleTab({
+  blockForm,
+  blockedSchedules,
   clinicalPeople,
   form,
+  isBlockOpen,
   isOpen,
+  onAddBlockedDate,
+  onRemoveBlockedDate,
+  onSubmit,
+  onSubmitBlock,
+  onToggleWeekday,
   schedule,
+  setBlockForm,
+  setIsBlockOpen,
   setIsOpen,
   updateForm,
-  onSubmit,
 }: Readonly<{
+  blockForm: BlockForm;
+  blockedSchedules: BlockedSchedule[];
   clinicalPeople: Person[];
   form: ScheduleForm;
+  isBlockOpen: boolean;
   isOpen: boolean;
+  onAddBlockedDate: () => void;
+  onRemoveBlockedDate: (date: string) => void;
+  onSubmit: () => void;
+  onSubmitBlock: () => void;
+  onToggleWeekday: (day: Weekday) => void;
   schedule: ScheduleItem[];
+  setBlockForm: (form: BlockForm | ((current: BlockForm) => BlockForm)) => void;
+  setIsBlockOpen: (isOpen: boolean) => void;
   setIsOpen: (isOpen: boolean) => void;
   updateForm: (field: keyof ScheduleForm, value: string) => void;
-  onSubmit: () => void;
 }>) {
+  const calculatedCapacity = calculateSlots(form.start, form.end, form.appointmentMinutes);
+
   return (
     <div className="p-5">
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h3 className="text-base font-semibold">Agenda do corpo clinico</h3>
           <p className="mt-1 text-sm text-slate-500">
-            Cadastre disponibilidade para atendimentos dos clientes das empresas contratantes.
+            Cadastre disponibilidade, calcule vagas por tempo de consulta e bloqueie datas
+            indisponiveis.
           </p>
         </div>
-        <button
-          className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? "Fechar agenda" : "Nova agenda"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+            type="button"
+            onClick={() => setIsBlockOpen(!isBlockOpen)}
+          >
+            {isBlockOpen ? "Fechar bloqueio" : "Bloquear agenda"}
+          </button>
+          <button
+            className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {isOpen ? "Fechar agenda" : "Nova agenda"}
+          </button>
+        </div>
       </div>
 
       {isOpen && (
-        <div className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 md:grid-cols-3">
-          <SelectField
-            label="Profissional"
-            value={form.clinician}
-            onChange={(value) => updateForm("clinician", value)}
-            options={clinicalPeople.map((person) => ({ label: person.name, value: person.name }))}
-          />
-          <Field
-            label="Especialidade"
-            value={form.specialty}
-            onChange={(value) => updateForm("specialty", value)}
-          />
-          <Field
-            label="Data"
-            type="date"
-            value={form.date}
-            onChange={(value) => updateForm("date", value)}
-          />
-          <Field
-            label="Inicio"
-            type="time"
-            value={form.start}
-            onChange={(value) => updateForm("start", value)}
-          />
-          <Field
-            label="Fim"
-            type="time"
-            value={form.end}
-            onChange={(value) => updateForm("end", value)}
-          />
-          <Field
-            label="Vagas"
-            type="number"
-            value={String(form.capacity)}
-            onChange={(value) => updateForm("capacity", value)}
-          />
-          <div className="md:col-span-3">
-            <button
-              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
-              type="button"
-              onClick={onSubmit}
-            >
-              Salvar agenda
-            </button>
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <SelectField
+              label="Profissional"
+              value={form.clinician}
+              onChange={(value) => updateForm("clinician", value)}
+              options={clinicalPeople.map((person) => ({
+                label: person.name,
+                value: person.name,
+              }))}
+            />
+            <Field
+              label="Especialidade"
+              value={form.specialty}
+              onChange={(value) => updateForm("specialty", value)}
+            />
+            <Field
+              label="Inicio vigencia"
+              type="date"
+              value={form.startDate}
+              onChange={(value) => updateForm("startDate", value)}
+            />
+            <Field
+              label="Inicio"
+              type="time"
+              value={form.start}
+              onChange={(value) => updateForm("start", value)}
+            />
+            <Field
+              label="Fim"
+              type="time"
+              value={form.end}
+              onChange={(value) => updateForm("end", value)}
+            />
+            <Field
+              label="Tempo da consulta (min)"
+              type="number"
+              value={String(form.appointmentMinutes)}
+              onChange={(value) => updateForm("appointmentMinutes", value)}
+            />
           </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_220px]">
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-500">Dias de atendimento</p>
+              <div className="mt-2 grid grid-cols-5 gap-2">
+                {weekdays.map((weekday) => {
+                  const selected = form.weekdays.includes(weekday.id);
+
+                  return (
+                    <button
+                      key={weekday.id}
+                      className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+                        selected
+                          ? "border-pronus-primary bg-pronus-primary text-white"
+                          : "border-slate-300 bg-white text-slate-700"
+                      }`}
+                      title={weekday.title}
+                      type="button"
+                      onClick={() => onToggleWeekday(weekday.id)}
+                    >
+                      {weekday.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="rounded-md bg-white p-3 ring-1 ring-slate-200">
+              <p className="text-xs font-semibold uppercase text-slate-500">Vagas calculadas</p>
+              <strong className="mt-1 block text-2xl font-semibold text-slate-900">
+                {calculatedCapacity}
+              </strong>
+              <span className="text-xs text-slate-500">por dia selecionado</span>
+            </div>
+          </div>
+          <button
+            className="mt-4 rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
+            type="button"
+            onClick={onSubmit}
+          >
+            Salvar agenda
+          </button>
+        </div>
+      )}
+
+      {isBlockOpen && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+            <SelectField
+              label="Profissional"
+              value={blockForm.clinician}
+              onChange={(value) => setBlockForm((current) => ({ ...current, clinician: value }))}
+              options={clinicalPeople.map((person) => ({
+                label: person.name,
+                value: person.name,
+              }))}
+            />
+            <Field
+              label="Data bloqueio"
+              type="date"
+              value={blockForm.date}
+              onChange={(value) => setBlockForm((current) => ({ ...current, date: value }))}
+            />
+            <div className="flex items-end">
+              <button
+                className="rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800"
+                type="button"
+                onClick={onAddBlockedDate}
+              >
+                Adicionar data
+              </button>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {blockForm.dates.map((date) => (
+              <button
+                key={date}
+                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200"
+                type="button"
+                onClick={() => onRemoveBlockedDate(date)}
+              >
+                {dateLabel(date)} x
+              </button>
+            ))}
+          </div>
+          <button
+            className="mt-4 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white"
+            type="button"
+            onClick={onSubmitBlock}
+          >
+            Salvar bloqueio
+          </button>
         </div>
       )}
 
       <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-[920px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3 font-semibold">Profissional</th>
               <th className="px-4 py-3 font-semibold">Especialidade</th>
-              <th className="px-4 py-3 font-semibold">Data</th>
+              <th className="px-4 py-3 font-semibold">Vigencia</th>
+              <th className="px-4 py-3 font-semibold">Dias</th>
               <th className="px-4 py-3 font-semibold">Horario</th>
-              <th className="px-4 py-3 font-semibold">Vagas</th>
+              <th className="px-4 py-3 font-semibold">Tempo</th>
+              <th className="px-4 py-3 font-semibold">Vagas/dia</th>
               <th className="px-4 py-3 font-semibold">Status</th>
             </tr>
           </thead>
@@ -572,11 +1027,15 @@ function ScheduleTab({
               <tr key={item.id}>
                 <td className="px-4 py-3 font-semibold">{item.clinician}</td>
                 <td className="px-4 py-3">{item.specialty}</td>
-                <td className="px-4 py-3">{dateLabel(item.date)}</td>
+                <td className="px-4 py-3">{dateLabel(item.startDate)}</td>
+                <td className="px-4 py-3">{weekdayLabel(item.weekdays)}</td>
                 <td className="px-4 py-3">
                   {item.start} - {item.end}
                 </td>
-                <td className="px-4 py-3">{item.capacity}</td>
+                <td className="px-4 py-3">{item.appointmentMinutes} min</td>
+                <td className="px-4 py-3">
+                  {calculateSlots(item.start, item.end, item.appointmentMinutes)}
+                </td>
                 <td className="px-4 py-3">
                   <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
                     Disponivel
@@ -587,7 +1046,256 @@ function ScheduleTab({
           </tbody>
         </table>
       </div>
+
+      <div className="mt-4 rounded-lg border border-slate-200">
+        <div className="border-b border-slate-200 px-4 py-3">
+          <h4 className="text-sm font-semibold">Bloqueios cadastrados</h4>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {blockedSchedules.map((blocked) => (
+            <div key={blocked.id} className="grid gap-2 px-4 py-3 text-sm md:grid-cols-[1fr_1fr]">
+              <strong>{blocked.clinician}</strong>
+              <span className="text-slate-600">
+                {blocked.dates.map((date) => dateLabel(date)).join(", ")}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
+  );
+}
+
+function HolidaysTab({
+  form,
+  holidays,
+  isOpen,
+  onSubmit,
+  setForm,
+  setIsOpen,
+}: Readonly<{
+  form: HolidayForm;
+  holidays: HolidayItem[];
+  isOpen: boolean;
+  onSubmit: () => void;
+  setForm: (form: HolidayForm | ((current: HolidayForm) => HolidayForm)) => void;
+  setIsOpen: (isOpen: boolean) => void;
+}>) {
+  return (
+    <div className="p-5">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h3 className="text-base font-semibold">Feriados</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Datas que interferem no calendario de atendimento e nao aparecem para marcacao.
+          </p>
+        </div>
+        <button
+          aria-label="Cadastrar feriado"
+          className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-xl font-semibold leading-none text-white"
+          title="Cadastrar feriado"
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          +
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_180px_180px_auto]">
+          <Field
+            label="Feriado"
+            value={form.name}
+            onChange={(value) => setForm((current) => ({ ...current, name: value }))}
+          />
+          <Field
+            label="Data"
+            type="date"
+            value={form.date}
+            onChange={(value) => setForm((current) => ({ ...current, date: value }))}
+          />
+          <Field
+            label="Abrangencia"
+            value={form.scope}
+            onChange={(value) => setForm((current) => ({ ...current, scope: value }))}
+          />
+          <div className="flex items-end">
+            <button
+              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
+              type="button"
+              onClick={onSubmit}
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Feriado</th>
+              <th className="px-4 py-3 font-semibold">Data</th>
+              <th className="px-4 py-3 font-semibold">Abrangencia</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {holidays.map((holiday) => (
+              <tr key={holiday.id}>
+                <td className="px-4 py-3 font-semibold">{holiday.name}</td>
+                <td className="px-4 py-3">{dateLabel(holiday.date)}</td>
+                <td className="px-4 py-3">{holiday.scope}</td>
+                <td className="px-4 py-3">
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                    Ativo
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RatesTab({
+  clinicalPeople,
+  form,
+  isOpen,
+  onInactivate,
+  onSubmit,
+  rates,
+  setForm,
+  setIsOpen,
+}: Readonly<{
+  clinicalPeople: Person[];
+  form: RateForm;
+  isOpen: boolean;
+  onInactivate: (id: string) => void;
+  onSubmit: () => void;
+  rates: RateItem[];
+  setForm: (form: RateForm | ((current: RateForm) => RateForm)) => void;
+  setIsOpen: (isOpen: boolean) => void;
+}>) {
+  return (
+    <div className="p-5">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h3 className="text-base font-semibold">Tabela de pagamento</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Negociacao por profissional, tempo de consulta, valor e periodo de vigencia.
+          </p>
+        </div>
+        <button
+          aria-label="Incluir tabela"
+          className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-xl font-semibold leading-none text-white"
+          title="Incluir tabela"
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          +
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_180px_180px_180px_auto]">
+          <SelectField
+            label="Profissional"
+            value={form.clinician}
+            onChange={(value) => setForm((current) => ({ ...current, clinician: value }))}
+            options={clinicalPeople.map((person) => ({
+              label: person.name,
+              value: person.name,
+            }))}
+          />
+          <Field
+            label="Tempo consulta"
+            type="number"
+            value={String(form.appointmentMinutes)}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, appointmentMinutes: Number(value) }))
+            }
+          />
+          <Field
+            label="Valor"
+            type="number"
+            value={String(form.value)}
+            onChange={(value) => setForm((current) => ({ ...current, value: Number(value) }))}
+          />
+          <Field
+            label="Inicio"
+            type="date"
+            value={form.startDate}
+            onChange={(value) => setForm((current) => ({ ...current, startDate: value }))}
+          />
+          <div className="flex items-end">
+            <button
+              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
+              type="button"
+              onClick={onSubmit}
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="min-w-[900px] text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Profissional</th>
+              <th className="px-4 py-3 font-semibold">Tempo</th>
+              <th className="px-4 py-3 font-semibold">Valor</th>
+              <th className="px-4 py-3 font-semibold">Inicio</th>
+              <th className="px-4 py-3 font-semibold">Fim</th>
+              <th className="px-4 py-3 font-semibold">Acao</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rates.map((rate) => (
+              <tr key={rate.id}>
+                <td className="px-4 py-3 font-semibold">{rate.clinician}</td>
+                <td className="px-4 py-3">{rate.appointmentMinutes} min</td>
+                <td className="px-4 py-3">{money(rate.value)}</td>
+                <td className="px-4 py-3">{dateLabel(rate.startDate)}</td>
+                <td className="px-4 py-3">
+                  {rate.endDate === undefined ? (
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                      Vigente
+                    </span>
+                  ) : (
+                    dateLabel(rate.endDate)
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {rate.endDate === undefined ? (
+                    <ActionButton onClick={() => onInactivate(rate.id)}>Inativar</ActionButton>
+                  ) : (
+                    <span className="text-xs font-semibold text-slate-500">Inativa</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ActionButton({ children, onClick }: Readonly<{ children: string; onClick: () => void }>) {
+  return (
+    <button
+      className="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
+      type="button"
+      onClick={onClick}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -606,7 +1314,7 @@ function Field({
     <label className="block">
       <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
       <input
-        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -630,7 +1338,7 @@ function SelectField({
     <label className="block">
       <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
       <select
-        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -644,6 +1352,48 @@ function SelectField({
   );
 }
 
+function calculateSlots(start: string, end: string, appointmentMinutes: number) {
+  if (start.length === 0 || end.length === 0 || appointmentMinutes <= 0) {
+    return 0;
+  }
+
+  const startParts = start.split(":").map(Number);
+  const endParts = end.split(":").map(Number);
+  const startHour = startParts[0] ?? 0;
+  const startMinute = startParts[1] ?? 0;
+  const endHour = endParts[0] ?? 0;
+  const endMinute = endParts[1] ?? 0;
+  const duration = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+
+  if (duration <= 0) {
+    return 0;
+  }
+
+  return Math.floor(duration / appointmentMinutes);
+}
+
+function weekdayLabel(selectedWeekdays: Weekday[]) {
+  return weekdays
+    .filter((weekday) => selectedWeekdays.includes(weekday.id))
+    .map((weekday) => weekday.label)
+    .join(", ");
+}
+
 function dateLabel(value: string) {
+  if (value.length === 0) {
+    return "-";
+  }
+
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
+}
+
+function money(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    currency: "BRL",
+    style: "currency",
+  }).format(value);
+}
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
 }
