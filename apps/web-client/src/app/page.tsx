@@ -1,157 +1,211 @@
+import {
+  actionStatusLabels,
+  campaignStatusLabels,
+  contractStatusLabels,
+  dateLabel,
+  documentStatusLabels,
+  loadClientPortalData,
+  riskLevelLabels,
+  statusClasses,
+} from "./client-data";
+
 export const dynamic = "force-dynamic";
 
-type DivergenceStatus = "pending" | "approved" | "rejected";
-
-interface EmployeeDivergence {
-  id: string;
-  companyTradeName: string;
-  fullName: string;
-  cpf: string;
-  status: DivergenceStatus;
-  changes: Array<{
-    field: string;
-    currentValue: string;
-    submittedValue: string;
-  }>;
-  createdAt: string;
-}
-
-const fallbackDivergences: EmployeeDivergence[] = [
-  {
-    id: "divergence-001",
-    companyTradeName: "Industria Horizonte",
-    fullName: "Rafael Moreira Lima",
-    cpf: "987.654.321-00",
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    changes: [
-      {
-        field: "phone",
-        currentValue: "",
-        submittedValue: "11 98888-7777",
-      },
-    ],
-  },
-];
-
-const statusLabels: Record<DivergenceStatus, string> = {
-  pending: "Pendente",
-  approved: "Aprovada",
-  rejected: "Recusada",
-};
-
-const fieldLabels: Record<string, string> = {
-  email: "E-mail",
-  phone: "Telefone",
-  department: "Setor",
-  jobPosition: "Cargo",
-};
-
-async function fetchApi<T>(path: string, fallback: T): Promise<T> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
-
-  try {
-    const response = await fetch(`${apiUrl}${path}`, { cache: "no-store" });
-
-    if (!response.ok) {
-      return fallback;
-    }
-
-    return (await response.json()) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function statusClasses(status: DivergenceStatus) {
-  if (status === "pending") {
-    return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
-  }
-
-  if (status === "approved") {
-    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
-  }
-
-  return "bg-red-50 text-red-700 ring-1 ring-red-200";
-}
-
 export default async function ClientHomePage() {
-  const divergences = await fetchApi<EmployeeDivergence[]>(
-    "/employee-access/divergences",
-    fallbackDivergences,
+  const data = await loadClientPortalData();
+  const pendingDivergences = data.divergences.filter((item) => item.status === "pending");
+  const openActions = data.riskActions.filter(
+    (item) => item.status === "open" || item.status === "in_progress" || item.status === "overdue",
   );
-  const pendingDivergences = divergences.filter((divergence) => divergence.status === "pending");
-  const indicators = [
-    { label: "Colaboradores ativos", value: "474" },
-    { label: "Divergencias pendentes", value: String(pendingDivergences.length) },
-    { label: "Risco geral", value: "Baixo" },
+  const pendingDocuments = data.documents.filter(
+    (item) => item.status === "draft" || item.status === "in_review" || item.status === "expired",
+  );
+  const activeCampaign = data.psychosocialCampaigns[0];
+  const summaryCards = [
+    {
+      detail: `${data.activeCompany.units} unidades / ${data.activeCompany.departments} setores`,
+      label: "Clientes ativos",
+      value: String(
+        data.employees.filter((employee) => employee.registrationStatus === "active").length,
+      ),
+    },
+    {
+      detail: "Ajustes enviados pelo colaborador",
+      label: "Divergências",
+      value: String(pendingDivergences.length),
+    },
+    {
+      detail: "Planos de ação e documentos",
+      label: "Pendências SST",
+      value: String(openActions.length + pendingDocuments.length),
+    },
+    {
+      detail:
+        activeCampaign === undefined
+          ? "Sem campanha ativa"
+          : `${activeCampaign.responseRate}% adesão`,
+      label: "Psicossocial",
+      value: activeCampaign === undefined ? "0" : String(activeCampaign.responseCount),
+    },
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-6 text-slate-900 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <img alt="Pronus Labor" className="h-12 w-auto" src="/brand/pronus-logo.png" />
-            <h1 className="mt-1 text-2xl font-semibold">Portal RH Cliente</h1>
-          </div>
-          <span className="w-fit rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
-            Visao agregada e governanca cadastral
-          </span>
-        </header>
+    <>
+      <header className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-pronus-primary">
+            Portal RH Cliente
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-normal">
+            {data.activeCompany.tradeName}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            {data.activeCompany.cnpj} / CNAE {data.activeCompany.primaryCnae ?? "pendente"}
+          </p>
+        </div>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {indicators.map((indicator) => (
-            <article
-              key={indicator.label}
-              className="rounded-lg border border-slate-200 bg-white p-5"
-            >
-              <p className="text-sm text-slate-600">{indicator.label}</p>
-              <strong className="mt-2 block text-2xl">{indicator.value}</strong>
-            </article>
-          ))}
-        </section>
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">
+          {contractStatusLabels[data.activeCompany.contractStatus ?? "onboarding"]}
+        </div>
+      </header>
 
-        <section className="mt-6 rounded-lg border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold">Divergencias cadastrais</h2>
-          </div>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {summaryCards.map((card) => (
+          <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
+            <p className="text-sm font-medium text-slate-500">{card.label}</p>
+            <strong className="mt-2 block text-3xl font-semibold tracking-normal">
+              {card.value}
+            </strong>
+            <span className="mt-2 block text-sm text-slate-600">{card.detail}</span>
+          </article>
+        ))}
+      </section>
+
+      <section className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-lg border border-slate-200 bg-white">
+          <PanelTitle title="Pendências prioritárias" />
           <div className="divide-y divide-slate-100">
-            {divergences.map((divergence) => (
-              <article key={divergence.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold">{divergence.fullName}</h3>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
-                        divergence.status,
-                      )}`}
-                    >
-                      {statusLabels[divergence.status]}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {divergence.companyTradeName} / {divergence.cpf}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {divergence.changes.map((change) => (
-                      <span
-                        key={`${divergence.id}-${change.field}`}
-                        className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
-                      >
-                        {fieldLabels[change.field] ?? change.field}: {change.submittedValue}
-                      </span>
-                    ))}
-                  </div>
+            {pendingDivergences.slice(0, 2).map((divergence) => (
+              <article key={divergence.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-semibold">{divergence.fullName}</h3>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                      divergence.status,
+                    )}`}
+                  >
+                    Divergência cadastral
+                  </span>
                 </div>
-                <div className="text-sm text-slate-500">
-                  {new Date(divergence.createdAt).toLocaleDateString("pt-BR")}
+                <p className="mt-1 text-sm text-slate-600">
+                  {divergence.cpf} / {dateLabel(divergence.createdAt)}
+                </p>
+              </article>
+            ))}
+
+            {openActions.slice(0, 3).map((action) => (
+              <article key={action.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-semibold">{action.title}</h3>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                      action.status,
+                    )}`}
+                  >
+                    {actionStatusLabels[action.status]}
+                  </span>
                 </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  {action.responsible} / prazo {dateLabel(action.dueDate)}
+                </p>
+              </article>
+            ))}
+
+            {pendingDivergences.length === 0 && openActions.length === 0 && (
+              <div className="px-5 py-8 text-sm text-slate-500">Nenhuma pendência crítica.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-white">
+          <PanelTitle title="Conformidade em acompanhamento" />
+          <div className="grid gap-3 p-5 md:grid-cols-2">
+            {data.risks.slice(0, 4).map((risk) => (
+              <article key={risk.id} className="rounded-md bg-slate-100 px-3 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                      risk.level,
+                    )}`}
+                  >
+                    {riskLevelLabels[risk.level]}
+                  </span>
+                  <span className="text-xs font-semibold uppercase text-slate-500">
+                    {risk.departmentName}
+                  </span>
+                </div>
+                <h3 className="mt-2 text-sm font-semibold">{risk.danger}</h3>
+                <p className="mt-1 text-sm text-slate-600">{risk.risk}</p>
+              </article>
+            ))}
+            {pendingDocuments.slice(0, 2).map((document) => (
+              <article key={document.id} className="rounded-md bg-slate-100 px-3 py-3">
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                    document.status,
+                  )}`}
+                >
+                  {documentStatusLabels[document.status]}
+                </span>
+                <h3 className="mt-2 text-sm font-semibold">{document.title}</h3>
+                <p className="mt-1 text-sm text-slate-600">{document.owner}</p>
               </article>
             ))}
           </div>
-        </section>
-      </div>
-    </main>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-lg border border-slate-200 bg-white">
+        <PanelTitle title="Campanhas e comunicação" />
+        <div className="grid gap-4 p-5 xl:grid-cols-3">
+          {data.psychosocialCampaigns.map((campaign) => (
+            <article key={campaign.id} className="rounded-md bg-slate-100 px-3 py-3">
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                  campaign.status,
+                )}`}
+              >
+                {campaignStatusLabels[campaign.status]}
+              </span>
+              <h3 className="mt-2 text-sm font-semibold">{campaign.name}</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                {campaign.responseCount}/{campaign.targetParticipants} respostas
+              </p>
+            </article>
+          ))}
+          {data.signatures.map((signature) => (
+            <article key={signature.id} className="rounded-md bg-slate-100 px-3 py-3">
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+                  signature.status,
+                )}`}
+              >
+                {signature.status === "pending" ? "Assinatura pendente" : "Assinatura registrada"}
+              </span>
+              <h3 className="mt-2 text-sm font-semibold">{signature.title}</h3>
+              <p className="mt-1 text-sm text-slate-600">{signature.signerName}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function PanelTitle({ title }: Readonly<{ title: string }>) {
+  return (
+    <div className="border-b border-slate-200 px-5 py-4">
+      <h3 className="text-base font-semibold">{title}</h3>
+    </div>
   );
 }

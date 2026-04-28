@@ -132,6 +132,16 @@ Estado encontrado:
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
+- Portal RH Cliente agora possui shell com navegacao real por paginas:
+  - `/` para painel executivo do RH;
+  - `/clientes` para consulta de colaboradores/clientes da empresa;
+  - `/divergencias` para validacao cadastral;
+  - `/documentos` para documentos e assinaturas;
+  - `/riscos` para risco ocupacional e plano de acao;
+  - `/psicossocial` para campanhas e sinais agregados.
+- Portal RH Cliente agora consome dados da API com fallback local e filtra a experiencia por empresa demonstrativa.
+- Portal RH Cliente agora possui consulta de clientes sem listagem por padrao, exibindo resultados somente apos busca por nome, CPF, setor, cargo ou status.
+- Fila de divergencias do Portal RH Cliente foi preparada para aprovar/recusar ajustes cadastrais via API.
 - Painel PRONUS agora exibe:
   - resumo de empresas, clientes, risco ocupacional e campanhas;
   - unidades, setores e cargos;
@@ -147,6 +157,8 @@ Estado encontrado:
 - Evoluir importacao para reconciliar unidade/setor/cargo com cadastros estruturais existentes.
 - Implementar autenticacao e permissoes.
 - Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
+- Implementar autenticacao real do Portal RH Cliente, isolamento por empresa e selecao multiempresa para grupos economicos.
+- Evoluir permissoes do Portal RH Cliente para limitar documentos, riscos e dados sensiveis conforme perfil do usuario.
 - Persistir formularios, documentos e evidencias de risco ocupacional em banco real e anexos.
 - Importar a tabela oficial completa CNAE/Grau de Risco da NR-04, manter historico de vigencia normativa e revisar as regras com responsavel tecnico/juridico.
 - Implementar dimensionamento exato de CIPA e SESMT conforme quadros oficiais, numero de empregados e excecoes aplicaveis.
@@ -201,3 +213,5 @@ Estado encontrado:
 - Teste interativo no navegador de `/configuracoes`, cobrindo catalogo de CNAE, simulador de checklist tecnico, geracao de obrigacoes legais, score e linha do tempo.
 - Teste interativo no navegador de `/empresas/busca`, cobrindo modal de inclusao de empresa e leitura visual do CNAE com grau de risco/obrigacoes.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-2026-04-28.md`.
+- Typecheck e build do Portal RH Cliente apos criacao da navegacao e paginas funcionais.
+- Teste interativo no navegador do Portal RH Cliente em `/`, `/clientes`, `/divergencias`, `/documentos`, `/riscos` e `/psicossocial`.

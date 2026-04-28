@@ -85,7 +85,10 @@ Ja existe:
 - telas de login por CPF para Portal PRONUS, Portal RH Cliente e Portal Colaborador, com troca obrigatoria quando o usuario acessa pela senha padrao;
 - logo oficial aplicada aos portais e favicon do produto configurado;
 - fluxo de primeiro acesso do colaborador com conferencia cadastral;
-- painel RH Cliente para acompanhar divergencias cadastrais;
+- Portal RH Cliente com navegacao real por Painel, Clientes, Divergencias, Documentos, Risco Ocupacional e Psicossocial;
+- painel RH Cliente com indicadores da empresa, pendencias cadastrais, documentos, assinaturas, riscos, plano de acao e campanhas psicossociais;
+- area Clientes do Portal RH com busca por nome, CPF, setor, cargo e status, mantendo a lista vazia ate a consulta;
+- area Divergencias do Portal RH preparada para aprovar ou recusar divergencias cadastrais via API;
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
 - questionario psicossocial inicial no Portal Colaborador;
@@ -97,6 +100,7 @@ Ainda esta em andamento:
 - persistencia real com Prisma/Supabase;
 - autenticacao e permissoes;
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
+- visao multiempresa real no Portal RH Cliente, com selecao segura por usuario autenticado;
 - persistencia real dos formularios de risco ocupacional, documentos e evidencias anexas;
 - carga oficial completa de CNAE/Grau de Risco, dimensionamento exato de CIPA/SESMT e revisao juridico-tecnica das regras reguladoras;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;
