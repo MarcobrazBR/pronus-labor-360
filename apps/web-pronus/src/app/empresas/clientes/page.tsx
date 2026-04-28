@@ -6,7 +6,7 @@ import { CompanyClientsPanel } from "./company-clients-panel";
 export const dynamic = "force-dynamic";
 
 export default async function CompanyClientsPage() {
-  const { companies, employees } = await loadStructuralData();
+  const { companies, employees, employeeMovements } = await loadStructuralData();
 
   return (
     <>
@@ -28,7 +28,11 @@ export default async function CompanyClientsPage() {
         }))}
       />
 
-      <CompanyClientsPanel companies={companies} employees={employees} />
+      <CompanyClientsPanel
+        companies={companies}
+        employees={employees}
+        movements={employeeMovements}
+      />
     </>
   );
 }

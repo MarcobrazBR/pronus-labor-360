@@ -251,6 +251,59 @@ export type UpdateStructuralEmployeeInput = Partial<
   registrationStatus?: StructuralStatus;
 };
 
+export type EmployeeMovementType = "inclusion" | "update" | "termination";
+export type EmployeeMovementStatus = "pending" | "approved" | "rejected";
+export type EmployeeMovementSource = "client_portal" | "pronus_portal";
+
+export interface EmployeeMovementRequest {
+  id: string;
+  type: EmployeeMovementType;
+  status: EmployeeMovementStatus;
+  source: EmployeeMovementSource;
+  companyId: string;
+  companyTradeName: string;
+  employeeId?: string;
+  fullName: string;
+  cpf: string;
+  birthDate?: string;
+  inclusionDate?: string;
+  exclusionDate?: string;
+  department: string;
+  jobPosition: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  requestedBy?: string;
+  reviewerName?: string;
+  createdAt: string;
+  updatedAt: string;
+  decidedAt?: string;
+  slaDueAt: string;
+}
+
+export interface CreateEmployeeMovementInput {
+  type: EmployeeMovementType;
+  source?: EmployeeMovementSource;
+  companyId: string;
+  employeeId?: string;
+  fullName?: string;
+  cpf?: string;
+  birthDate?: string;
+  inclusionDate?: string;
+  exclusionDate?: string;
+  department?: string;
+  jobPosition?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  requestedBy?: string;
+}
+
+export interface UpdateEmployeeMovementInput {
+  status: EmployeeMovementStatus;
+  reviewerName?: string;
+}
+
 export interface ImportStructuralEmployeesInput {
   content: string;
   delimiter?: "," | ";";

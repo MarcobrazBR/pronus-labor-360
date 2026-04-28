@@ -70,6 +70,36 @@ export interface StructuralEmployee {
   registrationStatus: StructuralStatus;
 }
 
+export type EmployeeMovementType = "inclusion" | "update" | "termination";
+export type EmployeeMovementStatus = "pending" | "approved" | "rejected";
+export type EmployeeMovementSource = "client_portal" | "pronus_portal";
+
+export interface EmployeeMovement {
+  id: string;
+  type: EmployeeMovementType;
+  status: EmployeeMovementStatus;
+  source: EmployeeMovementSource;
+  companyId: string;
+  companyTradeName: string;
+  employeeId?: string;
+  fullName: string;
+  cpf: string;
+  birthDate?: string;
+  inclusionDate?: string;
+  exclusionDate?: string;
+  department: string;
+  jobPosition: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  requestedBy?: string;
+  reviewerName?: string;
+  createdAt: string;
+  updatedAt: string;
+  decidedAt?: string;
+  slaDueAt: string;
+}
+
 export interface StructuralUnit {
   id: string;
   companyTradeName: string;
@@ -490,6 +520,18 @@ export const analysisDepthLabels: Record<AnalysisDepth, string> = {
   critical: "Completo e critico",
 };
 
+export const employeeMovementTypeLabels: Record<EmployeeMovementType, string> = {
+  inclusion: "Inclusao",
+  termination: "Desligamento",
+  update: "Alteracao cadastral",
+};
+
+export const employeeMovementStatusLabels: Record<EmployeeMovementStatus, string> = {
+  approved: "Aprovada",
+  pending: "Pendente",
+  rejected: "Recusada",
+};
+
 const fallbackSummary: StructuralSummary = {
   companies: 2,
   units: 6,
@@ -711,6 +753,28 @@ const fallbackEmployees: StructuralEmployee[] = [
     department: "Atendimento",
     jobPosition: "Supervisora de Loja",
     registrationStatus: "active",
+  },
+];
+
+const fallbackEmployeeMovements: EmployeeMovement[] = [
+  {
+    id: "movement-horizonte-update-001",
+    type: "update",
+    status: "pending",
+    source: "client_portal",
+    companyId: "company-pronus-demo",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-002",
+    fullName: "Rafael Moreira Lima",
+    cpf: "987.654.321-00",
+    department: "Manutencao",
+    jobPosition: "Tecnico de Seguranca",
+    phone: "11 98888-7777",
+    notes: "RH solicitou atualizacao de telefone antes do proximo exame periodico.",
+    requestedBy: "Mariana Costa",
+    createdAt: "2026-04-28T00:00:00.000Z",
+    updatedAt: "2026-04-28T00:00:00.000Z",
+    slaDueAt: "2026-04-30T00:00:00.000Z",
   },
 ];
 
@@ -1113,16 +1177,18 @@ async function fetchApi<T>(path: string, fallback: T): Promise<T> {
 }
 
 export async function loadStructuralData() {
-  const [summary, companies, employees, units, departments, jobPositions] = await Promise.all([
-    fetchApi<StructuralSummary>("/structural/summary", fallbackSummary),
-    fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
-    fetchApi<StructuralEmployee[]>("/structural/employees", fallbackEmployees),
-    fetchApi<StructuralUnit[]>("/structural/units", fallbackUnits),
-    fetchApi<StructuralDepartment[]>("/structural/departments", fallbackDepartments),
-    fetchApi<StructuralJobPosition[]>("/structural/job-positions", fallbackJobPositions),
-  ]);
+  const [summary, companies, employees, employeeMovements, units, departments, jobPositions] =
+    await Promise.all([
+      fetchApi<StructuralSummary>("/structural/summary", fallbackSummary),
+      fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
+      fetchApi<StructuralEmployee[]>("/structural/employees", fallbackEmployees),
+      fetchApi<EmployeeMovement[]>("/structural/employee-movements", fallbackEmployeeMovements),
+      fetchApi<StructuralUnit[]>("/structural/units", fallbackUnits),
+      fetchApi<StructuralDepartment[]>("/structural/departments", fallbackDepartments),
+      fetchApi<StructuralJobPosition[]>("/structural/job-positions", fallbackJobPositions),
+    ]);
 
-  return { summary, companies, employees, units, departments, jobPositions };
+  return { summary, companies, employees, employeeMovements, units, departments, jobPositions };
 }
 
 export async function loadNr01Data() {
@@ -1192,6 +1258,18 @@ export function statusClasses(status: StructuralStatus) {
   }
 
   return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
+
+export function employeeMovementStatusClasses(status: EmployeeMovementStatus) {
+  if (status === "approved") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "rejected") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
 }
 
 export function contractStatusClasses(status: CompanyContractStatus | undefined) {

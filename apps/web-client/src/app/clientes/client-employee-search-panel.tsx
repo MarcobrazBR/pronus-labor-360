@@ -5,6 +5,7 @@ import {
   dateLabel,
   statusClasses,
   structuralStatusLabels,
+  type EmployeeMovement,
   type StructuralCompany,
   type StructuralEmployee,
   type StructuralStatus,
@@ -19,18 +20,7 @@ const statusOptions: Array<StructuralStatus | "all"> = [
 ];
 
 type MovementType = "inclusion" | "update" | "termination";
-type MovementStatus = "sent" | "draft" | "failed";
-
-type MovementRequest = {
-  id: string;
-  cpf: string;
-  department: string;
-  fullName: string;
-  jobPosition: string;
-  requestedAt: string;
-  status: MovementStatus;
-  type: MovementType;
-};
+type MovementStatus = EmployeeMovement["status"];
 
 type MovementForm = {
   birthDate: string;
@@ -54,9 +44,9 @@ const movementTypeLabels: Record<MovementType, string> = {
 };
 
 const movementStatusLabels: Record<MovementStatus, string> = {
-  draft: "Rascunho local",
-  failed: "Falha no envio",
-  sent: "Enviada",
+  approved: "Aprovada",
+  pending: "Pendente PRONUS",
+  rejected: "Recusada",
 };
 
 function todayIso() {
@@ -83,14 +73,19 @@ function emptyMovementForm(): MovementForm {
 export function ClientEmployeeSearchPanel({
   company,
   employees,
-}: Readonly<{ company: StructuralCompany; employees: StructuralEmployee[] }>) {
-  const [currentEmployees, setCurrentEmployees] = useState(employees);
+  movements,
+}: Readonly<{
+  company: StructuralCompany;
+  employees: StructuralEmployee[];
+  movements: EmployeeMovement[];
+}>) {
+  const [currentEmployees] = useState(employees);
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState("all");
   const [status, setStatus] = useState<StructuralStatus | "all">("all");
   const [submitted, setSubmitted] = useState(false);
   const [movementForm, setMovementForm] = useState<MovementForm>(emptyMovementForm);
-  const [movementRequests, setMovementRequests] = useState<MovementRequest[]>([]);
+  const [movementRequests, setMovementRequests] = useState<EmployeeMovement[]>(movements);
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
   const [isSavingMovement, setIsSavingMovement] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -182,73 +177,46 @@ export function ClientEmployeeSearchPanel({
     setMessage(null);
 
     try {
-      if (movementForm.type === "inclusion") {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
-        const response = await fetch(`${apiUrl}/structural/employees`, {
-          body: JSON.stringify({
-            birthDate: movementForm.birthDate,
-            companyId: company.id,
-            cpf: movementForm.cpf,
-            department: movementForm.department,
-            email: movementForm.email,
-            fullName: movementForm.fullName,
-            inclusionDate: movementForm.inclusionDate,
-            jobPosition: movementForm.jobPosition,
-            phone: movementForm.phone,
-          }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        });
-        const payload = (await response.json()) as StructuralEmployee | { message?: string };
-
-        if (!response.ok) {
-          setMessage(
-            typeof payload === "object" && payload !== null && "message" in payload
-              ? String(payload.message)
-              : "Não foi possível enviar a inclusão.",
-          );
-          return;
-        }
-
-        setCurrentEmployees((current) => [payload as StructuralEmployee, ...current]);
-      }
-
-      setMovementRequests((current) => [
-        {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const response = await fetch(`${apiUrl}/structural/employee-movements`, {
+        body: JSON.stringify({
+          birthDate: movementForm.birthDate,
+          companyId: company.id,
           cpf: movementForm.cpf,
           department: movementForm.department,
+          email: movementForm.email,
+          employeeId: movementForm.employeeId || undefined,
+          exclusionDate: movementForm.exclusionDate,
           fullName: movementForm.fullName,
-          id: `movement-${Date.now()}`,
+          inclusionDate: movementForm.inclusionDate,
           jobPosition: movementForm.jobPosition,
-          requestedAt: new Date().toISOString(),
-          status: movementForm.type === "inclusion" ? "sent" : "draft",
+          notes: movementForm.notes,
+          phone: movementForm.phone,
+          requestedBy: "RH cliente",
+          source: "client_portal",
           type: movementForm.type,
-        },
-        ...current,
-      ]);
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      const payload = (await response.json()) as EmployeeMovement | { message?: string };
+
+      if (!response.ok) {
+        setMessage(
+          typeof payload === "object" && payload !== null && "message" in payload
+            ? String(payload.message)
+            : "Nao foi possivel enviar a movimentacao.",
+        );
+        return;
+      }
+
+      setMovementRequests((current) => [payload as EmployeeMovement, ...current]);
       setSubmitted(true);
       setIsMovementModalOpen(false);
       setMovementForm(emptyMovementForm());
-      setMessage(
-        movementForm.type === "inclusion"
-          ? "Inclusão enviada para validação operacional."
-          : "Movimentação registrada localmente para a próxima fila de aprovação.",
-      );
+      setMessage("Movimentacao enviada para fila de validacao PRONUS.");
     } catch {
-      setMovementRequests((current) => [
-        {
-          cpf: movementForm.cpf,
-          department: movementForm.department,
-          fullName: movementForm.fullName,
-          id: `movement-${Date.now()}`,
-          jobPosition: movementForm.jobPosition,
-          requestedAt: new Date().toISOString(),
-          status: "failed",
-          type: movementForm.type,
-        },
-        ...current,
-      ]);
-      setMessage("Não foi possível conectar a API local.");
+      setMessage("Nao foi possivel conectar a API local.");
     } finally {
       setIsSavingMovement(false);
     }
@@ -403,7 +371,7 @@ export function ClientEmployeeSearchPanel({
                     {request.department || "setor pendente"}
                   </p>
                 </div>
-                <div className="text-sm text-slate-500">{dateLabel(request.requestedAt)}</div>
+                <div className="text-sm text-slate-500">{dateLabel(request.createdAt)}</div>
               </article>
             ))}
           </div>

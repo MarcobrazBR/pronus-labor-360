@@ -3,10 +3,12 @@ import { StructuralService } from "./structural.service";
 import type {
   CreateStructuralCompanyInput,
   CreateStructuralDepartmentInput,
+  CreateEmployeeMovementInput,
   CreateStructuralEmployeeInput,
   CreateStructuralJobPositionInput,
   CreateStructuralUnitInput,
   ImportStructuralEmployeesInput,
+  UpdateEmployeeMovementInput,
   UpdateStructuralCompanyInput,
   UpdateStructuralDepartmentInput,
   UpdateStructuralEmployeeInput,
@@ -126,6 +128,21 @@ export class StructuralController {
   @Get("employees")
   listEmployees() {
     return this.structuralService.listEmployees();
+  }
+
+  @Get("employee-movements")
+  listEmployeeMovements() {
+    return this.structuralService.listEmployeeMovements();
+  }
+
+  @Post("employee-movements")
+  createEmployeeMovement(@Body() body: CreateEmployeeMovementInput) {
+    return this.structuralService.createEmployeeMovement(body);
+  }
+
+  @Patch("employee-movements/:id")
+  updateEmployeeMovement(@Param("id") id: string, @Body() body: UpdateEmployeeMovementInput) {
+    return this.structuralService.updateEmployeeMovement(id, body);
   }
 
   @Get("employees/:id")

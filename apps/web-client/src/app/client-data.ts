@@ -51,6 +51,36 @@ export interface EmployeeDivergence {
   createdAt: string;
 }
 
+export type EmployeeMovementType = "inclusion" | "update" | "termination";
+export type EmployeeMovementStatus = "pending" | "approved" | "rejected";
+export type EmployeeMovementSource = "client_portal" | "pronus_portal";
+
+export interface EmployeeMovement {
+  id: string;
+  type: EmployeeMovementType;
+  status: EmployeeMovementStatus;
+  source: EmployeeMovementSource;
+  companyId: string;
+  companyTradeName: string;
+  employeeId?: string;
+  fullName: string;
+  cpf: string;
+  birthDate?: string;
+  inclusionDate?: string;
+  exclusionDate?: string;
+  department: string;
+  jobPosition: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  requestedBy?: string;
+  reviewerName?: string;
+  createdAt: string;
+  updatedAt: string;
+  decidedAt?: string;
+  slaDueAt: string;
+}
+
 export interface Nr01Risk {
   id: string;
   companyTradeName: string;
@@ -138,6 +168,7 @@ export interface ClientPortalData {
   divergences: EmployeeDivergence[];
   documents: PronusDocument[];
   employees: StructuralEmployee[];
+  employeeMovements: EmployeeMovement[];
   psychosocialCampaigns: PsychosocialCampaign[];
   psychosocialSignals: PsychosocialSectorSignal[];
   risks: Nr01Risk[];
@@ -163,6 +194,18 @@ export const contractStatusLabels: Record<CompanyContractStatus, string> = {
 export const divergenceStatusLabels: Record<DivergenceStatus, string> = {
   approved: "Aprovada",
   pending: "Pendente",
+  rejected: "Recusada",
+};
+
+export const employeeMovementTypeLabels: Record<EmployeeMovementType, string> = {
+  inclusion: "Inclusao",
+  termination: "Desligamento",
+  update: "Alteracao cadastral",
+};
+
+export const employeeMovementStatusLabels: Record<EmployeeMovementStatus, string> = {
+  approved: "Aprovada",
+  pending: "Pendente PRONUS",
   rejected: "Recusada",
 };
 
@@ -292,6 +335,28 @@ const fallbackDivergences: EmployeeDivergence[] = [
     fullName: "Rafael Moreira Lima",
     id: "divergence-001",
     status: "pending",
+  },
+];
+
+const fallbackEmployeeMovements: EmployeeMovement[] = [
+  {
+    companyId: "company-pronus-demo",
+    companyTradeName: "Industria Horizonte",
+    cpf: "987.654.321-00",
+    createdAt: new Date().toISOString(),
+    department: "Manutencao",
+    employeeId: "employee-002",
+    fullName: "Rafael Moreira Lima",
+    id: "movement-horizonte-update-001",
+    jobPosition: "Tecnico de Seguranca",
+    notes: "RH solicitou atualizacao de telefone antes do proximo exame periodico.",
+    phone: "11 98888-7777",
+    requestedBy: "Mariana Costa",
+    slaDueAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(),
+    source: "client_portal",
+    status: "pending",
+    type: "update",
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -433,6 +498,7 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
   const [
     companies,
     employees,
+    employeeMovements,
     divergences,
     risks,
     riskActions,
@@ -443,6 +509,7 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
   ] = await Promise.all([
     fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
     fetchApi<StructuralEmployee[]>("/structural/employees", fallbackEmployees),
+    fetchApi<EmployeeMovement[]>("/structural/employee-movements", fallbackEmployeeMovements),
     fetchApi<EmployeeDivergence[]>("/employee-access/divergences", fallbackDivergences),
     fetchApi<Nr01Risk[]>("/nr01/risks", fallbackRisks),
     fetchApi<Nr01ActionPlanItem[]>("/nr01/action-plan", fallbackRiskActions),
@@ -464,6 +531,7 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
     divergences: byCompany(divergences, activeName),
     documents: byCompany(documents, activeName),
     employees: byCompany(employees, activeName),
+    employeeMovements: byCompany(employeeMovements, activeName),
     psychosocialCampaigns: byCompany(campaigns, activeName),
     psychosocialSignals: byCompany(signals, activeName),
     risks: byCompany(risks, activeName),

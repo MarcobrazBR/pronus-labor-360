@@ -9,6 +9,7 @@ import type {
   CompanyContractStatus,
   CreateStructuralCompanyInput,
   CreateStructuralDepartmentInput,
+  CreateEmployeeMovementInput,
   CreateStructuralEmployeeInput,
   CreateStructuralJobPositionInput,
   CreateStructuralUnitInput,
@@ -17,6 +18,10 @@ import type {
   EmployeeDivergenceChange,
   EmployeeDivergenceRequest,
   EmployeeDivergenceStatus,
+  EmployeeMovementRequest,
+  EmployeeMovementSource,
+  EmployeeMovementStatus,
+  EmployeeMovementType,
   ImportStructuralEmployeesInput,
   StructuralAudience,
   StructuralCompany,
@@ -28,6 +33,7 @@ import type {
   StructuralStatus,
   StructuralSummary,
   SubmitEmployeeDivergenceInput,
+  UpdateEmployeeMovementInput,
   UpdateStructuralCompanyInput,
   UpdateStructuralDepartmentInput,
   UpdateEmployeeDivergenceInput,
@@ -59,6 +65,9 @@ const validStatuses = new Set<StructuralStatus>([
   "inactive",
 ]);
 const divergenceStatuses = new Set<EmployeeDivergenceStatus>(["pending", "approved", "rejected"]);
+const movementStatuses = new Set<EmployeeMovementStatus>(["pending", "approved", "rejected"]);
+const movementSources = new Set<EmployeeMovementSource>(["client_portal", "pronus_portal"]);
+const movementTypes = new Set<EmployeeMovementType>(["inclusion", "update", "termination"]);
 
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
@@ -150,6 +159,34 @@ function normalizeDivergenceStatus(value: unknown): EmployeeDivergenceStatus {
   return value as EmployeeDivergenceStatus;
 }
 
+function normalizeMovementStatus(value: unknown): EmployeeMovementStatus {
+  if (typeof value !== "string" || !movementStatuses.has(value as EmployeeMovementStatus)) {
+    throw new BadRequestException("Status de movimentacao invalido");
+  }
+
+  return value as EmployeeMovementStatus;
+}
+
+function normalizeMovementType(value: unknown): EmployeeMovementType {
+  if (typeof value !== "string" || !movementTypes.has(value as EmployeeMovementType)) {
+    throw new BadRequestException("Tipo de movimentacao invalido");
+  }
+
+  return value as EmployeeMovementType;
+}
+
+function normalizeMovementSource(value: unknown): EmployeeMovementSource {
+  if (value === undefined || value === null || value === "") {
+    return "client_portal";
+  }
+
+  if (typeof value !== "string" || !movementSources.has(value as EmployeeMovementSource)) {
+    throw new BadRequestException("Origem de movimentacao invalida");
+  }
+
+  return value as EmployeeMovementSource;
+}
+
 function normalizeCnpj(value: unknown): string {
   const cnpj = onlyDigits(requireText(value, "cnpj"));
 
@@ -200,6 +237,12 @@ function optionalDigits(value: unknown, field: string, length?: number): string 
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function movementSlaDueAt(createdAt: string): string {
+  const date = new Date(createdAt);
+  date.setDate(date.getDate() + 2);
+  return date.toISOString();
 }
 
 function normalizeHeader(value: string): string {
@@ -687,6 +730,28 @@ const employeeDivergences: EmployeeDivergenceRequest[] = [
   },
 ];
 
+const employeeMovements: EmployeeMovementRequest[] = [
+  {
+    id: "movement-horizonte-update-001",
+    type: "update",
+    status: "pending",
+    source: "client_portal",
+    companyId: "company-pronus-demo",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-002",
+    fullName: "Rafael Moreira Lima",
+    cpf: "987.654.321-00",
+    department: "Manutencao",
+    jobPosition: "Tecnico de Seguranca",
+    phone: "11 98888-7777",
+    notes: "RH solicitou atualizacao de telefone antes do proximo exame periodico.",
+    requestedBy: "Mariana Costa",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+    slaDueAt: movementSlaDueAt(startedAt),
+  },
+];
+
 @Injectable()
 export class StructuralService {
   getSummary(): StructuralSummary {
@@ -1149,6 +1214,190 @@ export class StructuralService {
     return this.findEmployee(id);
   }
 
+  listEmployeeMovements(): EmployeeMovementRequest[] {
+    return employeeMovements;
+  }
+
+  createEmployeeMovement(input: CreateEmployeeMovementInput): EmployeeMovementRequest {
+    const type = normalizeMovementType(input.type);
+    const source = normalizeMovementSource(input.source);
+    const company = this.findCompany(input.companyId);
+    const employee =
+      type === "inclusion"
+        ? undefined
+        : this.findEmployee(requireText(input.employeeId, "employeeId"));
+
+    if (employee !== undefined && employee.companyId !== company.id) {
+      throw new BadRequestException("Cliente nao pertence a empresa informada");
+    }
+
+    const cpf =
+      type === "inclusion"
+        ? normalizeCpf(input.cpf)
+        : (optionalCpf(input.cpf, "cpf") ?? employee?.cpf);
+
+    if (cpf === undefined) {
+      throw new BadRequestException("CPF da movimentacao nao encontrado");
+    }
+
+    if (
+      employeeMovements.some(
+        (movement) =>
+          movement.status === "pending" &&
+          movement.companyId === company.id &&
+          movement.type === type &&
+          onlyDigits(movement.cpf) === onlyDigits(cpf) &&
+          (movement.employeeId ?? "") === (employee?.id ?? ""),
+      )
+    ) {
+      throw new ConflictException("Ja existe movimentacao pendente para este cliente");
+    }
+
+    if (
+      type === "inclusion" &&
+      employees.some(
+        (existingEmployee) =>
+          existingEmployee.companyId === company.id &&
+          onlyDigits(existingEmployee.cpf) === onlyDigits(cpf),
+      )
+    ) {
+      throw new ConflictException("Ja existe colaborador com este CPF nesta empresa");
+    }
+
+    const fullName =
+      type === "inclusion"
+        ? requireText(input.fullName, "fullName")
+        : (optionalText(input.fullName, "fullName") ?? employee?.fullName);
+    const department =
+      type === "inclusion"
+        ? requireText(input.department, "department")
+        : (optionalText(input.department, "department") ?? employee?.department);
+    const jobPosition =
+      type === "inclusion"
+        ? requireText(input.jobPosition, "jobPosition")
+        : (optionalText(input.jobPosition, "jobPosition") ?? employee?.jobPosition);
+
+    if (fullName === undefined || department === undefined || jobPosition === undefined) {
+      throw new BadRequestException("Dados obrigatorios da movimentacao incompletos");
+    }
+
+    const exclusionDate = optionalText(input.exclusionDate, "exclusionDate");
+
+    if (type === "termination" && exclusionDate === undefined) {
+      throw new BadRequestException("Data de desligamento obrigatoria");
+    }
+
+    if (
+      type === "update" &&
+      input.fullName === undefined &&
+      input.cpf === undefined &&
+      input.birthDate === undefined &&
+      input.department === undefined &&
+      input.jobPosition === undefined &&
+      input.email === undefined &&
+      input.phone === undefined
+    ) {
+      throw new BadRequestException("Informe ao menos um campo para alteracao cadastral");
+    }
+
+    const createdAt = now();
+    const movement: EmployeeMovementRequest = {
+      id: randomUUID(),
+      type,
+      status: "pending",
+      source,
+      companyId: company.id,
+      companyTradeName: company.tradeName,
+      employeeId: employee?.id,
+      fullName,
+      cpf,
+      birthDate: optionalText(input.birthDate, "birthDate") ?? employee?.birthDate,
+      inclusionDate:
+        optionalText(input.inclusionDate, "inclusionDate") ??
+        employee?.inclusionDate ??
+        createdAt.slice(0, 10),
+      exclusionDate,
+      department,
+      jobPosition,
+      email: optionalText(input.email, "email") ?? employee?.email,
+      phone: optionalText(input.phone, "phone") ?? employee?.phone,
+      notes: optionalText(input.notes, "notes"),
+      requestedBy: optionalText(input.requestedBy, "requestedBy"),
+      createdAt,
+      updatedAt: createdAt,
+      slaDueAt: movementSlaDueAt(createdAt),
+    };
+
+    employeeMovements.unshift(movement);
+    return movement;
+  }
+
+  updateEmployeeMovement(id: string, input: UpdateEmployeeMovementInput): EmployeeMovementRequest {
+    const movement = this.findEmployeeMovement(id);
+    const status = normalizeMovementStatus(input.status);
+
+    if (movement.status !== "pending") {
+      throw new BadRequestException("Movimentacao ja finalizada");
+    }
+
+    const decidedAt = now();
+    const reviewerName = optionalText(input.reviewerName, "reviewerName");
+
+    if (status === "approved") {
+      if (movement.type === "inclusion") {
+        const employee = this.createEmployee({
+          birthDate: movement.birthDate,
+          companyId: movement.companyId,
+          cpf: movement.cpf,
+          department: movement.department,
+          email: movement.email,
+          fullName: movement.fullName,
+          inclusionDate: movement.inclusionDate,
+          jobPosition: movement.jobPosition,
+          phone: movement.phone,
+        });
+        employee.registrationStatus = "active";
+        employee.updatedAt = decidedAt;
+        movement.employeeId = employee.id;
+      }
+
+      if (movement.type === "update") {
+        if (movement.employeeId === undefined) {
+          throw new BadRequestException("Movimentacao sem cliente vinculado");
+        }
+
+        this.updateEmployee(movement.employeeId, {
+          birthDate: movement.birthDate,
+          cpf: movement.cpf,
+          department: movement.department,
+          email: movement.email,
+          fullName: movement.fullName,
+          jobPosition: movement.jobPosition,
+          phone: movement.phone,
+          registrationStatus: "active",
+        });
+      }
+
+      if (movement.type === "termination") {
+        if (movement.employeeId === undefined) {
+          throw new BadRequestException("Movimentacao sem cliente vinculado");
+        }
+
+        this.updateEmployee(movement.employeeId, {
+          exclusionDate: movement.exclusionDate ?? decidedAt.slice(0, 10),
+          registrationStatus: "inactive",
+        });
+      }
+    }
+
+    movement.status = status;
+    movement.reviewerName = reviewerName ?? movement.reviewerName;
+    movement.updatedAt = decidedAt;
+    movement.decidedAt = decidedAt;
+
+    return movement;
+  }
+
   createEmployee(input: CreateStructuralEmployeeInput): StructuralEmployee {
     const company = this.findCompany(input.companyId);
     const cpf = normalizeCpf(input.cpf);
@@ -1488,6 +1737,16 @@ export class StructuralService {
     return employee;
   }
 
+  private findEmployeeMovement(id: string): EmployeeMovementRequest {
+    const movement = employeeMovements.find((item) => item.id === id);
+
+    if (movement === undefined) {
+      throw new NotFoundException("Movimentacao cadastral nao encontrada");
+    }
+
+    return movement;
+  }
+
   private findEmployeeDivergence(id: string): EmployeeDivergenceRequest {
     const divergence = employeeDivergences.find((item) => item.id === id);
 
@@ -1612,6 +1871,12 @@ export class StructuralService {
     for (const employee of employees) {
       if (employee.companyId === company.id) {
         employee.companyTradeName = company.tradeName;
+      }
+    }
+
+    for (const movement of employeeMovements) {
+      if (movement.companyId === company.id) {
+        movement.companyTradeName = company.tradeName;
       }
     }
   }

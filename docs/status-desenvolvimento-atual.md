@@ -148,7 +148,10 @@ Estado encontrado:
 - Portal RH Cliente recebeu refinamento de UX na navegacao responsiva e no modal de movimentacao cadastral, com menu em grade no mobile, estado ativo acessivel e controle segmentado para tipo de movimentacao.
 - Portal RH Cliente agora exibe o nome da empresa ativa no shell, substituindo o marcador generico de cliente.
 - Inclusao manual de clientes foi padronizada entre Portal RH Cliente e Portal PRONUS, com os mesmos campos base e diferenca apenas de permissao: RH usa empresa travada e PRONUS escolhe a empresa.
-- Empresas > Clientes no Portal PRONUS agora permite incluir cliente manualmente via `POST /structural/employees`, alem da importacao CSV.
+- Empresas > Clientes no Portal PRONUS agora permite incluir cliente manualmente via fila de movimentacoes, alem da importacao CSV.
+- API estrutural agora possui fila de movimentacoes cadastrais em `/structural/employee-movements`, com inclusao, alteracao, desligamento, status, origem, SLA e aprovacao/recusa.
+- Portal RH Cliente agora envia movimentacoes cadastrais para a fila PRONUS, deixando de depender de registro local para alteracao e desligamento.
+- Empresas > Clientes no Portal PRONUS agora exibe fila operacional de movimentacoes com contador de pendencias, SLA, origem, status e acoes de aprovar/recusar.
 - Painel PRONUS agora exibe:
   - resumo de empresas, clientes, risco ocupacional e campanhas;
   - unidades, setores e cargos;
@@ -232,3 +235,8 @@ Estado encontrado:
 - Teste interativo no navegador do Portal RH Cliente em `/clientes`, confirmando nome da empresa no shell e empresa somente leitura no modal.
 - Teste interativo no navegador do Portal PRONUS em `/empresas/clientes`, confirmando botao de inclusao, seletor de empresa e mesmos campos base do fluxo do Portal RH.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-padronizacao-clientes-2026-04-28.md`.
+- Typecheck da API, Portal RH Cliente e Portal PRONUS apos criacao da fila de movimentacoes cadastrais.
+- Build do Portal RH Cliente e Portal PRONUS apos conexao com a fila de movimentacoes.
+- Teste interativo no navegador do Portal RH Cliente em `/clientes`, confirmando movimentacoes recentes com status pendente PRONUS.
+- Teste interativo no navegador do Portal PRONUS em `/empresas/clientes`, confirmando fila de movimentacoes, contador, modal de inclusao e acoes de aprovar/recusar.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-fila-movimentacoes-2026-04-28.md`.
