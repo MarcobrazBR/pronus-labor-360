@@ -80,30 +80,33 @@ Estado encontrado:
 - Portal PRONUS reorganizado com navegacao real por paginas:
   - `/` para painel executivo;
   - `/empresas` para empresas, unidades, setores e cargos;
-  - `/colaboradores` para base de colaboradores e importacao CSV;
+  - `/colaboradores` para RH cliente, colaboradores internos PRONUS, permissoes e agenda;
   - `/nr01-pgr` para inventario de riscos e plano de acao;
   - `/psicossocial` para campanhas e sinais psicossociais;
   - `/documentos` para fila documental inicial.
-- Portal PRONUS agora possui painel interativo para importacao CSV de colaboradores, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
+- Portal PRONUS agora possui painel interativo para importacao CSV de clientes dentro de Empresas > Clientes, com upload/cola de conteudo, selecao de empresa padrao, simulacao e importacao real.
 - Menu Empresas do Portal PRONUS agora possui pesquisa por nome/CNPJ/status, filtro por status contratual, acao de ajuste cadastral e modal para inclusao de empresa com campos preparatorios para eSocial.
 - Menu Empresas do Portal PRONUS agora foi dividido em subniveis operacionais:
   - `/empresas` como resumo simples de empresas com pendencias de ajuste;
   - `/empresas/busca` para buscar empresa e incluir/ajustar cadastro;
   - `/empresas/cargos` para pesquisar e cadastrar cargos por perfil de uso, com referencia eSocial/CBO;
   - `/empresas/setores` para pesquisar e cadastrar setores por perfil de uso.
+  - `/empresas/clientes` para importacao e consulta sob busca de funcionarios das contratantes, agora chamados de clientes.
 - Cargos e setores agora funcionam como catalogos transversais por perfil: cliente, RH cliente, gestor cliente, administrativo PRONUS e corpo clinico PRONUS.
-- Busca Empresa agora apresenta resultado em lista com abertura por lupa e abas: Geral, Cobertura, Colaborador e Financeiro, com inclusao de vida avulsa e consolidado financeiro por intervalo informado.
+- Busca Empresa agora apresenta resultado em lista com abertura por lupa e abas: Geral, Cobertura, Clientes e Financeiro, com inclusao de vida avulsa e consolidado financeiro por intervalo informado.
 - Telas de busca de empresa, cargos e setores nao carregam listas por padrao; os dados aparecem somente apos uma pesquisa do operador.
+- Modulo Colaboradores agora foi separado de clientes das empresas e passou a organizar RH cliente, colaboradores internos PRONUS, permissoes por cargo e agenda do corpo clinico.
+- Portal PRONUS recebeu refinamento visual de shell, navegacao e blocos de marca, aplicando consistencia, feedback, prevencao de erro e reconhecimento visual.
 - Portal PRONUS agora exibe painel inicial NR-01/PGR com inventario de riscos, niveis, evidencias e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
 - Painel PRONUS agora exibe:
-  - resumo de empresas, colaboradores, acoes NR-01 e campanhas;
+  - resumo de empresas, clientes, acoes NR-01 e campanhas;
   - unidades, setores e cargos;
   - tabela de empresas/CNPJs;
   - avancos por modulo;
-  - colaboradores recentes;
+  - clientes recentes;
   - sinais psicossociais agregados.
 
 ## Ainda Pendente
@@ -135,6 +138,9 @@ Estado encontrado:
 - Teste HTTP das rotas do Portal PRONUS: `/`, `/empresas`, `/colaboradores`, `/nr01-pgr`, `/psicossocial` e `/documentos`.
 - Teste clicavel no navegador do menu do Portal PRONUS, cobrindo todos os itens laterais/horizontais.
 - Build geral do monorepo apos reorganizacao da navegacao.
+- Typecheck e build do Portal PRONUS apos separacao entre clientes, RH cliente e colaboradores internos PRONUS.
+- Teste no navegador de `/empresas/clientes` com tela limpa por padrao e consulta sob busca, `/empresas/busca` com abertura por lupa, abas de cadastro/financeiro e `/colaboradores` com permissoes e agenda.
+- Build geral do monorepo apos ajustes de Clientes, Colaboradores, permissoes, agenda e refinamento visual.
 - Teste HTTP de criacao de empresa com campos eSocial/contratuais.
 - Teste clicavel no navegador da tela Empresas: pesquisa e modal de inclusao.
 - Typecheck da API e Portal PRONUS apos reorganizacao do modulo Empresas em Busca, Cargos e Setores.
@@ -144,3 +150,4 @@ Estado encontrado:
 - Typecheck da API e Portal PRONUS apos ajuste de cargos/setores para catalogo por perfil.
 - Build geral do monorepo apos ajuste de UX e modelo de cargos/setores.
 - Teste interativo no navegador validando lista com lupa na busca de empresas, abertura sob demanda das abas, financeiro sem cards estreitos e Cargos/Setores sem filtro por empresa.
+- Typecheck do Portal PRONUS apos separacao entre Clientes, RH, equipe PRONUS, permissoes e agenda.

@@ -15,7 +15,7 @@ const documentQueues = [
     title: "Termos e consentimentos",
     status: "Fila",
     owner: "Operacao",
-    detail: "Publicacao para colaborador com aceite digital futuro.",
+    detail: "Publicacao para cliente ou RH com aceite digital futuro.",
   },
   {
     title: "Evidencias",

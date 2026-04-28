@@ -154,7 +154,7 @@ export function DepartmentManagementPanel({
         status: "all",
       });
       setIsModalOpen(false);
-      setSuccess("Setor cadastrado com perfil de uso para empresas e colaboradores.");
+      setSuccess("Setor cadastrado com perfil de uso para empresas, clientes e colaboradores.");
       router.refresh();
     } catch {
       setError("Nao foi possivel conectar a API local.");

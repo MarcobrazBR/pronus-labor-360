@@ -208,7 +208,7 @@ const invoiceSeed = [
 const tabs: Array<{ id: CompanyTab; label: string }> = [
   { id: "general", label: "Geral" },
   { id: "coverage", label: "Cobertura" },
-  { id: "employees", label: "Colaborador" },
+  { id: "employees", label: "Clientes" },
   { id: "financial", label: "Financeiro" },
 ];
 
@@ -489,14 +489,14 @@ export function CompanyManagementPanel({
       const payload = (await response.json()) as StructuralEmployee | { message?: string };
 
       if (!response.ok) {
-        setError(responseMessage(payload, "Nao foi possivel cadastrar a vida avulsa."));
+        setError(responseMessage(payload, "Nao foi possivel cadastrar o cliente avulso."));
         return;
       }
 
       setEmployees((current) => [payload as StructuralEmployee, ...current]);
       setEmployeeForm(emptyEmployeeForm);
       setIsEmployeeModalOpen(false);
-      setSuccess("Vida avulsa cadastrada para a empresa.");
+      setSuccess("Cliente avulso cadastrado para a empresa.");
       router.refresh();
     } catch {
       setError("Nao foi possivel conectar a API local.");
@@ -655,7 +655,7 @@ export function CompanyManagementPanel({
 
             {selectedCompany === undefined ? (
               <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-500">
-                Clique na lupa ao lado da empresa para abrir cadastro, coberturas, colaboradores e
+                Clique na lupa ao lado da empresa para abrir cadastro, coberturas, clientes e
                 financeiro.
               </div>
             ) : (
@@ -836,12 +836,12 @@ function EmployeesTab({
     <div>
       <div className="mb-3 flex justify-end">
         <button
-          aria-label="Inserir vida avulsa"
+          aria-label="Inserir cliente avulso"
           className="rounded-md bg-pronus-primary px-3 py-2 text-sm font-semibold text-white"
           type="button"
           onClick={onOpenEmployee}
         >
-          + Vida avulsa
+          + Cliente avulso
         </button>
       </div>
       <div className="overflow-x-auto">
@@ -1194,7 +1194,7 @@ function EmployeeModal({
   updateForm: (field: keyof EmployeeForm, value: string) => void;
 }>) {
   return (
-    <Modal title={`Inserir vida avulsa - ${company.tradeName}`} onClose={onClose}>
+    <Modal title={`Inserir cliente avulso - ${company.tradeName}`} onClose={onClose}>
       <div className="px-5 py-4">
         <div className="grid gap-3 md:grid-cols-2">
           <Field
@@ -1250,7 +1250,7 @@ function EmployeeModal({
         isSaving={isSaving}
         onClose={onClose}
         onSubmit={onSubmit}
-        submitLabel="Salvar vida"
+        submitLabel="Salvar cliente"
       />
     </Modal>
   );

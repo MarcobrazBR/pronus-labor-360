@@ -90,7 +90,7 @@ export default async function CompaniesPage() {
       </section>
 
       <section className="mt-4 grid gap-4 md:grid-cols-3">
-        <Metric label="Alteracoes de colaboradores" value={employeePendingAdjustments} />
+        <Metric label="Alteracoes de clientes" value={employeePendingAdjustments} />
         <Metric label="Empresas cadastradas" value={companies.length} />
         <Metric
           label="Contratos ativos"

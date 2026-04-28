@@ -34,7 +34,7 @@ O Pronus Labor 360 foi pensado como uma plataforma 360 graus para a relacao entr
 
 Principais pilares:
 
-- **Cadastro estrutural confiavel:** grupos, empresas, CNPJs, unidades, setores, cargos e colaboradores em uma base organizada.
+- **Cadastro estrutural confiavel:** grupos, empresas, CNPJs, unidades, setores, cargos, clientes e colaboradores internos em uma base organizada.
 - **Governanca de dados:** isolamento por empresa, status, historico, aprovacao de divergencias e trilhas de auditoria.
 - **NR-01/GRO/PGR:** base preparada para inventario de riscos, matriz, planos de acao, evidencias e documentos.
 - **Risco psicossocial:** campanhas, questionarios, indicadores agregados, regras de privacidade e suporte a analise tecnica.
@@ -74,8 +74,10 @@ Ja existe:
 - importacao inicial de colaboradores via CSV com modo de simulacao;
 - painel operacional inicial no Portal PRONUS com navegacao por paginas;
 - modulo Empresas do Portal PRONUS organizado em resumo, busca, cargos e setores;
-- busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, colaboradores e financeiro;
+- aba Clientes dentro do modulo Empresas para funcionarios das contratantes, com importacao e consulta sob busca;
+- busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, clientes e financeiro;
 - cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
+- modulo Colaboradores voltado a RH cliente, colaboradores internos PRONUS, permissoes do sistema e agenda do corpo clinico;
 - fluxo de primeiro acesso do colaborador com conferencia cadastral;
 - painel RH Cliente para acompanhar divergencias cadastrais;
 - base inicial NR-01/GRO/PGR com inventario de riscos e plano de acao;
@@ -96,7 +98,7 @@ Ainda esta em andamento:
 
 O MVP ja demonstra a tese central do produto: uma base unica que conecta operacao, RH e colaborador sem perder governanca.
 
-- A operacao PRONUS ja visualiza empresas, CNPJs, estrutura, colaboradores, NR-01 e risco psicossocial em um painel inicial.
+- A operacao PRONUS ja visualiza empresas, CNPJs, estrutura, clientes, NR-01 e risco psicossocial em um painel inicial.
 - O RH Cliente ja tem uma porta de entrada para acompanhar pendencias cadastrais e reduzir retrabalho.
 - O colaborador ja consegue localizar o cadastro, sinalizar divergencias e responder o primeiro questionario psicossocial.
 - A API ja organiza dominios separados para estrutura, primeiro acesso, NR-01 e risco psicossocial.

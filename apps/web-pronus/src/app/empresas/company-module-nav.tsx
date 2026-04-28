@@ -7,6 +7,7 @@ const items = [
   { href: "/empresas/busca", label: "Busca Empresa" },
   { href: "/empresas/cargos", label: "Cargos" },
   { href: "/empresas/setores", label: "Setores" },
+  { href: "/empresas/clientes", label: "Clientes" },
 ];
 
 export function CompanyModuleNav() {

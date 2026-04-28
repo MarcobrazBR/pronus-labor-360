@@ -29,7 +29,7 @@ export default async function PronusDashboardPage() {
       detail: `${structural.summary.units} unidades mapeadas`,
     },
     {
-      label: "Colaboradores",
+      label: "Clientes",
       value: String(structural.summary.employees),
       detail: `${structural.summary.pendingValidations} pendencia cadastral`,
     },

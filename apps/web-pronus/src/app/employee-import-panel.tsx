@@ -27,12 +27,16 @@ interface ImportResult {
 
 interface EmployeeImportPanelProps {
   companies: ImportCompanyOption[];
+  title?: string;
 }
 
 const sampleCsv =
   "cnpj;nome;cpf;setor;cargo;email;telefone\n12.345.678/0001-90;Maria Silva;12345678909;Producao;Operadora;nome@empresa.com;11999990000";
 
-export function EmployeeImportPanel({ companies }: EmployeeImportPanelProps) {
+export function EmployeeImportPanel({
+  companies,
+  title = "Importacao de clientes",
+}: EmployeeImportPanelProps) {
   const router = useRouter();
   const [content, setContent] = useState(sampleCsv);
   const [defaultCompanyId, setDefaultCompanyId] = useState("");
@@ -95,7 +99,7 @@ export function EmployeeImportPanel({ companies }: EmployeeImportPanelProps) {
     <section className="mt-4 rounded-lg border border-slate-200 bg-white">
       <div className="grid gap-5 px-5 py-4 xl:grid-cols-[0.85fr_1.15fr]">
         <div>
-          <h3 className="text-base font-semibold">Importacao de colaboradores</h3>
+          <h3 className="text-base font-semibold">{title}</h3>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <label className="block">
               <span className="text-xs font-semibold uppercase text-slate-500">Empresa padrao</span>
