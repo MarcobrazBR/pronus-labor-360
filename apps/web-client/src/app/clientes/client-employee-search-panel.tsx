@@ -458,20 +458,29 @@ function MovementModal({
           </button>
         </div>
         <div className="grid gap-3 p-5 md:grid-cols-2">
-          <label className="block">
-            <span className="text-xs font-semibold uppercase text-slate-500">Tipo</span>
-            <select
-              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-              value={form.type}
-              onChange={(event) => onUpdate("type", event.target.value)}
-            >
-              {Object.entries(movementTypeLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <fieldset className="md:col-span-2">
+            <legend className="text-xs font-semibold uppercase text-slate-500">Tipo</legend>
+            <div className="mt-1 grid gap-2 sm:grid-cols-3">
+              {Object.entries(movementTypeLabels).map(([value, label]) => {
+                const active = form.type === value;
+
+                return (
+                  <button
+                    key={value}
+                    className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+                      active
+                        ? "border-pronus-primary bg-pronus-primary text-white"
+                        : "border-slate-300 bg-white text-slate-700"
+                    }`}
+                    type="button"
+                    onClick={() => onUpdate("type", value)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
 
           {form.type !== "inclusion" && (
             <label className="block">

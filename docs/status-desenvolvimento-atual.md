@@ -145,6 +145,7 @@ Estado encontrado:
 - Inclusao de cliente pelo Portal RH Cliente ja envia dados para `POST /structural/employees`, entrando como validacao pendente no fluxo operacional.
 - Alteracao e desligamento de cliente foram preparados como registros locais de MVP ate a criacao da fila persistente de aprovacao PRONUS.
 - Fila de divergencias do Portal RH Cliente foi preparada para aprovar/recusar ajustes cadastrais via API.
+- Portal RH Cliente recebeu refinamento de UX na navegacao responsiva e no modal de movimentacao cadastral, com menu em grade no mobile, estado ativo acessivel e controle segmentado para tipo de movimentacao.
 - Painel PRONUS agora exibe:
   - resumo de empresas, clientes, risco ocupacional e campanhas;
   - unidades, setores e cargos;
@@ -221,3 +222,6 @@ Estado encontrado:
 - Teste interativo no navegador do Portal RH Cliente em `/`, `/clientes`, `/divergencias`, `/documentos`, `/riscos` e `/psicossocial`.
 - Typecheck e build do Portal RH Cliente apos criacao de movimentacoes cadastrais.
 - Teste interativo no navegador de `/clientes`, cobrindo abertura do modal de movimentacao, fechamento, busca e lista sem rolagem horizontal.
+- Typecheck e build do Portal RH Cliente apos refinamento visual da navegacao responsiva e do controle de tipo da movimentacao cadastral.
+- Teste interativo no navegador de `/clientes`, cobrindo abertura do modal, controle segmentado de inclusao/alteracao/desligamento e layout sem rolagem horizontal em viewport estreito.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-cliente-2026-04-28.md`.

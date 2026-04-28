@@ -52,6 +52,7 @@ export function ClientShell({ children }: Readonly<{ children: ReactNode }>) {
                 return (
                   <Link
                     key={item.href}
+                    aria-current={active ? "page" : undefined}
                     className={`group flex items-center justify-between rounded-md border px-3 py-3 transition ${
                       active
                         ? "border-pronus-primary bg-pronus-primary text-white shadow-sm"
@@ -80,7 +81,7 @@ export function ClientShell({ children }: Readonly<{ children: ReactNode }>) {
             </div>
             <nav
               aria-label="Menu principal"
-              className="flex gap-2 overflow-x-auto pb-1 text-sm font-semibold uppercase tracking-wide"
+              className="grid grid-cols-2 gap-2 text-sm font-semibold uppercase tracking-wide sm:grid-cols-3"
             >
               {navigationItems.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -88,7 +89,8 @@ export function ClientShell({ children }: Readonly<{ children: ReactNode }>) {
                 return (
                   <Link
                     key={item.href}
-                    className={`whitespace-nowrap rounded-md px-3 py-2 ${
+                    aria-current={active ? "page" : undefined}
+                    className={`flex min-h-10 items-center rounded-md px-3 py-2 ${
                       active
                         ? "bg-pronus-primary text-white"
                         : "border border-slate-200 bg-white text-slate-700"
