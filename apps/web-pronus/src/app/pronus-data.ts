@@ -220,6 +220,98 @@ export type DocumentPublicationStatus = "scheduled" | "published" | "revoked";
 export type DocumentSignatureStatus = "pending" | "signed" | "expired";
 export type DocumentAudience = "pronus" | "client_hr" | "employee" | "clinical";
 
+export type LegalObligationKey =
+  | "pgr"
+  | "pcmso"
+  | "ltcat"
+  | "cipa"
+  | "sesmt"
+  | "aet"
+  | "esocial_s2210"
+  | "esocial_s2220"
+  | "esocial_s2240";
+export type RiskTypeKey = "physical" | "chemical" | "biological" | "ergonomic" | "accident";
+export type AnalysisDepth = "basic" | "intermediate" | "detailed" | "critical";
+export type RiskScoreClass = "low" | "medium" | "high" | "critical";
+
+export interface LegalObligationDefinition {
+  key: LegalObligationKey;
+  label: string;
+  reference: string;
+}
+
+export interface RegulatoryCnae {
+  code: string;
+  description: string;
+  riskDegree: 1 | 2 | 3 | 4;
+  activityClassification: string;
+  obligations: LegalObligationKey[];
+  conditionalObligations: LegalObligationKey[];
+  sourceNote: string;
+}
+
+export interface RegulatoryRiskDegree {
+  degree: 1 | 2 | 3 | 4;
+  description: string;
+  requiredRiskTypes: RiskTypeKey[];
+  analysisDepth: AnalysisDepth;
+  inventoryRequired: boolean;
+  actionPlanRequired: boolean;
+  reviewFrequencyMonths: number;
+}
+
+export interface ResolvedLegalObligation {
+  key: LegalObligationKey;
+  label: string;
+  reference: string;
+  status: "required" | "conditional";
+  reason: string;
+}
+
+export interface TechnicalChecklistItem {
+  id: string;
+  group: string;
+  label: string;
+  required: boolean;
+  evidenceHint: string;
+}
+
+export interface CompanyRegulatoryAssessment {
+  generatedAt: string;
+  cnae: RegulatoryCnae;
+  riskDegree: RegulatoryRiskDegree;
+  employeeCount: number;
+  obligations: ResolvedLegalObligation[];
+  checklist: TechnicalChecklistItem[];
+  pgrBase: {
+    inventoryRequired: boolean;
+    actionPlanRequired: boolean;
+    requiredRiskTypes: RiskTypeKey[];
+    analysisDepth: AnalysisDepth;
+    reviewFrequencyMonths: number;
+  };
+  pcmsoBase?: {
+    required: boolean;
+    reason: string;
+  };
+  riskScore: {
+    value: number;
+    classification: RiskScoreClass;
+    label: string;
+  };
+  alerts: Array<{
+    id: string;
+    title: string;
+    severity: "info" | "warning" | "critical";
+    dueHint: string;
+  }>;
+  timeline: Array<{
+    id: string;
+    title: string;
+    status: "pending" | "planned" | "active";
+  }>;
+}
+
 export interface DocumentsSummary {
   generatedAt: string;
   documents: number;
@@ -276,6 +368,7 @@ export interface DocumentSignatureRequest {
 
 export const modules = [
   { name: "Cadastro estrutural", owner: "Operacao", progress: 72, status: "Em desenvolvimento" },
+  { name: "Inteligencia regulatoria", owner: "SST", progress: 28, status: "Base inicial" },
   { name: "Risco ocupacional", owner: "SST", progress: 40, status: "Base inicial" },
   { name: "Risco psicossocial", owner: "Psicologia", progress: 34, status: "Base inicial" },
   { name: "Gestao documental", owner: "Operacao", progress: 30, status: "Base inicial" },
@@ -364,6 +457,33 @@ export const documentAudienceLabels: Record<DocumentAudience, string> = {
   client_hr: "RH cliente",
   employee: "Colaborador",
   clinical: "Corpo clinico",
+};
+
+export const legalObligationLabels: Record<LegalObligationKey, string> = {
+  pgr: "PGR",
+  pcmso: "PCMSO",
+  ltcat: "LTCAT",
+  cipa: "CIPA",
+  sesmt: "SESMT",
+  aet: "AET",
+  esocial_s2210: "S-2210 CAT",
+  esocial_s2220: "S-2220 ASO",
+  esocial_s2240: "S-2240 agentes nocivos",
+};
+
+export const riskTypeLabels: Record<RiskTypeKey, string> = {
+  physical: "Fisicos",
+  chemical: "Quimicos",
+  biological: "Biologicos",
+  ergonomic: "Ergonomicos",
+  accident: "Acidentes",
+};
+
+export const analysisDepthLabels: Record<AnalysisDepth, string> = {
+  basic: "Basico",
+  intermediate: "Intermediario",
+  detailed: "Detalhado",
+  critical: "Completo e critico",
 };
 
 const fallbackSummary: StructuralSummary = {
@@ -871,6 +991,107 @@ const fallbackDocumentSignatures: DocumentSignatureRequest[] = [
   },
 ];
 
+export const fallbackLegalObligations: LegalObligationDefinition[] = [
+  { key: "pgr", label: "PGR", reference: "NR-01" },
+  { key: "pcmso", label: "PCMSO", reference: "NR-07" },
+  { key: "ltcat", label: "LTCAT", reference: "Lei 8.213/1991 e eSocial SST" },
+  { key: "cipa", label: "CIPA", reference: "NR-05" },
+  { key: "sesmt", label: "SESMT", reference: "NR-04" },
+  { key: "aet", label: "AET", reference: "NR-17" },
+  { key: "esocial_s2210", label: "S-2210 CAT", reference: "eSocial SST" },
+  { key: "esocial_s2220", label: "S-2220 ASO", reference: "eSocial SST" },
+  { key: "esocial_s2240", label: "S-2240 agentes nocivos", reference: "eSocial SST" },
+];
+
+export const fallbackRegulatoryCnaes: RegulatoryCnae[] = [
+  {
+    code: "1091102",
+    description: "Fabricacao de produtos de panificacao industrial",
+    riskDegree: 3,
+    activityClassification: "Industria de alimentos",
+    obligations: ["pgr", "pcmso", "ltcat", "esocial_s2210", "esocial_s2220", "esocial_s2240"],
+    conditionalObligations: ["cipa", "sesmt", "aet"],
+    sourceNote: "Semente PRONUS baseada no fluxo CNAE/GR da NR-04.",
+  },
+  {
+    code: "4711302",
+    description: "Comercio varejista de mercadorias em geral com predominancia de alimentos",
+    riskDegree: 2,
+    activityClassification: "Comercio varejista",
+    obligations: ["pgr", "pcmso", "ltcat", "esocial_s2210", "esocial_s2220", "esocial_s2240"],
+    conditionalObligations: ["cipa", "sesmt", "aet"],
+    sourceNote: "Semente PRONUS baseada no fluxo CNAE/GR da NR-04.",
+  },
+  {
+    code: "8211300",
+    description: "Servicos combinados de escritorio e apoio administrativo",
+    riskDegree: 1,
+    activityClassification: "Administrativo e apoio",
+    obligations: ["pgr", "pcmso", "ltcat", "esocial_s2210", "esocial_s2220", "esocial_s2240"],
+    conditionalObligations: ["cipa", "sesmt", "aet"],
+    sourceNote: "Semente PRONUS baseada no fluxo CNAE/GR da NR-04.",
+  },
+  {
+    code: "4120400",
+    description: "Construcao de edificios",
+    riskDegree: 3,
+    activityClassification: "Construcao civil",
+    obligations: ["pgr", "pcmso", "ltcat", "esocial_s2210", "esocial_s2220", "esocial_s2240"],
+    conditionalObligations: ["cipa", "sesmt", "aet"],
+    sourceNote: "Semente PRONUS baseada no fluxo CNAE/GR da NR-04.",
+  },
+  {
+    code: "0710301",
+    description: "Extracao de minerio de ferro",
+    riskDegree: 4,
+    activityClassification: "Mineracao",
+    obligations: ["pgr", "pcmso", "ltcat", "esocial_s2210", "esocial_s2220", "esocial_s2240"],
+    conditionalObligations: ["cipa", "sesmt", "aet"],
+    sourceNote: "Semente PRONUS baseada no fluxo CNAE/GR da NR-04.",
+  },
+];
+
+export const fallbackRegulatoryRiskDegrees: RegulatoryRiskDegree[] = [
+  {
+    degree: 1,
+    description: "Baixa complexidade operacional com exposicoes pontuais e baixa severidade.",
+    requiredRiskTypes: ["physical", "chemical", "biological", "ergonomic", "accident"],
+    analysisDepth: "basic",
+    inventoryRequired: true,
+    actionPlanRequired: true,
+    reviewFrequencyMonths: 24,
+  },
+  {
+    degree: 2,
+    description:
+      "Operacao com riscos moderados, rotinas repetitivas e necessidade de controles formais.",
+    requiredRiskTypes: ["physical", "chemical", "biological", "ergonomic", "accident"],
+    analysisDepth: "intermediate",
+    inventoryRequired: true,
+    actionPlanRequired: true,
+    reviewFrequencyMonths: 18,
+  },
+  {
+    degree: 3,
+    description:
+      "Operacao com exposicoes relevantes, processos produtivos e controles tecnicos obrigatorios.",
+    requiredRiskTypes: ["physical", "chemical", "biological", "ergonomic", "accident"],
+    analysisDepth: "detailed",
+    inventoryRequired: true,
+    actionPlanRequired: true,
+    reviewFrequencyMonths: 12,
+  },
+  {
+    degree: 4,
+    description: "Operacao critica com alto potencial de dano, exigindo investigacao completa.",
+    requiredRiskTypes: ["physical", "chemical", "biological", "ergonomic", "accident"],
+    analysisDepth: "critical",
+    inventoryRequired: true,
+    actionPlanRequired: true,
+    reviewFrequencyMonths: 6,
+  },
+];
+
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
@@ -935,6 +1156,22 @@ export async function loadDocumentsData() {
   ]);
 
   return { summary, documents, templates, publications, signatures };
+}
+
+export async function loadRegulatoryIntelligenceData() {
+  const [cnaes, riskDegrees, obligations] = await Promise.all([
+    fetchApi<RegulatoryCnae[]>("/regulatory-intelligence/cnaes", fallbackRegulatoryCnaes),
+    fetchApi<RegulatoryRiskDegree[]>(
+      "/regulatory-intelligence/risk-degrees",
+      fallbackRegulatoryRiskDegrees,
+    ),
+    fetchApi<LegalObligationDefinition[]>(
+      "/regulatory-intelligence/obligations",
+      fallbackLegalObligations,
+    ),
+  ]);
+
+  return { cnaes, riskDegrees, obligations };
 }
 
 export function statusClasses(status: StructuralStatus) {

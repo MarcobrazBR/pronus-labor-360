@@ -1,11 +1,14 @@
 import { CompanyManagementPanel } from "../company-management-panel";
 import { CompanyModuleNav } from "../company-module-nav";
-import { loadStructuralData } from "../../pronus-data";
+import { loadRegulatoryIntelligenceData, loadStructuralData } from "../../pronus-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function CompanySearchPage() {
-  const { companies, employees } = await loadStructuralData();
+  const [{ companies, employees }, { cnaes }] = await Promise.all([
+    loadStructuralData(),
+    loadRegulatoryIntelligenceData(),
+  ]);
 
   return (
     <>
@@ -18,7 +21,11 @@ export default async function CompanySearchPage() {
 
       <CompanyModuleNav />
 
-      <CompanyManagementPanel initialCompanies={companies} initialEmployees={employees} />
+      <CompanyManagementPanel
+        initialCompanies={companies}
+        initialEmployees={employees}
+        regulatoryCnaes={cnaes}
+      />
     </>
   );
 }

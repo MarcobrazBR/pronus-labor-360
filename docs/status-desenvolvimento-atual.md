@@ -120,6 +120,15 @@ Estado encontrado:
 - API NR-01/Risco Ocupacional agora expoe evidencias e documentos iniciais, alem de inventario de riscos e plano de acao.
 - Modulo Documentos do Portal PRONUS agora possui abas funcionais para fila documental, modelos, publicacoes e assinaturas, com filtros, inclusao local e alteracao de status.
 - API Documentos agora expoe resumo, documentos, modelos, publicacoes e solicitacoes de assinatura.
+- Criado modulo inicial de inteligencia regulatoria:
+  - `GET /regulatory-intelligence/cnaes`
+  - `GET /regulatory-intelligence/risk-degrees`
+  - `GET /regulatory-intelligence/obligations`
+  - `POST /regulatory-intelligence/assess-company`
+- A inteligencia regulatoria inicial interpreta CNAE, grau de risco, quantidade de colaboradores, obrigacoes legais, score de risco, alertas, linha do tempo de conformidade e checklist tecnico de campo.
+- Portal PRONUS agora possui o modulo `/configuracoes`, com abas de CNAE, Grau de risco, Checklist tecnico, Estruturas e Operacional.
+- Modulo Configuracoes centraliza a base logica de cargos, setores, feriados, agenda, tabelas auxiliares e parametros reguladores usados pelo restante do MVP.
+- Cadastro de empresa em Busca Empresa agora reconhece CNAE parametrizado e mostra grau de risco, classificacao de atividade e obrigacoes legais vinculadas antes de salvar o cadastro.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
@@ -139,6 +148,9 @@ Estado encontrado:
 - Implementar autenticacao e permissoes.
 - Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
 - Persistir formularios, documentos e evidencias de risco ocupacional em banco real e anexos.
+- Importar a tabela oficial completa CNAE/Grau de Risco da NR-04, manter historico de vigencia normativa e revisar as regras com responsavel tecnico/juridico.
+- Implementar dimensionamento exato de CIPA e SESMT conforme quadros oficiais, numero de empregados e excecoes aplicaveis.
+- Persistir parametros do modulo Configuracoes em banco real, com trilha de auditoria e controle de versao regulatoria.
 - Evoluir risco psicossocial para anonimato por regra minima, relatorios tecnicos e plano de intervencao.
 - Criar testes automatizados quando os fluxos deixarem de ser somente fundacao.
 
@@ -184,3 +196,8 @@ Estado encontrado:
 - Teste interativo no navegador de Risco Ocupacional cobrindo abas Inventario, Plano de acao, Evidencias, Documentos e inclusao local de documento.
 - Typecheck e build da API e do Portal PRONUS apos transformar Documentos em modulo operacional.
 - Teste interativo no navegador de Documentos cobrindo abas Documentos, Modelos, Publicacoes, Assinaturas e inclusao local de assinatura.
+- Typecheck e build da API apos criacao da inteligencia regulatoria.
+- Typecheck e build do Portal PRONUS apos criacao do modulo Configuracoes.
+- Teste interativo no navegador de `/configuracoes`, cobrindo catalogo de CNAE, simulador de checklist tecnico, geracao de obrigacoes legais, score e linha do tempo.
+- Teste interativo no navegador de `/empresas/busca`, cobrindo modal de inclusao de empresa e leitura visual do CNAE com grau de risco/obrigacoes.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-2026-04-28.md`.

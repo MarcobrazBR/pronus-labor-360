@@ -8,6 +8,7 @@ const navigationItems = [
   { label: "PAINEL", href: "/" },
   { label: "EMPRESAS", href: "/empresas" },
   { label: "COLABORADORES", href: "/colaboradores" },
+  { label: "CONFIGURAÇÕES", href: "/configuracoes" },
   { label: "RISCO OCUPACIONAL", href: "/nr01-pgr" },
   { label: "PSICOSSOCIAL", href: "/psicossocial" },
   { label: "DOCUMENTOS", href: "/documentos" },

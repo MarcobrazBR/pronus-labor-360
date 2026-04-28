@@ -35,6 +35,7 @@ O Pronus Labor 360 foi pensado como uma plataforma 360 graus para a relacao entr
 Principais pilares:
 
 - **Cadastro estrutural confiavel:** grupos, empresas, CNPJs, unidades, setores, cargos, clientes e colaboradores internos em uma base organizada.
+- **Inteligencia regulatoria SST:** leitura de CNAE, grau de risco, obrigacoes legais, checklist tecnico e base automatica para PGR, PCMSO, LTCAT, PPP e eSocial SST.
 - **Governanca de dados:** isolamento por empresa, status, historico, aprovacao de divergencias e trilhas de auditoria.
 - **Risco ocupacional / NR-01/GRO/PGR:** base preparada para inventario de riscos, matriz, planos de acao, evidencias e documentos.
 - **Risco psicossocial:** campanhas, questionarios, indicadores agregados, regras de privacidade e suporte a analise tecnica.
@@ -74,6 +75,9 @@ Ja existe:
 - importacao inicial de colaboradores via CSV com modo de simulacao;
 - painel operacional inicial no Portal PRONUS com navegacao por paginas;
 - modulo Empresas do Portal PRONUS organizado em resumo, busca, cargos e setores;
+- modulo Configuracoes com CNAE, grau de risco, checklist tecnico, estruturas e parametros operacionais;
+- API inicial de inteligencia regulatoria com CNAEs parametrizados, graus de risco, obrigacoes legais, score, alertas e checklist de campo;
+- cadastro de empresa com leitura visual do CNAE parametrizado, grau de risco e obrigacoes vinculadas;
 - aba Clientes dentro do modulo Empresas para funcionarios das contratantes, com importacao e consulta sob busca;
 - busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, clientes e financeiro;
 - cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
@@ -94,6 +98,7 @@ Ainda esta em andamento:
 - autenticacao e permissoes;
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
 - persistencia real dos formularios de risco ocupacional, documentos e evidencias anexas;
+- carga oficial completa de CNAE/Grau de Risco, dimensionamento exato de CIPA/SESMT e revisao juridico-tecnica das regras reguladoras;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;
 - anexos reais, auditoria documental e dashboards avancados.
 
@@ -140,11 +145,12 @@ pnpm dev:api
 1. Cadastro estrutural: empresas, unidades, setores, cargos e colaboradores.
 2. Importacao e validacao de colaboradores.
 3. Autenticacao e isolamento multiempresa.
-4. Primeiro acesso do colaborador e divergencia cadastral.
-5. Nucleo de risco ocupacional / NR-01/GRO/PGR.
-6. Campanhas de risco psicossocial.
-7. Questionario psicossocial do colaborador.
-8. Documentos iniciais e auditoria.
+4. Inteligencia regulatoria por CNAE, grau de risco, obrigacoes e checklist tecnico.
+5. Primeiro acesso do colaborador e divergencia cadastral.
+6. Nucleo de risco ocupacional / NR-01/GRO/PGR.
+7. Campanhas de risco psicossocial.
+8. Questionario psicossocial do colaborador.
+9. Documentos iniciais e auditoria.
 
 ## Tese De Produto
 

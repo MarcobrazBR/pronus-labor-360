@@ -6,9 +6,11 @@ import { useMemo, useState } from "react";
 import {
   companyContractStatusLabels,
   contractStatusClasses,
+  legalObligationLabels,
   statusClasses,
   structuralStatusLabels,
   type CompanyContractStatus,
+  type RegulatoryCnae,
   type StructuralCompany,
   type StructuralEmployee,
   type StructuralStatus,
@@ -255,6 +257,10 @@ function responseMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 function money(value: number) {
   return value.toLocaleString("pt-BR", { currency: "BRL", style: "currency" });
 }
@@ -294,7 +300,12 @@ function invoiceStatusClasses(status: string) {
 export function CompanyManagementPanel({
   initialCompanies,
   initialEmployees,
-}: Readonly<{ initialCompanies: StructuralCompany[]; initialEmployees: StructuralEmployee[] }>) {
+  regulatoryCnaes = [],
+}: Readonly<{
+  initialCompanies: StructuralCompany[];
+  initialEmployees: StructuralEmployee[];
+  regulatoryCnaes?: RegulatoryCnae[];
+}>) {
   const router = useRouter();
   const [companies, setCompanies] = useState(initialCompanies);
   const [employees, setEmployees] = useState(initialEmployees);
@@ -687,6 +698,7 @@ export function CompanyManagementPanel({
           error={error}
           form={form}
           isSaving={isSaving}
+          regulatoryCnaes={regulatoryCnaes}
           updateForm={updateForm}
           onClose={() => setIsCompanyModalOpen(false)}
           onSubmit={() => void submitCompany()}
@@ -971,6 +983,7 @@ function CompanyModal({
   error,
   form,
   isSaving,
+  regulatoryCnaes,
   onClose,
   onSubmit,
   updateForm,
@@ -979,10 +992,14 @@ function CompanyModal({
   error: string | null;
   form: CompanyForm;
   isSaving: boolean;
+  regulatoryCnaes: RegulatoryCnae[];
   onClose: () => void;
   onSubmit: () => void;
   updateForm: (field: keyof CompanyForm, value: string) => void;
 }>) {
+  const normalizedCnae = onlyDigits(form.primaryCnae);
+  const matchedCnae = regulatoryCnaes.find((cnae) => cnae.code === normalizedCnae);
+
   return (
     <Modal
       title={editingCompany === null ? "Incluir nova empresa" : "Ajustar empresa"}
@@ -1070,6 +1087,39 @@ function CompanyModal({
             value={form.primaryCnae}
             onChange={(value) => updateForm("primaryCnae", value)}
           />
+          {form.primaryCnae.trim().length > 0 && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 md:col-span-2 xl:col-span-3">
+              {matchedCnae === undefined ? (
+                <p className="text-sm font-medium text-amber-700">
+                  CNAE ainda nao parametrizado no modulo Configuracoes.
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <strong className="text-sm text-slate-900">{matchedCnae.description}</strong>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                      Grau {matchedCnae.riskDegree}
+                    </span>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                      {matchedCnae.activityClassification}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[...matchedCnae.obligations, ...matchedCnae.conditionalObligations].map(
+                      (obligation) => (
+                        <span
+                          key={obligation}
+                          className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+                        >
+                          {legalObligationLabels[obligation]}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <SelectField
             label="Cooperativa"
             value={form.cooperativeIndicator}
