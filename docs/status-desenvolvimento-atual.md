@@ -146,6 +146,9 @@ Estado encontrado:
 - Alteracao e desligamento de cliente foram preparados como registros locais de MVP ate a criacao da fila persistente de aprovacao PRONUS.
 - Fila de divergencias do Portal RH Cliente foi preparada para aprovar/recusar ajustes cadastrais via API.
 - Portal RH Cliente recebeu refinamento de UX na navegacao responsiva e no modal de movimentacao cadastral, com menu em grade no mobile, estado ativo acessivel e controle segmentado para tipo de movimentacao.
+- Portal RH Cliente agora exibe o nome da empresa ativa no shell, substituindo o marcador generico de cliente.
+- Inclusao manual de clientes foi padronizada entre Portal RH Cliente e Portal PRONUS, com os mesmos campos base e diferenca apenas de permissao: RH usa empresa travada e PRONUS escolhe a empresa.
+- Empresas > Clientes no Portal PRONUS agora permite incluir cliente manualmente via `POST /structural/employees`, alem da importacao CSV.
 - Painel PRONUS agora exibe:
   - resumo de empresas, clientes, risco ocupacional e campanhas;
   - unidades, setores e cargos;
@@ -225,3 +228,7 @@ Estado encontrado:
 - Typecheck e build do Portal RH Cliente apos refinamento visual da navegacao responsiva e do controle de tipo da movimentacao cadastral.
 - Teste interativo no navegador de `/clientes`, cobrindo abertura do modal, controle segmentado de inclusao/alteracao/desligamento e layout sem rolagem horizontal em viewport estreito.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-cliente-2026-04-28.md`.
+- Typecheck e build do Portal RH Cliente e do Portal PRONUS apos padronizacao do fluxo de inclusao manual de clientes.
+- Teste interativo no navegador do Portal RH Cliente em `/clientes`, confirmando nome da empresa no shell e empresa somente leitura no modal.
+- Teste interativo no navegador do Portal PRONUS em `/empresas/clientes`, confirmando botao de inclusao, seletor de empresa e mesmos campos base do fluxo do Portal RH.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-padronizacao-clientes-2026-04-28.md`.

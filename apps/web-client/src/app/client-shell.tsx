@@ -21,7 +21,10 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function ClientShell({ children }: Readonly<{ children: ReactNode }>) {
+export function ClientShell({
+  children,
+  companyName,
+}: Readonly<{ children: ReactNode; companyName: string }>) {
   const pathname = usePathname();
 
   if (pathname.startsWith("/login")) {
@@ -38,8 +41,8 @@ export function ClientShell({ children }: Readonly<{ children: ReactNode }>) {
               <h1 className="mt-4 text-lg font-semibold uppercase tracking-wide">PORTAL RH</h1>
             </div>
             <div className="mb-5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                CLIENTE
+              <p className="truncate text-sm font-semibold text-slate-700" title={companyName}>
+                {companyName}
               </p>
             </div>
             <nav
@@ -78,6 +81,9 @@ export function ClientShell({ children }: Readonly<{ children: ReactNode }>) {
             <div className="mb-4">
               <img alt="Pronus Labor" className="h-12 w-auto" src="/brand/pronus-logo.png" />
               <h1 className="mt-2 text-lg font-semibold uppercase tracking-wide">PORTAL RH</h1>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-600" title={companyName}>
+                {companyName}
+              </p>
             </div>
             <nav
               aria-label="Menu principal"

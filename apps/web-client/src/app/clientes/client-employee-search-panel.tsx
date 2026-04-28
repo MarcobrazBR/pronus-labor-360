@@ -412,6 +412,7 @@ export function ClientEmployeeSearchPanel({
 
       {isMovementModalOpen && (
         <MovementModal
+          companyName={company.tradeName}
           employees={currentEmployees}
           form={movementForm}
           isSaving={isSavingMovement}
@@ -425,6 +426,7 @@ export function ClientEmployeeSearchPanel({
 }
 
 function MovementModal({
+  companyName,
   employees,
   form,
   isSaving,
@@ -432,6 +434,7 @@ function MovementModal({
   onSubmit,
   onUpdate,
 }: Readonly<{
+  companyName: string;
   employees: StructuralEmployee[];
   form: MovementForm;
   isSaving: boolean;
@@ -481,6 +484,15 @@ function MovementModal({
               })}
             </div>
           </fieldset>
+
+          <label className="block md:col-span-2">
+            <span className="text-xs font-semibold uppercase text-slate-500">Empresa</span>
+            <input
+              className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700"
+              readOnly
+              value={companyName}
+            />
+          </label>
 
           {form.type !== "inclusion" && (
             <label className="block">

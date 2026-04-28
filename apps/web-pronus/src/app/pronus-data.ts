@@ -56,11 +56,15 @@ export interface StructuralCompany {
 
 export interface StructuralEmployee {
   id: string;
+  companyId?: string;
   companyTradeName: string;
   fullName: string;
+  cpf?: string;
   birthDate?: string;
   inclusionDate?: string;
   exclusionDate?: string;
+  email?: string;
+  phone?: string;
   department: string;
   jobPosition: string;
   registrationStatus: StructuralStatus;

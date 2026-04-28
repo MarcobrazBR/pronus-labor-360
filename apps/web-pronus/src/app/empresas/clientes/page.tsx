@@ -28,7 +28,7 @@ export default async function CompanyClientsPage() {
         }))}
       />
 
-      <CompanyClientsPanel employees={employees} />
+      <CompanyClientsPanel companies={companies} employees={employees} />
     </>
   );
 }
