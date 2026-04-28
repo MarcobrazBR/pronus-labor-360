@@ -24,6 +24,8 @@ type Person = {
   status: PersonStatus;
 };
 
+type UserForm = Omit<Person, "id">;
+
 type PermissionKey =
   | "companyRegistration"
   | "clientRecords"
@@ -188,6 +190,20 @@ const initialUsers: Person[] = [
     status: "active",
   },
 ];
+
+function createEmptyUserForm(): UserForm {
+  return {
+    audience: "client_hr",
+    company: "",
+    cpf: "",
+    department: "Recursos Humanos",
+    email: "",
+    jobPosition: "RH cliente",
+    name: "",
+    registeredAt: todayIso(),
+    status: "pending",
+  };
+}
 
 const initialPermissions: PermissionProfile[] = [
   {
@@ -395,6 +411,18 @@ export function CollaboratorsWorkforcePanel({
     );
   }
 
+  function addUser(form: UserForm) {
+    setUsers((current) => [
+      {
+        ...form,
+        company: form.company?.trim().length ? form.company : undefined,
+        id: `user-${current.length + 1}-${form.cpf.replace(/\D/g, "") || todayIso()}`,
+      },
+      ...current,
+    ]);
+    setMessage(`Usuario ${form.name} cadastrado com senha inicial ${standardPassword}.`);
+  }
+
   function togglePermission(profileIndex: number, permission: PermissionKey) {
     setPermissions((current) =>
       current.map((profile, index) =>
@@ -581,9 +609,7 @@ export function CollaboratorsWorkforcePanel({
       {activeTab === "users" && (
         <UsersTab
           users={users}
-          onAdd={() =>
-            setMessage("Inclusao de usuario preparada para o proximo passo do cadastro.")
-          }
+          onAddUser={addUser}
           onResetPassword={resetPassword}
           onUpdateStatus={updateUserStatus}
         />
@@ -642,97 +668,315 @@ export function CollaboratorsWorkforcePanel({
 }
 
 function UsersTab({
-  onAdd,
+  onAddUser,
   onResetPassword,
   onUpdateStatus,
   users,
 }: Readonly<{
-  onAdd: () => void;
+  onAddUser: (form: UserForm) => void;
   onResetPassword: (person: Person) => void;
   onUpdateStatus: (id: string, status: PersonStatus) => void;
   users: Person[];
 }>) {
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<PersonStatus | "all">("all");
+  const [hasSearched, setHasSearched] = useState(false);
+  const [submittedSearch, setSubmittedSearch] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [form, setForm] = useState<UserForm>(() => createEmptyUserForm());
+  const [localMessage, setLocalMessage] = useState<string | null>(null);
+
+  const filteredUsers = useMemo(() => {
+    if (!hasSearched) {
+      return [];
+    }
+
+    const normalizedQuery = submittedSearch.trim().toLowerCase();
+
+    return users.filter((person) => {
+      const text = [
+        person.name,
+        person.cpf,
+        person.jobPosition,
+        person.email,
+        statusLabels[person.status],
+        person.status,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesQuery = normalizedQuery.length === 0 || text.includes(normalizedQuery);
+      const matchesStatus = status === "all" || person.status === status;
+
+      return matchesQuery && matchesStatus;
+    });
+  }, [hasSearched, status, submittedSearch, users]);
+
+  function searchUsers() {
+    if (query.trim().length === 0 && status === "all") {
+      setLocalMessage("Informe CPF, nome, cargo ou status para buscar usuarios.");
+      setHasSearched(false);
+      return;
+    }
+
+    setLocalMessage(null);
+    setSubmittedSearch(query);
+    setHasSearched(true);
+  }
+
+  function clearSearch() {
+    setQuery("");
+    setStatus("all");
+    setSubmittedSearch("");
+    setHasSearched(false);
+    setLocalMessage(null);
+  }
+
+  function submitUser() {
+    if (
+      form.name.trim().length === 0 ||
+      form.cpf.trim().length === 0 ||
+      form.email.trim().length === 0 ||
+      form.jobPosition.trim().length === 0
+    ) {
+      setLocalMessage("Preencha nome, CPF, e-mail e cargo para incluir usuario.");
+      return;
+    }
+
+    onAddUser(form);
+    setForm(createEmptyUserForm());
+    setIsFormOpen(false);
+    setLocalMessage("Usuario incluido. Pesquise para visualizar o registro na lista.");
+  }
+
   return (
     <div className="p-5">
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h3 className="text-base font-semibold">Usuarios</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Pessoas com acesso ao Portal PRONUS administrativo ou ao Portal RH cliente.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-            {users.length} registros
+            {hasSearched ? filteredUsers.length : users.length} registros
           </span>
           <button
             aria-label="Incluir usuario"
             className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-xl font-semibold leading-none text-white"
             title="Incluir usuario"
             type="button"
-            onClick={onAdd}
+            onClick={() => setIsFormOpen(!isFormOpen)}
           >
             +
           </button>
         </div>
       </div>
+
+      <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase text-slate-500">Pesquisar</span>
+            <input
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+              placeholder="CPF, nome ou cargo"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <SelectField
+            label="Status"
+            value={status}
+            onChange={(value) => setStatus(value as PersonStatus | "all")}
+            options={[
+              { label: "Todos", value: "all" },
+              { label: statusLabels.active, value: "active" },
+              { label: statusLabels.pending, value: "pending" },
+              { label: statusLabels.suspended, value: "suspended" },
+              { label: statusLabels.cancelled, value: "cancelled" },
+            ]}
+          />
+          <div className="flex items-end gap-2">
+            <button
+              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
+              type="button"
+              onClick={searchUsers}
+            >
+              Buscar
+            </button>
+            <button
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+              type="button"
+              onClick={clearSearch}
+            >
+              Limpar
+            </button>
+          </div>
+        </div>
+        {localMessage !== null && (
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+            {localMessage}
+          </div>
+        )}
+      </div>
+
+      {isFormOpen && (
+        <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <Field
+              label="Nome"
+              value={form.name}
+              onChange={(value) => setForm((current) => ({ ...current, name: value }))}
+            />
+            <Field
+              label="CPF"
+              value={form.cpf}
+              onChange={(value) => setForm((current) => ({ ...current, cpf: value }))}
+            />
+            <Field
+              label="E-mail"
+              value={form.email}
+              onChange={(value) => setForm((current) => ({ ...current, email: value }))}
+            />
+            <Field
+              label="Data cadastro"
+              type="date"
+              value={form.registeredAt}
+              onChange={(value) => setForm((current) => ({ ...current, registeredAt: value }))}
+            />
+            <SelectField
+              label="Perfil"
+              value={form.audience}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, audience: value as StructuralAudience }))
+              }
+              options={[
+                { label: structuralAudienceLabels.client_hr, value: "client_hr" },
+                { label: structuralAudienceLabels.client_manager, value: "client_manager" },
+                {
+                  label: structuralAudienceLabels.pronus_administrative,
+                  value: "pronus_administrative",
+                },
+                { label: structuralAudienceLabels.pronus_clinical, value: "pronus_clinical" },
+              ]}
+            />
+            <Field
+              label="Vinculo"
+              value={form.company ?? ""}
+              onChange={(value) => setForm((current) => ({ ...current, company: value }))}
+            />
+            <Field
+              label="Departamento"
+              value={form.department}
+              onChange={(value) => setForm((current) => ({ ...current, department: value }))}
+            />
+            <Field
+              label="Cargo"
+              value={form.jobPosition}
+              onChange={(value) => setForm((current) => ({ ...current, jobPosition: value }))}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white"
+              type="button"
+              onClick={submitUser}
+            >
+              Salvar usuario
+            </button>
+            <button
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+              type="button"
+              onClick={() => {
+                setForm(createEmptyUserForm());
+                setIsFormOpen(false);
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="min-w-[1180px] text-left text-sm">
+        <table className="min-w-[1320px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-3 font-semibold">Nome</th>
-              <th className="px-4 py-3 font-semibold">CPF</th>
+              <th className="whitespace-nowrap px-4 py-3 font-semibold">CPF</th>
               <th className="px-4 py-3 font-semibold">Cadastro</th>
               <th className="px-4 py-3 font-semibold">Perfil</th>
               <th className="px-4 py-3 font-semibold">Vinculo</th>
               <th className="px-4 py-3 font-semibold">Cargo</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Acoes</th>
+              <th className="px-4 py-3 font-semibold">Senha</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {users.map((person) => (
-              <tr key={person.id}>
-                <td className="px-4 py-3">
-                  <strong className="block font-semibold">{person.name}</strong>
-                  <span className="mt-1 block text-xs text-slate-500">{person.email}</span>
-                </td>
-                <td className="px-4 py-3">{person.cpf}</td>
-                <td className="px-4 py-3">{dateLabel(person.registeredAt)}</td>
-                <td className="px-4 py-3">{structuralAudienceLabels[person.audience]}</td>
-                <td className="px-4 py-3">{person.company ?? "PRONUS"}</td>
-                <td className="px-4 py-3">{person.jobPosition}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[person.status]}`}
-                  >
-                    {statusLabels[person.status]}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    {person.status !== "active" && (
-                      <ActionButton onClick={() => onUpdateStatus(person.id, "active")}>
-                        Ativar
-                      </ActionButton>
-                    )}
-                    {person.status === "active" && (
-                      <ActionButton onClick={() => onUpdateStatus(person.id, "suspended")}>
-                        Suspender
-                      </ActionButton>
-                    )}
-                    {person.status !== "cancelled" && (
-                      <ActionButton onClick={() => onUpdateStatus(person.id, "cancelled")}>
-                        Cancelar
-                      </ActionButton>
-                    )}
-                    <ActionButton onClick={() => onResetPassword(person)}>
-                      Resetar senha
-                    </ActionButton>
-                  </div>
+            {!hasSearched ? (
+              <tr>
+                <td className="px-4 py-6 text-sm text-slate-500" colSpan={9}>
+                  Use a pesquisa para listar usuarios. A tela permanece limpa ate existir uma
+                  consulta.
                 </td>
               </tr>
-            ))}
+            ) : filteredUsers.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-sm text-slate-500" colSpan={9}>
+                  Nenhum usuario encontrado para os criterios informados.
+                </td>
+              </tr>
+            ) : (
+              filteredUsers.map((person) => (
+                <tr key={person.id}>
+                  <td className="px-4 py-3">
+                    <strong className="block font-semibold">{person.name}</strong>
+                    <span className="mt-1 block text-xs text-slate-500">{person.email}</span>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3">{person.cpf}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{dateLabel(person.registeredAt)}</td>
+                  <td className="px-4 py-3">{structuralAudienceLabels[person.audience]}</td>
+                  <td className="px-4 py-3">{person.company ?? "PRONUS"}</td>
+                  <td className="px-4 py-3">{person.jobPosition}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[person.status]}`}
+                    >
+                      {statusLabels[person.status]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      aria-label={`Acoes de ${person.name}`}
+                      className="w-36 rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+                      value=""
+                      onChange={(event) => {
+                        const nextStatus = event.target.value;
+
+                        if (isPersonStatus(nextStatus)) {
+                          onUpdateStatus(person.id, nextStatus);
+                        }
+                      }}
+                    >
+                      <option value="">Selecionar</option>
+                      {person.status !== "active" && <option value="active">Ativar</option>}
+                      {person.status === "active" && <option value="suspended">Suspender</option>}
+                      {person.status !== "cancelled" && <option value="cancelled">Cancelar</option>}
+                    </select>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      aria-label={`Resete de senha de ${person.name}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
+                      title="Resete de senha"
+                      type="button"
+                      onClick={() => onResetPassword(person)}
+                    >
+                      <KeyIcon />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -1287,6 +1531,24 @@ function RatesTab({
   );
 }
 
+function KeyIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M15 7a4 4 0 1 0 2 3.46L22 5.5V3h-2.5L17 5.5 15.5 4 14 5.5 15 7Z" />
+      <path d="M7 14a4 4 0 0 0 4-4" />
+    </svg>
+  );
+}
+
 function ActionButton({ children, onClick }: Readonly<{ children: string; onClick: () => void }>) {
   return (
     <button
@@ -1392,6 +1654,12 @@ function money(value: number) {
     currency: "BRL",
     style: "currency",
   }).format(value);
+}
+
+function isPersonStatus(value: string): value is PersonStatus {
+  return (
+    value === "active" || value === "pending" || value === "suspended" || value === "cancelled"
+  );
 }
 
 function todayIso() {

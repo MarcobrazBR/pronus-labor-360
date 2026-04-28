@@ -148,6 +148,8 @@ Estado encontrado:
 - Typecheck dos tres portais apos login por CPF, logo oficial, favicon e evolucao do modulo Colaboradores.
 - Build geral do monorepo apos criacao dos logins, logo oficial, favicon e agenda/tabela/feriados.
 - Teste no navegador de `Colaboradores` com aba Usuarios, acoes de status/reset, Agenda, Feriados, Tabela e logins dos portais PRONUS, RH Cliente e Colaborador.
+- Modulo Colaboradores ajustado para busca obrigatoria antes da listagem de usuarios, inclusao local de usuario pelo botao `+`, acoes em lista, reset de senha por icone e refinamento visual da navegacao lateral.
+- Typecheck, teste no navegador e build do Portal PRONUS apos refinamento de Usuarios e navegacao lateral.
 - Teste HTTP de criacao de empresa com campos eSocial/contratuais.
 - Teste clicavel no navegador da tela Empresas: pesquisa e modal de inclusao.
 - Typecheck da API e Portal PRONUS apos reorganizacao do modulo Empresas em Busca, Cargos e Setores.
