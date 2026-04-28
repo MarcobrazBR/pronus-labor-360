@@ -2,6 +2,10 @@ export type Nr01RiskLevel = "low" | "moderate" | "high" | "critical";
 export type Nr01RiskType = "physical" | "chemical" | "biological" | "ergonomic" | "accident";
 export type Nr01RecordStatus = "draft" | "active" | "review" | "archived";
 export type Nr01ActionStatus = "open" | "in_progress" | "done" | "overdue";
+export type Nr01EvidenceType = "photo" | "report" | "training_record" | "measurement" | "other";
+export type Nr01EvidenceStatus = "pending_review" | "accepted" | "rejected";
+export type Nr01DocumentType = "pgr" | "inventory" | "technical_report" | "action_plan" | "other";
+export type Nr01DocumentStatus = "draft" | "in_review" | "approved" | "published";
 
 export interface Nr01Risk {
   id: string;
@@ -31,6 +35,33 @@ export interface Nr01ActionPlanItem {
   status: Nr01ActionStatus;
   evidenceCount: number;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface Nr01Evidence {
+  id: string;
+  actionId: string;
+  riskId: string;
+  companyTradeName: string;
+  title: string;
+  type: Nr01EvidenceType;
+  responsible: string;
+  receivedAt: string;
+  status: Nr01EvidenceStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Nr01Document {
+  id: string;
+  companyTradeName: string;
+  title: string;
+  type: Nr01DocumentType;
+  referencePeriod: string;
+  status: Nr01DocumentStatus;
+  generatedAt: string;
+  approvedAt?: string;
   updatedAt: string;
 }
 
@@ -73,4 +104,31 @@ export type UpdateNr01ActionPlanItemInput = Partial<
 > & {
   status?: Nr01ActionStatus;
   evidenceCount?: number;
+};
+
+export interface CreateNr01EvidenceInput {
+  actionId: string;
+  title: string;
+  type: Nr01EvidenceType;
+  responsible: string;
+  receivedAt?: string;
+  notes?: string;
+}
+
+export type UpdateNr01EvidenceInput = Partial<
+  Pick<CreateNr01EvidenceInput, "title" | "type" | "responsible" | "receivedAt" | "notes">
+> & {
+  status?: Nr01EvidenceStatus;
+};
+
+export interface CreateNr01DocumentInput {
+  companyTradeName: string;
+  title: string;
+  type: Nr01DocumentType;
+  referencePeriod: string;
+}
+
+export type UpdateNr01DocumentInput = Partial<CreateNr01DocumentInput> & {
+  status?: Nr01DocumentStatus;
+  approvedAt?: string;
 };

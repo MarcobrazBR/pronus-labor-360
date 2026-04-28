@@ -108,23 +108,52 @@ export interface Nr01Summary {
 export interface Nr01Risk {
   id: string;
   companyTradeName: string;
+  unitName?: string;
   departmentName: string;
+  jobPositionTitle?: string;
+  type?: "physical" | "chemical" | "biological" | "ergonomic" | "accident";
   danger: string;
   risk: string;
   probability: number;
   severity: number;
   level: RiskLevel;
+  controlMeasures?: string[];
   status: "draft" | "active" | "review" | "archived";
 }
 
 export interface Nr01ActionPlanItem {
   id: string;
+  riskId?: string;
   companyTradeName: string;
   title: string;
   responsible: string;
   dueDate: string;
   status: "open" | "in_progress" | "done" | "overdue";
   evidenceCount: number;
+}
+
+export interface Nr01Evidence {
+  id: string;
+  actionId: string;
+  riskId: string;
+  companyTradeName: string;
+  title: string;
+  type: "photo" | "report" | "training_record" | "measurement" | "other";
+  responsible: string;
+  receivedAt: string;
+  status: "pending_review" | "accepted" | "rejected";
+  notes?: string;
+}
+
+export interface Nr01Document {
+  id: string;
+  companyTradeName: string;
+  title: string;
+  type: "pgr" | "inventory" | "technical_report" | "action_plan" | "other";
+  referencePeriod: string;
+  status: "draft" | "in_review" | "approved" | "published";
+  generatedAt: string;
+  approvedAt?: string;
 }
 
 export type PsychosocialCampaignStatus =
@@ -456,23 +485,31 @@ const fallbackNr01Risks: Nr01Risk[] = [
   {
     id: "risk-horizonte-ruido",
     companyTradeName: "Industria Horizonte",
+    unitName: "Matriz",
     departmentName: "Producao",
+    jobPositionTitle: "Operadora de Maquina",
+    type: "physical",
     danger: "Ruido continuo acima do nivel de acao",
     risk: "Perda auditiva induzida por ruido",
     probability: 4,
     severity: 4,
     level: "high",
+    controlMeasures: ["Uso de protetor auricular", "Dosimetria periodica"],
     status: "active",
   },
   {
     id: "risk-rede-norte-queda",
     companyTradeName: "Rede Norte",
+    unitName: "Centro de Distribuicao",
     departmentName: "Logistica",
+    jobPositionTitle: "Auxiliar de Logistica",
+    type: "accident",
     danger: "Circulacao em area com empilhadeiras",
     risk: "Atropelamento ou colisao interna",
     probability: 3,
     severity: 5,
     level: "high",
+    controlMeasures: ["Sinalizacao de rota", "Separacao fisica de pedestres"],
     status: "active",
   },
 ];
@@ -480,6 +517,7 @@ const fallbackNr01Risks: Nr01Risk[] = [
 const fallbackNr01Actions: Nr01ActionPlanItem[] = [
   {
     id: "action-ruido-dosimetria",
+    riskId: "risk-horizonte-ruido",
     companyTradeName: "Industria Horizonte",
     title: "Atualizar dosimetria da linha de envase",
     responsible: "Equipe SST PRONUS",
@@ -489,12 +527,49 @@ const fallbackNr01Actions: Nr01ActionPlanItem[] = [
   },
   {
     id: "action-ergonomia-procedimento",
+    riskId: "risk-horizonte-ruido",
     companyTradeName: "Industria Horizonte",
     title: "Revisar procedimento de manutencao corretiva",
     responsible: "Engenharia de Seguranca",
     dueDate: "2026-04-20",
     status: "overdue",
     evidenceCount: 0,
+  },
+];
+
+const fallbackNr01Evidences: Nr01Evidence[] = [
+  {
+    id: "evidence-ruido-dosimetria-2026",
+    actionId: "action-ruido-dosimetria",
+    riskId: "risk-horizonte-ruido",
+    companyTradeName: "Industria Horizonte",
+    title: "Relatorio de dosimetria atualizado",
+    type: "measurement",
+    responsible: "Higiene Ocupacional PRONUS",
+    receivedAt: "2026-04-18",
+    status: "accepted",
+    notes: "Arquivo validado para revisao do inventario.",
+  },
+];
+
+const fallbackNr01Documents: Nr01Document[] = [
+  {
+    id: "document-horizonte-pgr-2026",
+    companyTradeName: "Industria Horizonte",
+    title: "PGR 2026 - Industria Horizonte",
+    type: "pgr",
+    referencePeriod: "2026",
+    status: "in_review",
+    generatedAt: "2026-04-15",
+  },
+  {
+    id: "document-rede-norte-inventario-2026",
+    companyTradeName: "Rede Norte",
+    title: "Inventario de riscos 2026 - Rede Norte",
+    type: "inventory",
+    referencePeriod: "2026",
+    status: "draft",
+    generatedAt: "2026-04-22",
   },
 ];
 
@@ -610,13 +685,15 @@ export async function loadStructuralData() {
 }
 
 export async function loadNr01Data() {
-  const [summary, risks, actions] = await Promise.all([
+  const [summary, risks, actions, evidences, documents] = await Promise.all([
     fetchApi<Nr01Summary>("/nr01/summary", fallbackNr01Summary),
     fetchApi<Nr01Risk[]>("/nr01/risks", fallbackNr01Risks),
     fetchApi<Nr01ActionPlanItem[]>("/nr01/action-plan", fallbackNr01Actions),
+    fetchApi<Nr01Evidence[]>("/nr01/evidences", fallbackNr01Evidences),
+    fetchApi<Nr01Document[]>("/nr01/documents", fallbackNr01Documents),
   ]);
 
-  return { summary, risks, actions };
+  return { summary, risks, actions, evidences, documents };
 }
 
 export async function loadPsychosocialData() {
@@ -698,6 +775,34 @@ export function campaignStatusClasses(status: PsychosocialCampaignStatus) {
   }
 
   if (status === "extended") {
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+  }
+
+  return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
+
+export function evidenceStatusClasses(status: Nr01Evidence["status"]) {
+  if (status === "accepted") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "rejected") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+}
+
+export function documentStatusClasses(status: Nr01Document["status"]) {
+  if (status === "published") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "approved") {
+    return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+  }
+
+  if (status === "in_review") {
     return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
   }
 

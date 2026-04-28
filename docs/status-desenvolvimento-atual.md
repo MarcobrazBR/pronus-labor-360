@@ -102,6 +102,8 @@ Estado encontrado:
 - Portal PRONUS recebeu refinamento visual de shell, navegacao e logo oficial, aplicando consistencia, feedback, prevencao de erro e reconhecimento visual.
 - Favicon do produto foi configurado nos tres portais.
 - Portal PRONUS agora exibe painel inicial de risco ocupacional com inventario de riscos, niveis, evidencias e plano de acao.
+- Modulo Risco Ocupacional do Portal PRONUS agora possui abas funcionais para Inventario, Plano de acao, Evidencias e Documentos, com filtros, inclusao local e alteracao de status.
+- API NR-01/Risco Ocupacional agora expoe evidencias e documentos iniciais, alem de inventario de riscos e plano de acao.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
@@ -120,7 +122,7 @@ Estado encontrado:
 - Evoluir importacao para reconciliar unidade/setor/cargo com cadastros estruturais existentes.
 - Implementar autenticacao e permissoes.
 - Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
-- Evoluir NR-01/GRO/PGR para formularios completos, documentos e evidencias anexas.
+- Persistir formularios, documentos e evidencias de risco ocupacional em banco real e anexos.
 - Evoluir risco psicossocial para anonimato por regra minima, relatorios tecnicos e plano de intervencao.
 - Criar testes automatizados quando os fluxos deixarem de ser somente fundacao.
 
@@ -162,3 +164,5 @@ Estado encontrado:
 - Teste interativo no navegador validando lista com lupa na busca de empresas, abertura sob demanda das abas, financeiro sem cards estreitos e Cargos/Setores sem filtro por empresa.
 - Typecheck do Portal PRONUS apos separacao entre Clientes, RH, equipe PRONUS, permissoes e agenda.
 - Typecheck, build e teste no navegador do Portal PRONUS apos remover dashboard de Empresas, redirecionar Empresas para Busca Empresa, ajustar menu lateral em caixa alta, renomear NR-01/PGR para Risco Ocupacional e eliminar rolagem horizontal da lista de Usuarios.
+- Typecheck e build da API e do Portal PRONUS apos transformar Risco Ocupacional em modulo com abas operacionais, evidencias e documentos.
+- Teste interativo no navegador de Risco Ocupacional cobrindo abas Inventario, Plano de acao, Evidencias, Documentos e inclusao local de documento.

@@ -36,7 +36,7 @@ Principais pilares:
 
 - **Cadastro estrutural confiavel:** grupos, empresas, CNPJs, unidades, setores, cargos, clientes e colaboradores internos em uma base organizada.
 - **Governanca de dados:** isolamento por empresa, status, historico, aprovacao de divergencias e trilhas de auditoria.
-- **NR-01/GRO/PGR:** base preparada para inventario de riscos, matriz, planos de acao, evidencias e documentos.
+- **Risco ocupacional / NR-01/GRO/PGR:** base preparada para inventario de riscos, matriz, planos de acao, evidencias e documentos.
 - **Risco psicossocial:** campanhas, questionarios, indicadores agregados, regras de privacidade e suporte a analise tecnica.
 - **Documentos e evidencias:** estrutura para gerar, publicar e controlar documentos ocupacionais.
 - **Operacao escalavel:** portais separados para PRONUS, RH Cliente e Colaborador.
@@ -82,7 +82,7 @@ Ja existe:
 - logo oficial aplicada aos portais e favicon do produto configurado;
 - fluxo de primeiro acesso do colaborador com conferencia cadastral;
 - painel RH Cliente para acompanhar divergencias cadastrais;
-- base inicial NR-01/GRO/PGR com inventario de riscos e plano de acao;
+- modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
 - questionario psicossocial inicial no Portal Colaborador;
 - documentacao funcional e tecnica em `docs/`.
@@ -92,7 +92,7 @@ Ainda esta em andamento:
 - persistencia real com Prisma/Supabase;
 - autenticacao e permissoes;
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
-- formularios completos de NR-01/GRO/PGR, documentos e evidencias anexas;
+- persistencia real dos formularios de risco ocupacional, documentos e evidencias anexas;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;
 - documentos, auditoria e dashboards avancados.
 
@@ -140,7 +140,7 @@ pnpm dev:api
 2. Importacao e validacao de colaboradores.
 3. Autenticacao e isolamento multiempresa.
 4. Primeiro acesso do colaborador e divergencia cadastral.
-5. Nucleo NR-01/GRO/PGR.
+5. Nucleo de risco ocupacional / NR-01/GRO/PGR.
 6. Campanhas de risco psicossocial.
 7. Questionario psicossocial do colaborador.
 8. Documentos iniciais e auditoria.

@@ -2,8 +2,12 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/commo
 import { Nr01Service } from "./nr01.service";
 import type {
   CreateNr01ActionPlanItemInput,
+  CreateNr01DocumentInput,
+  CreateNr01EvidenceInput,
   CreateNr01RiskInput,
   UpdateNr01ActionPlanItemInput,
+  UpdateNr01DocumentInput,
+  UpdateNr01EvidenceInput,
   UpdateNr01RiskInput,
 } from "./nr01.types";
 
@@ -54,5 +58,35 @@ export class Nr01Controller {
   @Patch("action-plan/:id")
   updateActionPlanItem(@Param("id") id: string, @Body() body: UpdateNr01ActionPlanItemInput) {
     return this.nr01Service.updateActionPlanItem(id, body);
+  }
+
+  @Get("evidences")
+  listEvidences() {
+    return this.nr01Service.listEvidences();
+  }
+
+  @Post("evidences")
+  createEvidence(@Body() body: CreateNr01EvidenceInput) {
+    return this.nr01Service.createEvidence(body);
+  }
+
+  @Patch("evidences/:id")
+  updateEvidence(@Param("id") id: string, @Body() body: UpdateNr01EvidenceInput) {
+    return this.nr01Service.updateEvidence(id, body);
+  }
+
+  @Get("documents")
+  listDocuments() {
+    return this.nr01Service.listDocuments();
+  }
+
+  @Post("documents")
+  createDocument(@Body() body: CreateNr01DocumentInput) {
+    return this.nr01Service.createDocument(body);
+  }
+
+  @Patch("documents/:id")
+  updateDocument(@Param("id") id: string, @Body() body: UpdateNr01DocumentInput) {
+    return this.nr01Service.updateDocument(id, body);
   }
 }
