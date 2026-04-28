@@ -200,11 +200,85 @@ export interface PsychosocialSectorSignal {
   recommendation: string;
 }
 
+export type PronusDocumentType =
+  | "pgr"
+  | "aso"
+  | "psychosocial_report"
+  | "term"
+  | "contract"
+  | "evidence"
+  | "other";
+export type PronusDocumentStatus =
+  | "draft"
+  | "in_review"
+  | "approved"
+  | "published"
+  | "signed"
+  | "expired";
+export type DocumentTemplateStatus = "draft" | "active" | "archived";
+export type DocumentPublicationStatus = "scheduled" | "published" | "revoked";
+export type DocumentSignatureStatus = "pending" | "signed" | "expired";
+export type DocumentAudience = "pronus" | "client_hr" | "employee" | "clinical";
+
+export interface DocumentsSummary {
+  generatedAt: string;
+  documents: number;
+  pendingReview: number;
+  published: number;
+  pendingSignatures: number;
+}
+
+export interface PronusDocument {
+  id: string;
+  title: string;
+  companyTradeName: string;
+  type: PronusDocumentType;
+  status: PronusDocumentStatus;
+  owner: string;
+  version: string;
+  dueDate?: string;
+  publishedAt?: string;
+}
+
+export interface DocumentTemplate {
+  id: string;
+  name: string;
+  type: PronusDocumentType;
+  owner: string;
+  status: DocumentTemplateStatus;
+  version: string;
+  updatedAt: string;
+}
+
+export interface DocumentPublication {
+  id: string;
+  documentId: string;
+  title: string;
+  companyTradeName: string;
+  audience: DocumentAudience;
+  status: DocumentPublicationStatus;
+  publishedAt?: string;
+  expiresAt?: string;
+}
+
+export interface DocumentSignatureRequest {
+  id: string;
+  documentId: string;
+  title: string;
+  companyTradeName: string;
+  signerName: string;
+  signerRole: string;
+  status: DocumentSignatureStatus;
+  requestedAt: string;
+  signedAt?: string;
+  expiresAt?: string;
+}
+
 export const modules = [
   { name: "Cadastro estrutural", owner: "Operacao", progress: 72, status: "Em desenvolvimento" },
   { name: "Risco ocupacional", owner: "SST", progress: 40, status: "Base inicial" },
   { name: "Risco psicossocial", owner: "Psicologia", progress: 34, status: "Base inicial" },
-  { name: "Documentos iniciais", owner: "Operacao", progress: 12, status: "Fila" },
+  { name: "Gestao documental", owner: "Operacao", progress: 30, status: "Base inicial" },
 ];
 
 export const structuralStatusLabels: Record<StructuralStatus, string> = {
@@ -246,6 +320,50 @@ export const psychosocialCampaignStatusLabels: Record<PsychosocialCampaignStatus
   closed: "Encerrada",
   analysis_in_progress: "Em analise",
   completed: "Concluida",
+};
+
+export const pronusDocumentTypeLabels: Record<PronusDocumentType, string> = {
+  pgr: "PGR",
+  aso: "ASO",
+  psychosocial_report: "Relatorio psicossocial",
+  term: "Termo",
+  contract: "Contrato",
+  evidence: "Evidencia",
+  other: "Outro",
+};
+
+export const pronusDocumentStatusLabels: Record<PronusDocumentStatus, string> = {
+  draft: "Rascunho",
+  in_review: "Em revisao",
+  approved: "Aprovado",
+  published: "Publicado",
+  signed: "Assinado",
+  expired: "Vencido",
+};
+
+export const documentTemplateStatusLabels: Record<DocumentTemplateStatus, string> = {
+  draft: "Rascunho",
+  active: "Ativo",
+  archived: "Arquivado",
+};
+
+export const documentPublicationStatusLabels: Record<DocumentPublicationStatus, string> = {
+  scheduled: "Agendado",
+  published: "Publicado",
+  revoked: "Revogado",
+};
+
+export const documentSignatureStatusLabels: Record<DocumentSignatureStatus, string> = {
+  pending: "Pendente",
+  signed: "Assinado",
+  expired: "Vencido",
+};
+
+export const documentAudienceLabels: Record<DocumentAudience, string> = {
+  pronus: "PRONUS",
+  client_hr: "RH cliente",
+  employee: "Colaborador",
+  clinical: "Corpo clinico",
 };
 
 const fallbackSummary: StructuralSummary = {
@@ -655,6 +773,104 @@ const fallbackPsychosocialSignals: PsychosocialSectorSignal[] = [
   },
 ];
 
+const fallbackDocumentsSummary: DocumentsSummary = {
+  generatedAt: "2026-04-28T00:00:00.000Z",
+  documents: 3,
+  pendingReview: 1,
+  published: 1,
+  pendingSignatures: 1,
+};
+
+const fallbackDocuments: PronusDocument[] = [
+  {
+    id: "document-horizonte-pgr-2026",
+    title: "PGR 2026 - Industria Horizonte",
+    companyTradeName: "Industria Horizonte",
+    type: "pgr",
+    status: "in_review",
+    owner: "SST PRONUS",
+    version: "1.0",
+    dueDate: "2026-05-10",
+  },
+  {
+    id: "document-rede-norte-relatorio-psicossocial",
+    title: "Relatorio psicossocial - Rede Norte",
+    companyTradeName: "Rede Norte",
+    type: "psychosocial_report",
+    status: "draft",
+    owner: "Psicologia PRONUS",
+    version: "0.2",
+    dueDate: "2026-05-18",
+  },
+  {
+    id: "document-horizonte-termo-lgpd",
+    title: "Termo de ciencia LGPD - Industria Horizonte",
+    companyTradeName: "Industria Horizonte",
+    type: "term",
+    status: "published",
+    owner: "Operacao PRONUS",
+    version: "1.1",
+    publishedAt: "2026-04-24",
+  },
+];
+
+const fallbackDocumentTemplates: DocumentTemplate[] = [
+  {
+    id: "template-pgr",
+    name: "Modelo PGR padrao PRONUS",
+    type: "pgr",
+    owner: "SST PRONUS",
+    status: "active",
+    version: "2.1",
+    updatedAt: "2026-04-20",
+  },
+  {
+    id: "template-psychosocial-report",
+    name: "Modelo relatorio psicossocial agregado",
+    type: "psychosocial_report",
+    owner: "Psicologia PRONUS",
+    status: "draft",
+    version: "0.8",
+    updatedAt: "2026-04-22",
+  },
+  {
+    id: "template-term-lgpd",
+    name: "Termo de ciencia e privacidade",
+    type: "term",
+    owner: "Operacao PRONUS",
+    status: "active",
+    version: "1.3",
+    updatedAt: "2026-04-24",
+  },
+];
+
+const fallbackDocumentPublications: DocumentPublication[] = [
+  {
+    id: "publication-horizonte-termo-lgpd",
+    documentId: "document-horizonte-termo-lgpd",
+    title: "Termo de ciencia LGPD - Industria Horizonte",
+    companyTradeName: "Industria Horizonte",
+    audience: "client_hr",
+    status: "published",
+    publishedAt: "2026-04-24",
+    expiresAt: "2026-12-31",
+  },
+];
+
+const fallbackDocumentSignatures: DocumentSignatureRequest[] = [
+  {
+    id: "signature-horizonte-termo-lgpd",
+    documentId: "document-horizonte-termo-lgpd",
+    title: "Termo de ciencia LGPD - Industria Horizonte",
+    companyTradeName: "Industria Horizonte",
+    signerName: "Mariana Costa",
+    signerRole: "RH cliente",
+    status: "pending",
+    requestedAt: "2026-04-24",
+    expiresAt: "2026-05-08",
+  },
+];
+
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
@@ -707,6 +923,18 @@ export async function loadPsychosocialData() {
   ]);
 
   return { summary, campaigns, signals };
+}
+
+export async function loadDocumentsData() {
+  const [summary, documents, templates, publications, signatures] = await Promise.all([
+    fetchApi<DocumentsSummary>("/documents/summary", fallbackDocumentsSummary),
+    fetchApi<PronusDocument[]>("/documents", fallbackDocuments),
+    fetchApi<DocumentTemplate[]>("/documents/templates", fallbackDocumentTemplates),
+    fetchApi<DocumentPublication[]>("/documents/publications", fallbackDocumentPublications),
+    fetchApi<DocumentSignatureRequest[]>("/documents/signatures", fallbackDocumentSignatures),
+  ]);
+
+  return { summary, documents, templates, publications, signatures };
 }
 
 export function statusClasses(status: StructuralStatus) {
@@ -807,4 +1035,60 @@ export function documentStatusClasses(status: Nr01Document["status"]) {
   }
 
   return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
+
+export function pronusDocumentStatusClasses(status: PronusDocumentStatus) {
+  if (status === "published" || status === "signed") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "approved") {
+    return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+  }
+
+  if (status === "in_review") {
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+  }
+
+  if (status === "expired") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+}
+
+export function documentTemplateStatusClasses(status: DocumentTemplateStatus) {
+  if (status === "active") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "archived") {
+    return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
+}
+
+export function documentPublicationStatusClasses(status: DocumentPublicationStatus) {
+  if (status === "published") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "revoked") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+}
+
+export function documentSignatureStatusClasses(status: DocumentSignatureStatus) {
+  if (status === "signed") {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+  }
+
+  if (status === "expired") {
+    return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
 }

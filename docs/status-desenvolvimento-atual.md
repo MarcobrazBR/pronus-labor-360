@@ -1,6 +1,6 @@
 # Pronus Labor 360 - Status de Desenvolvimento
 
-Data: 2026-04-27
+Data: 2026-04-28
 
 ## Ponto de Retomada
 
@@ -69,6 +69,20 @@ Estado encontrado:
   - `PATCH /psychosocial/campaigns/:id`
   - `GET /psychosocial/sector-signals`
   - `POST /psychosocial/answers`
+- Criado modulo inicial de documentos:
+  - `GET /documents/summary`
+  - `GET /documents`
+  - `POST /documents`
+  - `PATCH /documents/:id`
+  - `GET /documents/templates`
+  - `POST /documents/templates`
+  - `PATCH /documents/templates/:id`
+  - `GET /documents/publications`
+  - `POST /documents/publications`
+  - `PATCH /documents/publications/:id`
+  - `GET /documents/signatures`
+  - `POST /documents/signatures`
+  - `PATCH /documents/signatures/:id`
 - API estrutural agora valida campos obrigatorios, normaliza CPF/CNPJ, bloqueia duplicidades e faz inativacao logica.
 - API estrutural agora cobre empresa, unidade, setor, cargo e colaborador.
 - Cadastro de empresa na API estrutural agora contempla status contratual e campos preparatorios para eSocial S-1000: validade, classificacao tributaria, indicadores cadastrais e contato responsavel.
@@ -104,6 +118,8 @@ Estado encontrado:
 - Portal PRONUS agora exibe painel inicial de risco ocupacional com inventario de riscos, niveis, evidencias e plano de acao.
 - Modulo Risco Ocupacional do Portal PRONUS agora possui abas funcionais para Inventario, Plano de acao, Evidencias e Documentos, com filtros, inclusao local e alteracao de status.
 - API NR-01/Risco Ocupacional agora expoe evidencias e documentos iniciais, alem de inventario de riscos e plano de acao.
+- Modulo Documentos do Portal PRONUS agora possui abas funcionais para fila documental, modelos, publicacoes e assinaturas, com filtros, inclusao local e alteracao de status.
+- API Documentos agora expoe resumo, documentos, modelos, publicacoes e solicitacoes de assinatura.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
@@ -166,3 +182,5 @@ Estado encontrado:
 - Typecheck, build e teste no navegador do Portal PRONUS apos remover dashboard de Empresas, redirecionar Empresas para Busca Empresa, ajustar menu lateral em caixa alta, renomear NR-01/PGR para Risco Ocupacional e eliminar rolagem horizontal da lista de Usuarios.
 - Typecheck e build da API e do Portal PRONUS apos transformar Risco Ocupacional em modulo com abas operacionais, evidencias e documentos.
 - Teste interativo no navegador de Risco Ocupacional cobrindo abas Inventario, Plano de acao, Evidencias, Documentos e inclusao local de documento.
+- Typecheck e build da API e do Portal PRONUS apos transformar Documentos em modulo operacional.
+- Teste interativo no navegador de Documentos cobrindo abas Documentos, Modelos, Publicacoes, Assinaturas e inclusao local de assinatura.

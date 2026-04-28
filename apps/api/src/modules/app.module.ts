@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { DocumentsController } from "./documents/documents.controller";
+import { DocumentsService } from "./documents/documents.service";
 import { EmployeeAccessController } from "./employee-access/employee-access.controller";
 import { HealthController } from "./health/health.controller";
 import { Nr01Controller } from "./nr01/nr01.controller";
@@ -15,7 +17,8 @@ import { StructuralService } from "./structural/structural.service";
     EmployeeAccessController,
     Nr01Controller,
     PsychosocialController,
+    DocumentsController,
   ],
-  providers: [StructuralService, Nr01Service, PsychosocialService],
+  providers: [StructuralService, Nr01Service, PsychosocialService, DocumentsService],
 })
 export class AppModule {}

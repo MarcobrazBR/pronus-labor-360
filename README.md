@@ -38,7 +38,7 @@ Principais pilares:
 - **Governanca de dados:** isolamento por empresa, status, historico, aprovacao de divergencias e trilhas de auditoria.
 - **Risco ocupacional / NR-01/GRO/PGR:** base preparada para inventario de riscos, matriz, planos de acao, evidencias e documentos.
 - **Risco psicossocial:** campanhas, questionarios, indicadores agregados, regras de privacidade e suporte a analise tecnica.
-- **Documentos e evidencias:** estrutura para gerar, publicar e controlar documentos ocupacionais.
+- **Gestao documental:** estrutura para controlar documentos, modelos, publicacoes, assinaturas, evidencias e rastreabilidade.
 - **Operacao escalavel:** portais separados para PRONUS, RH Cliente e Colaborador.
 - **Preparacao futura:** arquitetura pensada para eSocial SST, BI avancado, teleatendimento e automacoes inteligentes.
 
@@ -85,6 +85,7 @@ Ja existe:
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
 - questionario psicossocial inicial no Portal Colaborador;
+- modulo Documentos com fila documental, modelos, publicacoes e solicitacoes de assinatura;
 - documentacao funcional e tecnica em `docs/`.
 
 Ainda esta em andamento:
@@ -94,7 +95,7 @@ Ainda esta em andamento:
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
 - persistencia real dos formularios de risco ocupacional, documentos e evidencias anexas;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;
-- documentos, auditoria e dashboards avancados.
+- anexos reais, auditoria documental e dashboards avancados.
 
 ## Sinais De Tracao Do MVP
 
