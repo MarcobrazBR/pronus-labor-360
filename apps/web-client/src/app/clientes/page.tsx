@@ -33,7 +33,7 @@ export default async function ClientEmployeesPage() {
         <Info label="Setores" value={String(departments.size)} />
       </section>
 
-      <ClientEmployeeSearchPanel employees={data.employees} />
+      <ClientEmployeeSearchPanel company={data.activeCompany} employees={data.employees} />
     </>
   );
 }

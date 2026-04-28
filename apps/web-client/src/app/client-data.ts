@@ -23,6 +23,7 @@ export interface StructuralCompany {
 
 export interface StructuralEmployee {
   id: string;
+  companyId?: string;
   companyTradeName: string;
   fullName: string;
   cpf?: string;
@@ -490,7 +491,8 @@ export function statusClasses(status: StructuralStatus | DivergenceStatus | stri
     status === "active" ||
     status === "approved" ||
     status === "published" ||
-    status === "signed"
+    status === "signed" ||
+    status === "sent"
   ) {
     return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
   }
@@ -500,7 +502,8 @@ export function statusClasses(status: StructuralStatus | DivergenceStatus | stri
     status === "pending_validation" ||
     status === "in_review" ||
     status === "in_progress" ||
-    status === "threshold_reached"
+    status === "threshold_reached" ||
+    status === "draft"
   ) {
     return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
   }
@@ -509,7 +512,8 @@ export function statusClasses(status: StructuralStatus | DivergenceStatus | stri
     status === "overdue" ||
     status === "rejected" ||
     status === "expired" ||
-    status === "critical"
+    status === "critical" ||
+    status === "failed"
   ) {
     return "bg-red-50 text-red-700 ring-1 ring-red-200";
   }

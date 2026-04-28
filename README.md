@@ -88,6 +88,7 @@ Ja existe:
 - Portal RH Cliente com navegacao real por Painel, Clientes, Divergencias, Documentos, Risco Ocupacional e Psicossocial;
 - painel RH Cliente com indicadores da empresa, pendencias cadastrais, documentos, assinaturas, riscos, plano de acao e campanhas psicossociais;
 - area Clientes do Portal RH com busca por nome, CPF, setor, cargo e status, mantendo a lista vazia ate a consulta;
+- area Clientes do Portal RH com movimentacoes cadastrais para inclusao, alteracao e desligamento, iniciando a fila operacional do RH cliente;
 - area Divergencias do Portal RH preparada para aprovar ou recusar divergencias cadastrais via API;
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
@@ -101,6 +102,7 @@ Ainda esta em andamento:
 - autenticacao e permissoes;
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
 - visao multiempresa real no Portal RH Cliente, com selecao segura por usuario autenticado;
+- backend definitivo para fila de movimentacoes cadastrais do RH cliente, com aprovacao PRONUS, auditoria e notificacoes;
 - persistencia real dos formularios de risco ocupacional, documentos e evidencias anexas;
 - carga oficial completa de CNAE/Grau de Risco, dimensionamento exato de CIPA/SESMT e revisao juridico-tecnica das regras reguladoras;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;

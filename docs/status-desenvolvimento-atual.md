@@ -141,6 +141,9 @@ Estado encontrado:
   - `/psicossocial` para campanhas e sinais agregados.
 - Portal RH Cliente agora consome dados da API com fallback local e filtra a experiencia por empresa demonstrativa.
 - Portal RH Cliente agora possui consulta de clientes sem listagem por padrao, exibindo resultados somente apos busca por nome, CPF, setor, cargo ou status.
+- Portal RH Cliente agora possui movimentacoes cadastrais em Clientes para inclusao, alteracao e desligamento.
+- Inclusao de cliente pelo Portal RH Cliente ja envia dados para `POST /structural/employees`, entrando como validacao pendente no fluxo operacional.
+- Alteracao e desligamento de cliente foram preparados como registros locais de MVP ate a criacao da fila persistente de aprovacao PRONUS.
 - Fila de divergencias do Portal RH Cliente foi preparada para aprovar/recusar ajustes cadastrais via API.
 - Painel PRONUS agora exibe:
   - resumo de empresas, clientes, risco ocupacional e campanhas;
@@ -159,6 +162,7 @@ Estado encontrado:
 - Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
 - Implementar autenticacao real do Portal RH Cliente, isolamento por empresa e selecao multiempresa para grupos economicos.
 - Evoluir permissoes do Portal RH Cliente para limitar documentos, riscos e dados sensiveis conforme perfil do usuario.
+- Criar API persistente para movimentacoes cadastrais do Portal RH Cliente, com status, historico, aprovador e SLA operacional.
 - Persistir formularios, documentos e evidencias de risco ocupacional em banco real e anexos.
 - Importar a tabela oficial completa CNAE/Grau de Risco da NR-04, manter historico de vigencia normativa e revisar as regras com responsavel tecnico/juridico.
 - Implementar dimensionamento exato de CIPA e SESMT conforme quadros oficiais, numero de empregados e excecoes aplicaveis.
@@ -215,3 +219,5 @@ Estado encontrado:
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-2026-04-28.md`.
 - Typecheck e build do Portal RH Cliente apos criacao da navegacao e paginas funcionais.
 - Teste interativo no navegador do Portal RH Cliente em `/`, `/clientes`, `/divergencias`, `/documentos`, `/riscos` e `/psicossocial`.
+- Typecheck e build do Portal RH Cliente apos criacao de movimentacoes cadastrais.
+- Teste interativo no navegador de `/clientes`, cobrindo abertura do modal de movimentacao, fechamento, busca e lista sem rolagem horizontal.
