@@ -93,7 +93,7 @@ export function ClientEmployeeSearchPanel({
   jobPositions: StructuralJobPosition[];
   movements: EmployeeMovement[];
 }>) {
-  const [currentEmployees] = useState(employees);
+  const [currentEmployees, setCurrentEmployees] = useState(employees);
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState("all");
   const [status, setStatus] = useState<StructuralStatus | "all">("all");
@@ -271,6 +271,43 @@ export function ClientEmployeeSearchPanel({
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+
+      if (movementForm.type === "inclusion") {
+        const response = await fetch(`${apiUrl}/structural/employees`, {
+          body: JSON.stringify({
+            birthDate: movementForm.birthDate,
+            cboCode: movementForm.cboCode,
+            companyId: company.id,
+            cpf: movementForm.cpf,
+            department: movementForm.department,
+            email: movementForm.email,
+            fullName: movementForm.fullName,
+            inclusionDate: movementForm.inclusionDate,
+            jobPosition: movementForm.jobPosition,
+            phone: movementForm.phone,
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        const payload = (await response.json()) as StructuralEmployee | { message?: string };
+
+        if (!response.ok) {
+          setMessage(
+            typeof payload === "object" && payload !== null && "message" in payload
+              ? String(payload.message)
+              : "Nao foi possivel cadastrar o cliente.",
+          );
+          return;
+        }
+
+        setCurrentEmployees((current) => [payload as StructuralEmployee, ...current]);
+        setSubmitted(true);
+        setIsMovementModalOpen(false);
+        setMovementForm(emptyMovementForm());
+        setMessage("Cliente cadastrado como ativo no Portal RH.");
+        return;
+      }
+
       const response = await fetch(`${apiUrl}/structural/employee-movements`, {
         body: JSON.stringify({
           birthDate: movementForm.birthDate,
@@ -700,7 +737,11 @@ function MovementModal({
             type="button"
             onClick={onSubmit}
           >
-            {isSaving ? "Enviando..." : "Registrar movimentação"}
+            {isSaving
+              ? "Enviando..."
+              : form.type === "inclusion"
+                ? "Cadastrar cliente ativo"
+                : "Registrar movimentacao"}
           </button>
         </div>
       </div>

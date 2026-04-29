@@ -45,6 +45,11 @@ export class PsychosocialController {
     return this.psychosocialService.listSectorSignals();
   }
 
+  @Get("answers")
+  listAnswers() {
+    return this.psychosocialService.listAnswers();
+  }
+
   @Post("answers")
   submitAnswer(@Body() body: SubmitPsychosocialAnswerInput) {
     return this.psychosocialService.submitAnswer(body);

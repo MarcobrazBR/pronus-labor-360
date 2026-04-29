@@ -1,7 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomUUID } from "crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 import type {
   CreatePsychosocialCampaignInput,
+  PsychosocialEmployeeAnswer,
   PsychosocialAnswerReceipt,
   PsychosocialCampaign,
   PsychosocialCampaignStatus,
@@ -136,6 +139,10 @@ const startedAt = now();
 
 const questions: PsychosocialQuestion[] = copsoqQuestions;
 
+interface PsychosocialStorageState {
+  answers: PsychosocialEmployeeAnswer[];
+}
+
 const campaigns: PsychosocialCampaign[] = [
   {
     id: "campaign-horizonte-2026-01",
@@ -164,6 +171,89 @@ const campaigns: PsychosocialCampaign[] = [
     updatedAt: startedAt,
   },
 ];
+
+const seededAnswers: PsychosocialEmployeeAnswer[] = [
+  {
+    id: "answer-employee-001",
+    campaignId: "campaign-horizonte-2026-01",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-001",
+    sectorName: "Producao",
+    averageScore: 2.2,
+    riskLevel: "low",
+    createdAt: "2026-04-18T12:00:00.000Z",
+  },
+  {
+    id: "answer-employee-003",
+    campaignId: "campaign-horizonte-2026-01",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-003",
+    sectorName: "Administrativo",
+    averageScore: 3.7,
+    riskLevel: "high",
+    createdAt: "2026-04-20T12:00:00.000Z",
+  },
+];
+
+function workspaceRoot(): string {
+  let current = process.cwd();
+
+  while (true) {
+    const packagePath = join(current, "package.json");
+
+    if (
+      existsSync(packagePath) &&
+      readFileSync(packagePath, "utf8").includes('"name": "pronus-labor-360"')
+    ) {
+      return current;
+    }
+
+    const parent = dirname(current);
+
+    if (parent === current) {
+      return process.cwd();
+    }
+
+    current = parent;
+  }
+}
+
+function psychosocialStatePath(): string {
+  return join(workspaceRoot(), ".data", "psychosocial-state.json");
+}
+
+function emptyPsychosocialState(): PsychosocialStorageState {
+  return {
+    answers: [...seededAnswers],
+  };
+}
+
+function loadPsychosocialState(): PsychosocialStorageState {
+  const filePath = psychosocialStatePath();
+  const legacyPath = join(process.cwd(), ".data", "psychosocial-state.json");
+  const readablePath = existsSync(filePath) ? filePath : legacyPath;
+
+  if (!existsSync(readablePath)) {
+    return emptyPsychosocialState();
+  }
+
+  try {
+    return {
+      ...emptyPsychosocialState(),
+      ...(JSON.parse(readFileSync(readablePath, "utf8")) as Partial<PsychosocialStorageState>),
+    };
+  } catch {
+    return emptyPsychosocialState();
+  }
+}
+
+function savePsychosocialState(state: PsychosocialStorageState): void {
+  const filePath = psychosocialStatePath();
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, JSON.stringify(state, null, 2), "utf8");
+}
+
+const psychosocialState = loadPsychosocialState();
 
 const sectorSignals: PsychosocialSectorSignal[] = [
   {
@@ -315,9 +405,14 @@ export class PsychosocialService {
     return sectorSignals;
   }
 
+  listAnswers(): PsychosocialEmployeeAnswer[] {
+    return psychosocialState.answers;
+  }
+
   submitAnswer(input: SubmitPsychosocialAnswerInput): PsychosocialAnswerReceipt {
     const campaign = this.findCampaign(input.campaignId);
     const sectorName = requireText(input.sectorName, "sectorName");
+    const employeeId = optionalText(input.employeeId, "employeeId");
 
     if (!Array.isArray(input.scores) || input.scores.length === 0) {
       throw new BadRequestException("Questionario sem respostas");
@@ -340,20 +435,48 @@ export class PsychosocialService {
       ) / 10;
     const riskLevel = classifyScore(averageScore);
     const createdAt = now();
+    const existingAnswer =
+      employeeId === undefined
+        ? undefined
+        : psychosocialState.answers.find(
+            (answer) => answer.campaignId === campaign.id && answer.employeeId === employeeId,
+          );
 
-    campaign.responseCount += 1;
+    if (existingAnswer === undefined) {
+      campaign.responseCount += 1;
+    }
+
     campaign.responseRate = responseRate(campaign.responseCount, campaign.targetParticipants);
     campaign.status = statusFromResponseRate(campaign.responseRate);
     campaign.updatedAt = createdAt;
 
-    return {
-      id: randomUUID(),
+    const receipt: PsychosocialAnswerReceipt = {
+      id: existingAnswer?.id ?? randomUUID(),
       campaignId: campaign.id,
+      employeeId,
       sectorName,
       averageScore,
       riskLevel,
       createdAt,
     };
+
+    if (employeeId !== undefined) {
+      const storedAnswer: PsychosocialEmployeeAnswer = {
+        ...receipt,
+        companyTradeName: campaign.companyTradeName,
+        employeeId,
+      };
+
+      if (existingAnswer === undefined) {
+        psychosocialState.answers.unshift(storedAnswer);
+      } else {
+        Object.assign(existingAnswer, storedAnswer);
+      }
+
+      savePsychosocialState(psychosocialState);
+    }
+
+    return receipt;
   }
 
   private findCampaign(id: string): PsychosocialCampaign {

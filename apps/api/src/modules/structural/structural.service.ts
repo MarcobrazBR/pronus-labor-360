@@ -1891,7 +1891,7 @@ export class StructuralService {
       cboCode: optionalText(input.cboCode, "cboCode"),
       email: optionalText(input.email, "email"),
       phone: optionalText(input.phone, "phone"),
-      registrationStatus: "pending_validation",
+      registrationStatus: "active",
       createdAt,
       updatedAt: createdAt,
     };

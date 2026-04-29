@@ -1,11 +1,12 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PsychosocialQuestionnairePanel } from "./psychosocial-questionnaire-panel";
 
 type StructuralStatus = "active" | "pending_validation" | "blocked" | "inactive";
 type AppointmentStatus = "scheduled" | "completed";
+type PsychosocialRiskLevel = "low" | "moderate" | "high" | "critical";
 
 interface EmployeeAccessProfile {
   employeeId: string;
@@ -46,6 +47,13 @@ interface Appointment {
   status: AppointmentStatus;
 }
 
+interface PsychosocialAnswerReceipt {
+  id: string;
+  averageScore: number;
+  riskLevel: PsychosocialRiskLevel;
+  createdAt: string;
+}
+
 type RegistrationForm = {
   department: string;
   email: string;
@@ -59,13 +67,28 @@ const coverageSeed: SpecialtyCoverage[] = [
   {
     companyTradeName: "Industria Horizonte",
     entitled: 120,
-    specialty: "Medicina ocupacional",
+    specialty: "Clinico Geral",
     used: 68,
   },
-  { companyTradeName: "Industria Horizonte", entitled: 40, specialty: "Psicologia", used: 19 },
-  { companyTradeName: "Industria Horizonte", entitled: 25, specialty: "Fonoaudiologia", used: 7 },
-  { companyTradeName: "Rede Norte", entitled: 160, specialty: "Medicina ocupacional", used: 82 },
-  { companyTradeName: "Rede Norte", entitled: 60, specialty: "Psicologia", used: 24 },
+  {
+    companyTradeName: "Industria Horizonte",
+    entitled: 40,
+    specialty: "Acolhimento Psicologico",
+    used: 19,
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    entitled: 25,
+    specialty: "Atendimento Nutricional",
+    used: 7,
+  },
+  { companyTradeName: "Rede Norte", entitled: 160, specialty: "Clinico Geral", used: 82 },
+  {
+    companyTradeName: "Rede Norte",
+    entitled: 60,
+    specialty: "Acolhimento Psicologico",
+    used: 24,
+  },
 ];
 
 const appointmentSeed: Appointment[] = [
@@ -73,14 +96,14 @@ const appointmentSeed: Appointment[] = [
     dateTime: "2026-04-12T10:00:00-03:00",
     employeeId: "employee-002",
     id: "appointment-psicologia-abril",
-    specialty: "Psicologia",
+    specialty: "Acolhimento Psicologico",
     status: "completed",
   },
   {
     dateTime: "2026-05-02T09:00:00-03:00",
     employeeId: "employee-002",
     id: "appointment-medicina-maio",
-    specialty: "Medicina ocupacional",
+    specialty: "Clinico Geral",
     status: "scheduled",
   },
 ];
@@ -89,16 +112,28 @@ const slotSeed = [
   {
     dateTime: "2026-04-30T09:30:00-03:00",
     id: "slot-ocupacional-01",
-    specialty: "Medicina ocupacional",
+    specialty: "Clinico Geral",
   },
   {
     dateTime: "2026-04-30T14:00:00-03:00",
     id: "slot-ocupacional-02",
-    specialty: "Medicina ocupacional",
+    specialty: "Clinico Geral",
   },
-  { dateTime: "2026-05-03T08:30:00-03:00", id: "slot-psicologia-01", specialty: "Psicologia" },
-  { dateTime: "2026-05-03T10:00:00-03:00", id: "slot-fono-01", specialty: "Fonoaudiologia" },
-  { dateTime: "2026-05-04T15:30:00-03:00", id: "slot-fono-02", specialty: "Fonoaudiologia" },
+  {
+    dateTime: "2026-05-03T08:30:00-03:00",
+    id: "slot-psicologia-01",
+    specialty: "Acolhimento Psicologico",
+  },
+  {
+    dateTime: "2026-05-03T10:00:00-03:00",
+    id: "slot-nutricao-01",
+    specialty: "Atendimento Nutricional",
+  },
+  {
+    dateTime: "2026-05-04T15:30:00-03:00",
+    id: "slot-nutricao-02",
+    specialty: "Atendimento Nutricional",
+  },
 ];
 
 function getApiUrl() {
@@ -250,6 +285,7 @@ export function FirstAccessPanel() {
   const [scheduleNotice, setScheduleNotice] = useState<string | null>(null);
   const [result, setResult] = useState<DivergenceResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [psychosocialRisk, setPsychosocialRisk] = useState<PsychosocialRiskLevel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
@@ -272,6 +308,10 @@ export function FirstAccessPanel() {
         : coverageSeed.filter((coverage) => coverage.companyTradeName === profile.companyTradeName),
     [profile],
   );
+  const psychologicalCoverage = useMemo(
+    () => companyCoverages.find((coverage) => coverage.specialty === "Acolhimento Psicologico"),
+    [companyCoverages],
+  );
   const nextAppointment = useMemo(
     () =>
       profile === null ? undefined : nextScheduledAppointment(appointments, profile.employeeId),
@@ -284,6 +324,14 @@ export function FirstAccessPanel() {
     profile.mustChangePassword !== true &&
     hasConfirmedRegistration &&
     profile.registrationStatus === "active";
+  const hasHighPsychosocialRisk =
+    hasConfirmedRegistration &&
+    (psychosocialRisk === "high" || psychosocialRisk === "critical") &&
+    profile?.mustChangePassword !== true;
+
+  const handlePsychosocialCompleted = useCallback((receipt: PsychosocialAnswerReceipt) => {
+    setPsychosocialRisk(receipt.riskLevel);
+  }, []);
 
   function updateProfile(nextProfile: EmployeeAccessProfile) {
     saveProfile(nextProfile);
@@ -499,7 +547,21 @@ export function FirstAccessPanel() {
 
       <div className="grid gap-5 p-5 xl:grid-cols-[0.85fr_1.15fr] lg:p-6">
         <div className="space-y-5">
-          <PsychosocialQuestionnairePanel profile={profile} />
+          <PsychosocialQuestionnairePanel
+            profile={profile}
+            onCompleted={handlePsychosocialCompleted}
+          />
+          {hasHighPsychosocialRisk && (
+            <PsychosocialCarePrompt
+              canRequestConsultations={canRequestConsultations}
+              hasCoverage={psychologicalCoverage !== undefined}
+              onSchedule={() => {
+                if (psychologicalCoverage !== undefined) {
+                  openSpecialtyAgenda(psychologicalCoverage);
+                }
+              }}
+            />
+          )}
           <ProfileCard profile={profile} />
           {!hasConfirmedRegistration && profile.mustChangePassword !== true && (
             <RegistrationCheck
@@ -579,21 +641,21 @@ export function FirstAccessPanel() {
               />
             </div>
 
-            <div className="border-t border-slate-200 px-4 py-4">
-              {scheduleNotice !== null && (
-                <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">
-                  {scheduleNotice}
-                </div>
-              )}
+            {(scheduleNotice !== null || selectedSpecialty !== null) && (
+              <div className="border-t border-slate-200 px-4 py-4">
+                {scheduleNotice !== null && (
+                  <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">
+                    {scheduleNotice}
+                  </div>
+                )}
 
-              {selectedSpecialty === null ? (
-                <div className="rounded-md border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
-                  Escolha uma especialidade liberada para visualizar horarios disponiveis.
-                </div>
-              ) : (
-                <AgendaSlots specialty={selectedSpecialty} onSchedule={scheduleSlot} />
-              )}
-            </div>
+                {selectedSpecialty !== null && (
+                  <div className={scheduleNotice === null ? undefined : "mt-4"}>
+                    <AgendaSlots specialty={selectedSpecialty} onSchedule={scheduleSlot} />
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -608,6 +670,44 @@ export function FirstAccessPanel() {
           onClose={() => setIsVideoOpen(false)}
         />
       )}
+    </section>
+  );
+}
+
+function PsychosocialCarePrompt({
+  canRequestConsultations,
+  hasCoverage,
+  onSchedule,
+}: Readonly<{
+  canRequestConsultations: boolean;
+  hasCoverage: boolean;
+  onSchedule: () => void;
+}>) {
+  const canSchedule = canRequestConsultations && hasCoverage;
+
+  return (
+    <section className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+      <p className="text-sm leading-6 text-slate-700">
+        Oi! Passando para te lembrar que, às vezes, reservar um momento só para você pode fazer toda
+        a diferença no dia a dia.
+        <br />
+        Se fizer sentido, nosso time de acolhimento psicológico está disponível para te ouvir com
+        toda atenção.
+        <br />É só clicar no botão abaixo para agendar um horário 💙
+      </p>
+      <button
+        className="mt-4 rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={!canSchedule}
+        title={
+          canSchedule
+            ? "Abrir agenda de acolhimento psicologico"
+            : "Disponivel apos validacao cadastral e cobertura ativa da empresa."
+        }
+        type="button"
+        onClick={onSchedule}
+      >
+        Agendar acolhimento psicológico
+      </button>
     </section>
   );
 }

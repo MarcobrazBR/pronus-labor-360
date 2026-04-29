@@ -57,6 +57,26 @@ type EmployeeForm = {
   phone: string;
 };
 
+type PsychosocialRiskLevel = "low" | "moderate" | "high" | "critical";
+
+interface PsychosocialEmployeeAnswer {
+  id: string;
+  campaignId: string;
+  companyTradeName: string;
+  employeeId: string;
+  sectorName: string;
+  averageScore: number;
+  riskLevel: PsychosocialRiskLevel;
+  createdAt: string;
+}
+
+interface PronusOperatorSession {
+  role: "master_admin" | "administrative" | "clinical";
+  permissions?: {
+    fullAccess?: boolean;
+  };
+}
+
 type SubmittedSearch = {
   contractStatus: CompanyContractStatus | "all";
   periodEnd: string;
@@ -120,33 +140,39 @@ const structuralStatuses: StructuralStatus[] = [
 const coverageSeed = [
   {
     company: "Industria Horizonte",
-    specialty: "Medicina ocupacional",
+    specialty: "Clinico Geral",
     entitled: 120,
     used: 68,
     absenteeism: 7.2,
   },
   {
     company: "Industria Horizonte",
-    specialty: "Psicologia",
+    specialty: "Acolhimento Psicologico",
     entitled: 40,
     used: 19,
     absenteeism: 4.8,
   },
   {
     company: "Industria Horizonte",
-    specialty: "Fonoaudiologia",
+    specialty: "Atendimento Nutricional",
     entitled: 20,
     used: 6,
     absenteeism: 2.1,
   },
   {
     company: "Rede Norte",
-    specialty: "Medicina ocupacional",
+    specialty: "Clinico Geral",
     entitled: 180,
     used: 111,
     absenteeism: 8.7,
   },
-  { company: "Rede Norte", specialty: "Psicologia", entitled: 60, used: 24, absenteeism: 5.3 },
+  {
+    company: "Rede Norte",
+    specialty: "Acolhimento Psicologico",
+    entitled: 60,
+    used: 24,
+    absenteeism: 5.3,
+  },
 ];
 
 const psychosocialCompanySeed = [
@@ -154,11 +180,19 @@ const psychosocialCompanySeed = [
   { company: "Rede Norte", dueDate: "2026-05-10", responseCount: 251 },
 ];
 
-const psychosocialAnswerSeed = [
-  { completedAt: "2026-04-18", employeeId: "employee-001", responded: true },
-  { completedAt: undefined, employeeId: "employee-002", responded: false },
-  { completedAt: "2026-04-20", employeeId: "employee-003", responded: true },
-];
+const riskLabels: Record<PsychosocialRiskLevel, string> = {
+  critical: "Critico",
+  high: "Alto",
+  low: "Baixo",
+  moderate: "Moderado",
+};
+
+const riskClasses: Record<PsychosocialRiskLevel, string> = {
+  critical: "bg-red-100 text-red-800 ring-1 ring-red-200",
+  high: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
+  low: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  moderate: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+};
 
 const invoiceSeed = [
   {
@@ -295,6 +329,24 @@ function escapeHtml(value: string | undefined) {
     .replace(/'/g, "&#039;");
 }
 
+function readOperatorSession(): PronusOperatorSession | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem("pronus:operator-session");
+
+  if (raw === null) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as PronusOperatorSession;
+  } catch {
+    return null;
+  }
+}
+
 function savePsychosocialPendingPdf(
   company: StructuralCompany,
   dueDate: string,
@@ -394,6 +446,8 @@ export function CompanyManagementPanel({
   const [companies, setCompanies] = useState(initialCompanies);
   const [employees, setEmployees] = useState(initialEmployees);
   const [clientResetRequests, setClientResetRequests] = useState<ClientPasswordResetRequest[]>([]);
+  const [psychosocialAnswers, setPsychosocialAnswers] = useState<PsychosocialEmployeeAnswer[]>([]);
+  const [operatorSession, setOperatorSession] = useState<PronusOperatorSession | null>(null);
   const [query, setQuery] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -444,33 +498,84 @@ export function CompanyManagementPanel({
   useEffect(() => {
     let shouldIgnore = false;
 
-    async function loadClientResetRequests() {
+    setOperatorSession(readOperatorSession());
+
+    async function loadOperationalData() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
-        const response = await fetch(`${apiUrl}/client-access/password-reset-requests`);
+        const [resetResponse, answersResponse] = await Promise.all([
+          fetch(`${apiUrl}/client-access/password-reset-requests`),
+          fetch(`${apiUrl}/psychosocial/answers`),
+        ]);
 
-        if (!response.ok) {
+        if (resetResponse.ok) {
+          const payload = (await resetResponse.json()) as ClientPasswordResetRequest[];
+
+          if (!shouldIgnore) {
+            setClientResetRequests(payload);
+          }
+        }
+
+        if (!answersResponse.ok) {
           return;
         }
 
-        const payload = (await response.json()) as ClientPasswordResetRequest[];
+        const answersPayload = (await answersResponse.json()) as PsychosocialEmployeeAnswer[];
 
         if (!shouldIgnore) {
-          setClientResetRequests(payload);
+          setPsychosocialAnswers(answersPayload);
         }
       } catch {
         if (!shouldIgnore) {
-          setError("Nao foi possivel carregar pedidos de reset do Portal RH.");
+          setError("Nao foi possivel carregar dados operacionais da empresa.");
         }
       }
     }
 
-    void loadClientResetRequests();
+    void loadOperationalData();
 
     return () => {
       shouldIgnore = true;
     };
   }, []);
+
+  const canSuggestPsychosocialCare =
+    operatorSession?.role === "clinical" || operatorSession?.permissions?.fullAccess === true;
+
+  useEffect(() => {
+    if (activeTab !== "psychosocial") {
+      return;
+    }
+
+    let shouldIgnore = false;
+
+    async function refreshPsychosocialAnswers() {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+        const response = await fetch(`${apiUrl}/psychosocial/answers`);
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as PsychosocialEmployeeAnswer[];
+
+        if (!shouldIgnore) {
+          setPsychosocialAnswers(payload);
+        }
+      } catch {
+        if (!shouldIgnore) {
+          setError("Nao foi possivel atualizar respostas psicossociais.");
+        }
+      }
+    }
+
+    void refreshPsychosocialAnswers();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     const normalizedCompany = companyQueryParam.trim();
@@ -847,11 +952,13 @@ export function CompanyManagementPanel({
                   activeTab={activeTab}
                   company={selectedCompany}
                   clientResetRequests={clientResetRequests}
+                  canSuggestPsychosocialCare={canSuggestPsychosocialCare}
                   employees={employees.filter(
                     (employee) => employee.companyTradeName === selectedCompany.tradeName,
                   )}
                   periodEnd={submittedSearch.periodEnd}
                   periodStart={submittedSearch.periodStart}
+                  psychosocialAnswers={psychosocialAnswers}
                   setActiveTab={setActiveTab}
                   onEdit={() => openEditModal(selectedCompany)}
                   onOpenEmployee={() => {
@@ -903,6 +1010,7 @@ function EmptySearch() {
 
 function CompanyDetails({
   activeTab,
+  canSuggestPsychosocialCare,
   clientResetRequests,
   company,
   employees,
@@ -911,9 +1019,11 @@ function CompanyDetails({
   onResolveClientReset,
   periodEnd,
   periodStart,
+  psychosocialAnswers,
   setActiveTab,
 }: Readonly<{
   activeTab: CompanyTab;
+  canSuggestPsychosocialCare: boolean;
   clientResetRequests: ClientPasswordResetRequest[];
   company: StructuralCompany;
   employees: StructuralEmployee[];
@@ -922,6 +1032,7 @@ function CompanyDetails({
   onResolveClientReset: (requestId: string) => void;
   periodEnd: string;
   periodStart: string;
+  psychosocialAnswers: PsychosocialEmployeeAnswer[];
   setActiveTab: (tab: CompanyTab) => void;
 }>) {
   return (
@@ -969,7 +1080,12 @@ function CompanyDetails({
           <EmployeesTab employees={employees} onOpenEmployee={onOpenEmployee} />
         )}
         {activeTab === "psychosocial" && (
-          <PsychosocialTab company={company} employees={employees} />
+          <PsychosocialTab
+            canSuggestCare={canSuggestPsychosocialCare}
+            company={company}
+            employees={employees}
+            psychosocialAnswers={psychosocialAnswers}
+          />
         )}
         {activeTab === "financial" && (
           <FinancialTab company={company} periodEnd={periodEnd} periodStart={periodStart} />
@@ -1089,7 +1205,6 @@ function EmployeesTab({
               <th className="px-4 py-3 font-semibold">Inclusao</th>
               <th className="px-4 py-3 font-semibold">Exclusao</th>
               <th className="px-4 py-3 font-semibold">Setor</th>
-              <th className="px-4 py-3 font-semibold">Psicossocial</th>
               <th className="px-4 py-3 font-semibold">Status</th>
             </tr>
           </thead>
@@ -1101,9 +1216,6 @@ function EmployeesTab({
                 <td className="px-4 py-3">{dateLabel(employee.inclusionDate)}</td>
                 <td className="px-4 py-3">{dateLabel(employee.exclusionDate)}</td>
                 <td className="px-4 py-3">{employee.department}</td>
-                <td className="px-4 py-3">
-                  <PsychosocialAnswerBadge employeeId={employee.id} />
-                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
@@ -1122,10 +1234,10 @@ function EmployeesTab({
   );
 }
 
-function PsychosocialAnswerBadge({ employeeId }: Readonly<{ employeeId: string }>) {
-  const answer = psychosocialAnswerSeed.find((item) => item.employeeId === employeeId);
-  const hasResponded = answer?.responded === true;
-
+function PsychosocialAnswerBadge({
+  answer,
+}: Readonly<{ answer: PsychosocialEmployeeAnswer | undefined }>) {
+  const hasResponded = answer !== undefined;
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -1141,7 +1253,7 @@ function PsychosocialAnswerBadge({ employeeId }: Readonly<{ employeeId: string }
           hasResponded ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
         }`}
       >
-        {hasResponded ? "✓" : "X"}
+        {hasResponded ? "OK" : "X"}
       </span>
       {hasResponded ? "Respondido" : "Pendente"}
     </span>
@@ -1149,31 +1261,46 @@ function PsychosocialAnswerBadge({ employeeId }: Readonly<{ employeeId: string }
 }
 
 function PsychosocialTab({
+  canSuggestCare,
   company,
   employees,
-}: Readonly<{ company: StructuralCompany; employees: StructuralEmployee[] }>) {
+  psychosocialAnswers,
+}: Readonly<{
+  canSuggestCare: boolean;
+  company: StructuralCompany;
+  employees: StructuralEmployee[];
+  psychosocialAnswers: PsychosocialEmployeeAnswer[];
+}>) {
   const companyConfig = psychosocialCompanySeed.find((item) => item.company === company.tradeName);
   const [dueDate, setDueDate] = useState(companyConfig?.dueDate ?? "");
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setDueDate(companyConfig?.dueDate ?? "");
   }, [companyConfig?.dueDate, company.tradeName]);
 
+  const companyAnswers = psychosocialAnswers.filter(
+    (answer) => answer.companyTradeName === company.tradeName,
+  );
+  const answerByEmployee = new Map(companyAnswers.map((answer) => [answer.employeeId, answer]));
   const responseCount =
-    companyConfig?.responseCount ??
-    employees.filter((employee) => {
-      const answer = psychosocialAnswerSeed.find((item) => item.employeeId === employee.id);
-
-      return answer?.responded === true;
-    }).length;
+    companyConfig === undefined
+      ? companyAnswers.length
+      : Math.max(companyConfig.responseCount, companyAnswers.length);
   const pendingCount = Math.max(company.employees - responseCount, 0);
   const responseRate =
     company.employees === 0 ? 0 : Math.round((responseCount / company.employees) * 100);
-  const pendingEmployees = employees.filter((employee) => {
-    const answer = psychosocialAnswerSeed.find((item) => item.employeeId === employee.id);
+  const pendingEmployees = employees.filter(
+    (employee) => answerByEmployee.get(employee.id) === undefined,
+  );
 
-    return answer?.responded !== true;
-  });
+  function suggestCare(employee: StructuralEmployee) {
+    setNotice(
+      `Sugestao de avaliacao preparada para ${employee.fullName}${
+        employee.email ? ` no e-mail ${employee.email}` : ""
+      }.`,
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -1192,11 +1319,17 @@ function PsychosocialTab({
         <Info label="Faltam responder" value={`${pendingCount} / ${responseRate}% adesao`} />
       </div>
 
+      {notice !== null && (
+        <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">
+          {notice}
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h4 className="text-sm font-semibold text-slate-950">Clientes pendentes</h4>
+          <h4 className="text-sm font-semibold text-slate-950">Controle psicossocial</h4>
           <p className="mt-1 text-sm text-slate-600">
-            Lista operacional para acionar o RH quando a adesao estiver abaixo do esperado.
+            Status individual, risco calculado e conduta clinica quando aplicavel.
           </p>
         </div>
         <button
@@ -1217,20 +1350,63 @@ function PsychosocialTab({
               <th className="px-4 py-3 font-semibold">Setor</th>
               <th className="px-4 py-3 font-semibold">Cargo</th>
               <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Risco</th>
+              {canSuggestCare && <th className="px-4 py-3 text-right font-semibold">Conduta</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {pendingEmployees.map((employee) => (
-              <tr key={employee.id}>
-                <td className="px-4 py-3 font-semibold">{employee.id}</td>
-                <td className="px-4 py-3">{employee.fullName}</td>
-                <td className="px-4 py-3">{employee.department}</td>
-                <td className="px-4 py-3">{employee.jobPosition}</td>
-                <td className="px-4 py-3">
-                  <PsychosocialAnswerBadge employeeId={employee.id} />
-                </td>
-              </tr>
-            ))}
+            {employees.map((employee) => {
+              const answer = answerByEmployee.get(employee.id);
+              const canSuggest =
+                answer !== undefined &&
+                (answer.riskLevel === "high" || answer.riskLevel === "critical");
+
+              return (
+                <tr key={employee.id}>
+                  <td className="px-4 py-3 font-semibold">{employee.id}</td>
+                  <td className="px-4 py-3">{employee.fullName}</td>
+                  <td className="px-4 py-3">{employee.department}</td>
+                  <td className="px-4 py-3">{employee.jobPosition}</td>
+                  <td className="px-4 py-3">
+                    <PsychosocialAnswerBadge answer={answer} />
+                  </td>
+                  <td className="px-4 py-3">
+                    {answer === undefined ? (
+                      <span className="text-sm text-slate-500">Nao calculado</span>
+                    ) : (
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          riskClasses[answer.riskLevel]
+                        }`}
+                      >
+                        {riskLabels[answer.riskLevel]}
+                      </span>
+                    )}
+                  </td>
+                  {canSuggestCare && (
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        className="rounded-md border border-pronus-primary/30 bg-pronus-primary/5 px-3 py-2 text-xs font-semibold text-pronus-primary disabled:cursor-not-allowed disabled:opacity-45"
+                        disabled={!canSuggest}
+                        title={
+                          canSuggest
+                            ? "Preparar sugestao de avaliacao para o cliente"
+                            : "Disponivel apenas para risco alto ou critico respondido"
+                        }
+                        type="button"
+                        onClick={() => {
+                          if (answer !== undefined) {
+                            suggestCare(employee);
+                          }
+                        }}
+                      >
+                        Sugerir avaliacao
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

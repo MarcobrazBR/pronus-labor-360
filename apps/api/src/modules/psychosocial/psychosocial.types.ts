@@ -87,8 +87,13 @@ export interface SubmitPsychosocialAnswerInput {
 export interface PsychosocialAnswerReceipt {
   id: string;
   campaignId: string;
+  employeeId?: string;
   sectorName: string;
   averageScore: number;
   riskLevel: PsychosocialRiskLevel;
   createdAt: string;
+}
+
+export interface PsychosocialEmployeeAnswer extends PsychosocialAnswerReceipt {
+  companyTradeName: string;
 }

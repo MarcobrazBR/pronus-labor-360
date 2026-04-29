@@ -166,8 +166,12 @@ function localReceipt(scores: Record<string, number>): PsychosocialAnswerReceipt
 }
 
 export function PsychosocialQuestionnairePanel({
+  onCompleted,
   profile,
-}: Readonly<{ profile: EmployeeAccessProfile }>) {
+}: Readonly<{
+  onCompleted?: (receipt: PsychosocialAnswerReceipt) => void;
+  profile: EmployeeAccessProfile;
+}>) {
   const [questions, setQuestions] = useState<PsychosocialQuestion[]>([]);
   const [campaigns, setCampaigns] = useState<PsychosocialCampaign[]>([]);
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -177,6 +181,7 @@ export function PsychosocialQuestionnairePanel({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSyncedFinalized, setHasSyncedFinalized] = useState(false);
 
   const storageKey = useMemo(() => `pronus:copsq:${profile.employeeId}`, [profile.employeeId]);
 
@@ -186,8 +191,12 @@ export function PsychosocialQuestionnairePanel({
     setScores(savedState?.scores ?? {});
     setIsFinalized(savedState?.isFinalized ?? false);
     setReceipt(savedState?.receipt ?? null);
+    setHasSyncedFinalized(false);
+    if (savedState?.isFinalized === true && savedState.receipt !== null) {
+      onCompleted?.(savedState.receipt);
+    }
     setError(null);
-  }, [storageKey]);
+  }, [onCompleted, storageKey]);
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -290,6 +299,76 @@ export function PsychosocialQuestionnairePanel({
     });
   }
 
+  useEffect(() => {
+    if (
+      !isFinalized ||
+      hasSyncedFinalized ||
+      selectedCampaign === undefined ||
+      questions.length === 0 ||
+      answeredQuestions !== questions.length
+    ) {
+      return;
+    }
+
+    let shouldIgnore = false;
+    const campaignId = selectedCampaign.id;
+
+    async function syncFinalizedQuestionnaire() {
+      try {
+        const response = await fetch(`${getApiUrl()}/psychosocial/answers`, {
+          body: JSON.stringify({
+            campaignId,
+            employeeId: profile.employeeId,
+            scores: questions.map((question) => ({
+              questionId: question.id,
+              score: scores[question.id],
+            })),
+            sectorName: profile.department,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        });
+        const payload = (await response.json()) as PsychosocialAnswerReceipt | { message?: string };
+
+        if (!response.ok || shouldIgnore) {
+          return;
+        }
+
+        const syncedReceipt = payload as PsychosocialAnswerReceipt;
+        setReceipt(syncedReceipt);
+        onCompleted?.(syncedReceipt);
+        writeSavedState(storageKey, {
+          isFinalized: true,
+          receipt: syncedReceipt,
+          scores,
+        });
+      } finally {
+        if (!shouldIgnore) {
+          setHasSyncedFinalized(true);
+        }
+      }
+    }
+
+    void syncFinalizedQuestionnaire();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [
+    answeredQuestions,
+    hasSyncedFinalized,
+    isFinalized,
+    onCompleted,
+    profile.department,
+    profile.employeeId,
+    questions,
+    scores,
+    selectedCampaign,
+    storageKey,
+  ]);
+
   async function submitQuestionnaire() {
     if (selectedCampaign === undefined || !canSubmit) {
       return;
@@ -330,6 +409,8 @@ export function PsychosocialQuestionnairePanel({
     } finally {
       setReceipt(nextReceipt);
       setIsFinalized(true);
+      setHasSyncedFinalized(true);
+      onCompleted?.(nextReceipt);
       writeSavedState(storageKey, {
         isFinalized: true,
         receipt: nextReceipt,

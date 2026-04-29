@@ -285,7 +285,7 @@ const initialSchedule: ScheduleItem[] = [
   {
     id: "schedule-001",
     clinician: "Carlos Henrique Nunes",
-    specialty: "Medicina ocupacional",
+    specialty: "Clinico Geral",
     startDate: "2026-05-04",
     start: "08:00",
     end: "12:00",
@@ -296,7 +296,7 @@ const initialSchedule: ScheduleItem[] = [
   {
     id: "schedule-002",
     clinician: "Larissa Moreira",
-    specialty: "Psicologia",
+    specialty: "Acolhimento Psicologico",
     startDate: "2026-05-04",
     start: "13:00",
     end: "17:00",
@@ -353,7 +353,7 @@ const emptyScheduleForm: ScheduleForm = {
   appointmentMinutes: 20,
   clinician: "Carlos Henrique Nunes",
   end: "",
-  specialty: "Medicina ocupacional",
+  specialty: "Clinico Geral",
   start: "",
   startDate: "",
   weekdays: ["mon", "wed", "fri"],
