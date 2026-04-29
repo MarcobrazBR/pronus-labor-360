@@ -303,3 +303,7 @@ Estado encontrado:
 - Teste no navegador confirmou `http://localhost:3000/login` sem 404 e sem vazamento de credenciais.
 - Teste no navegador confirmou troca obrigatoria de senha saindo corretamente do modal no Portal RH Cliente e Portal Colaborador.
 - Teste no navegador confirmou troca obrigatoria de senha e botao Sair no Portal PRONUS.
+- Modais de troca obrigatoria de senha dos tres portais agora exibem checklist dos criterios exigidos e mensagem especifica quando a senha ainda nao pode ser salva.
+- Botao de salvar nova senha deixou de ficar bloqueado silenciosamente por validacao invisivel, mantendo bloqueio apenas durante salvamento.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-troca-senha-2026-04-29.md`.
+- Teste HTTP confirmou fluxo master PRONUS: reset para senha padrao, login, troca para `Aa1@bc`, login com nova senha e novo reset para `111222`.

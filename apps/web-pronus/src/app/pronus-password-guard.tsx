@@ -39,10 +39,39 @@ function responseMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
-function passwordIsValid(value: string) {
-  return (
-    value.length === 6 && /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value)
-  );
+function passwordValidation(value: string) {
+  return {
+    hasLetter: /[A-Za-z]/.test(value),
+    hasNumber: /\d/.test(value),
+    hasSixCharacters: value.length === 6,
+    hasSpecial: /[^A-Za-z0-9]/.test(value),
+  };
+}
+
+function passwordValidationMessage(value: string, confirmation: string) {
+  const validation = passwordValidation(value);
+
+  if (!validation.hasSixCharacters) {
+    return "A senha precisa ter exatamente 6 caracteres.";
+  }
+
+  if (!validation.hasLetter) {
+    return "Inclua pelo menos uma letra na senha.";
+  }
+
+  if (!validation.hasNumber) {
+    return "Inclua pelo menos um numero na senha.";
+  }
+
+  if (!validation.hasSpecial) {
+    return "Inclua pelo menos um caractere especial, como @, # ou !.";
+  }
+
+  if (value !== confirmation) {
+    return "A confirmacao precisa ser igual a nova senha.";
+  }
+
+  return null;
 }
 
 function readSession(): PronusAccessProfile | null {
@@ -74,11 +103,16 @@ export function PronusPasswordGuard() {
     return null;
   }
 
-  const canSubmit = passwordIsValid(password) && password === confirmation && !isSaving;
+  const canSubmit = !isSaving;
+  const validationMessage = passwordValidationMessage(password, confirmation);
 
   async function submitPassword() {
-    if (session === null || !canSubmit) {
-      setError("Use uma senha de 6 caracteres com letra, numero e caractere especial.");
+    if (session === null) {
+      return;
+    }
+
+    if (validationMessage !== null) {
+      setError(validationMessage);
       return;
     }
 
@@ -121,21 +155,58 @@ export function PronusPasswordGuard() {
           <PasswordField label="Nova senha" value={password} onChange={setPassword} />
           <PasswordField label="Confirmar senha" value={confirmation} onChange={setConfirmation} />
         </div>
+        <PasswordChecklist password={password} confirmation={confirmation} />
         {error !== null && (
           <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
             {error}
           </div>
         )}
         <button
-          className="mt-5 w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-5 w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           disabled={!canSubmit}
           type="button"
           onClick={() => void submitPassword()}
         >
-          Salvar nova senha
+          {isSaving ? "Salvando..." : "Salvar nova senha"}
         </button>
       </section>
     </div>
+  );
+}
+
+function PasswordChecklist({
+  confirmation,
+  password,
+}: Readonly<{ confirmation: string; password: string }>) {
+  const validation = passwordValidation(password);
+  const items = [
+    { done: validation.hasSixCharacters, label: "Exatamente 6 caracteres" },
+    { done: validation.hasLetter, label: "Pelo menos uma letra" },
+    { done: validation.hasNumber, label: "Pelo menos um numero" },
+    { done: validation.hasSpecial, label: "Pelo menos um caractere especial" },
+    {
+      done: password.length > 0 && password === confirmation,
+      label: "Confirmacao igual a nova senha",
+    },
+  ];
+
+  return (
+    <ul className="mt-4 grid gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+      {items.map((item) => (
+        <li key={item.label} className="flex items-center gap-2">
+          <span
+            className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${
+              item.done ? "bg-emerald-100 text-emerald-700" : "bg-white text-slate-400"
+            }`}
+          >
+            {item.done ? "OK" : "-"}
+          </span>
+          <span className={item.done ? "font-semibold text-emerald-700" : undefined}>
+            {item.label}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
