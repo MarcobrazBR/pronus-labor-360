@@ -20,6 +20,12 @@ Capturas demonstrativas atualizadas em 2026-04-29 para apresentacao do produto, 
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
 | ![Login administrativo PRONUS](docs/assets/screenshots/login-pronus.png) | ![Login Portal RH Cliente](docs/assets/screenshots/login-rh-cliente.png) | ![Login Portal Colaborador](docs/assets/screenshots/login-colaborador.png) |
 
+### Fluxo Operacional De Reset
+
+| Empresa aberta a partir do pedido de reset do Portal RH                                            |
+| -------------------------------------------------------------------------------------------------- |
+| ![Reset Portal RH no cadastro da empresa](docs/assets/screenshots/portal-pronus-empresa-reset.png) |
+
 ## Regra De Atualizacao Visual
 
 Toda alteracao visual relevante no sistema deve atualizar tambem as capturas em `docs/assets/screenshots/` e a galeria acima no README. Essa regra faz parte do Definition of Done de qualquer mudanca em layout, identidade visual, navegacao, dashboards, telas de login ou fluxos apresentados a clientes e investidores.
@@ -104,9 +110,11 @@ Ja existe:
 - busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, clientes e financeiro;
 - cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
 - modulo Colaboradores com Usuarios, permissoes do sistema, agenda do corpo clinico, feriados e tabela de pagamento profissional;
-- telas de login por CPF para Portal PRONUS, Portal RH Cliente e Portal Colaborador, com troca obrigatoria quando o usuario acessa pela senha padrao;
+- telas de login para Portal PRONUS, Portal RH Cliente e Portal Colaborador, com troca obrigatoria quando o usuario acessa pela senha padrao;
+- login do Portal Colaborador por CPF e login do Portal RH Cliente por CNPJ, com senha inicial baseada nos seis primeiros digitos do documento;
+- pedidos de reset de senha: colaborador solicita no login, RH libera pelo painel, e empresa/RH solicita no login para liberacao pela operacao PRONUS;
 - logo oficial aplicada aos portais e favicon do produto configurado;
-- fluxo de primeiro acesso do colaborador com conferencia cadastral;
+- fluxo de primeiro acesso do colaborador com troca de senha, conferencia cadastral e bloqueio de consultas ate validacao;
 - Portal RH Cliente com navegacao real por Painel, Clientes, Divergencias, Documentos, Risco Ocupacional e Psicossocial;
 - painel RH Cliente com indicadores da empresa, pendencias cadastrais, documentos, assinaturas, riscos, plano de acao e campanhas psicossociais;
 - area Clientes do Portal RH com busca por nome, CPF, setor, cargo e status, mantendo a lista vazia ate a consulta;
@@ -114,14 +122,15 @@ Ja existe:
 - area Divergencias do Portal RH preparada para aprovar ou recusar divergencias cadastrais via API;
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
-- questionario psicossocial inicial no Portal Colaborador;
+- questionario COPSOQ no Portal Colaborador, com 46 perguntas importadas da planilha-base, salvamento progressivo local e termometro de progresso;
+- configuracao local de acesso para testes do MVP em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
 - modulo Documentos com fila documental, modelos, publicacoes e solicitacoes de assinatura;
 - documentacao funcional e tecnica em `docs/`.
 
 Ainda esta em andamento:
 
-- persistencia real com Prisma/Supabase;
-- autenticacao e permissoes;
+- persistencia definitiva com Prisma/Supabase para substituir as sementes e a persistencia local de demo;
+- autenticacao e permissoes completas com auditoria, expiracao de senha e isolamento multiempresa;
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
 - visao multiempresa real no Portal RH Cliente, com selecao segura por usuario autenticado;
 - backend definitivo para fila de movimentacoes cadastrais do RH cliente, com aprovacao PRONUS, auditoria e notificacoes;
@@ -136,7 +145,7 @@ O MVP ja demonstra a tese central do produto: uma base unica que conecta operaca
 
 - A operacao PRONUS ja visualiza empresas, CNPJs, estrutura, clientes, NR-01 e risco psicossocial em um painel inicial.
 - O RH Cliente ja tem uma porta de entrada para acompanhar pendencias cadastrais e reduzir retrabalho.
-- O colaborador ja consegue localizar o cadastro, sinalizar divergencias e responder o primeiro questionario psicossocial.
+- O colaborador ja acessa por login, troca a senha inicial, confirma o cadastro, solicita consultas dentro das regras e responde o questionario comportamental.
 - A API ja organiza dominios separados para estrutura, primeiro acesso, NR-01 e risco psicossocial.
 - A arquitetura ja esta preparada para evoluir para banco real, autenticacao, permissoes, documentos e automacoes.
 

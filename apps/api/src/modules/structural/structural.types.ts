@@ -60,6 +60,7 @@ export interface StructuralEmployee {
   email?: string;
   phone?: string;
   registrationStatus: StructuralStatus;
+  registrationConfirmedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -348,6 +349,68 @@ export interface EmployeeAccessProfile {
   email?: string;
   phone?: string;
   registrationStatus: StructuralStatus;
+  registrationConfirmedAt?: string;
+  mustChangePassword?: boolean;
+}
+
+export interface EmployeeAccessLoginInput {
+  cpf: string;
+  password: string;
+}
+
+export interface EmployeeAccessPasswordChangeInput {
+  employeeId: string;
+  newPassword: string;
+}
+
+export interface EmployeeAccessConfirmRegistrationInput {
+  employeeId: string;
+}
+
+export interface EmployeePasswordResetRequestInput {
+  cpf: string;
+}
+
+export interface EmployeePasswordResetRequest {
+  id: string;
+  employeeId: string;
+  companyTradeName: string;
+  fullName: string;
+  cpf: string;
+  status: "pending" | "completed";
+  requestedAt: string;
+  resolvedAt?: string;
+}
+
+export interface ClientAccessLoginInput {
+  cnpj: string;
+  password: string;
+}
+
+export interface ClientAccessProfile {
+  companyId: string;
+  companyTradeName: string;
+  cnpj: string;
+  mustChangePassword: boolean;
+}
+
+export interface ClientAccessPasswordChangeInput {
+  companyId: string;
+  newPassword: string;
+}
+
+export interface ClientPasswordResetRequestInput {
+  cnpj: string;
+}
+
+export interface ClientPasswordResetRequest {
+  id: string;
+  companyId: string;
+  companyTradeName: string;
+  cnpj: string;
+  status: "pending" | "completed";
+  requestedAt: string;
+  resolvedAt?: string;
 }
 
 export type EmployeeDivergenceField = "email" | "phone" | "department" | "jobPosition";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -9,6 +9,7 @@ import {
   legalObligationLabels,
   statusClasses,
   structuralStatusLabels,
+  type ClientPasswordResetRequest,
   type CompanyContractStatus,
   type RegulatoryCnae,
   type StructuralCompany,
@@ -388,8 +389,11 @@ export function CompanyManagementPanel({
   regulatoryCnaes?: RegulatoryCnae[];
 }>) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const companyQueryParam = searchParams.get("company") ?? "";
   const [companies, setCompanies] = useState(initialCompanies);
   const [employees, setEmployees] = useState(initialEmployees);
+  const [clientResetRequests, setClientResetRequests] = useState<ClientPasswordResetRequest[]>([]);
   const [query, setQuery] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -436,6 +440,64 @@ export function CompanyManagementPanel({
     });
   }, [companies, submittedSearch]);
   const selectedCompany = filteredCompanies.find((company) => company.id === selectedCompanyId);
+
+  useEffect(() => {
+    let shouldIgnore = false;
+
+    async function loadClientResetRequests() {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+        const response = await fetch(`${apiUrl}/client-access/password-reset-requests`);
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as ClientPasswordResetRequest[];
+
+        if (!shouldIgnore) {
+          setClientResetRequests(payload);
+        }
+      } catch {
+        if (!shouldIgnore) {
+          setError("Nao foi possivel carregar pedidos de reset do Portal RH.");
+        }
+      }
+    }
+
+    void loadClientResetRequests();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const normalizedCompany = companyQueryParam.trim();
+
+    if (normalizedCompany.length === 0) {
+      return;
+    }
+
+    const matchedCompany = companies.find((company) =>
+      [company.tradeName, company.legalName, company.cnpj]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedCompany.toLowerCase()),
+    );
+
+    setQuery(normalizedCompany);
+    setContractStatus("all");
+    setSubmittedSearch({
+      contractStatus: "all",
+      periodEnd,
+      periodStart,
+      query: normalizedCompany,
+    });
+    setSelectedCompanyId(matchedCompany?.id ?? null);
+    setActiveTab("general");
+  }, [companies, companyQueryParam, periodEnd, periodStart]);
 
   function submitSearch() {
     const normalizedQuery = query.trim();
@@ -590,6 +652,35 @@ export function CompanyManagementPanel({
       setIsEmployeeModalOpen(false);
       setSuccess("Cliente avulso cadastrado para a empresa.");
       router.refresh();
+    } catch {
+      setError("Nao foi possivel conectar a API local.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function resolveClientResetRequest(requestId: string) {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const response = await fetch(
+        `${apiUrl}/client-access/password-reset-requests/${requestId}/resolve`,
+        { method: "PATCH" },
+      );
+      const payload = (await response.json()) as ClientPasswordResetRequest | { message?: string };
+
+      if (!response.ok) {
+        setError(responseMessage(payload, "Nao foi possivel liberar a senha padrao."));
+        return;
+      }
+
+      const resolved = payload as ClientPasswordResetRequest;
+      setClientResetRequests((current) =>
+        current.map((request) => (request.id === resolved.id ? resolved : request)),
+      );
+      setSuccess("Senha padrao do Portal RH liberada para a empresa.");
     } catch {
       setError("Nao foi possivel conectar a API local.");
     } finally {
@@ -755,6 +846,7 @@ export function CompanyManagementPanel({
                 <CompanyDetails
                   activeTab={activeTab}
                   company={selectedCompany}
+                  clientResetRequests={clientResetRequests}
                   employees={employees.filter(
                     (employee) => employee.companyTradeName === selectedCompany.tradeName,
                   )}
@@ -766,6 +858,7 @@ export function CompanyManagementPanel({
                     setEmployeeForm(emptyEmployeeForm);
                     setIsEmployeeModalOpen(true);
                   }}
+                  onResolveClientReset={resolveClientResetRequest}
                 />
               </div>
             )}
@@ -810,19 +903,23 @@ function EmptySearch() {
 
 function CompanyDetails({
   activeTab,
+  clientResetRequests,
   company,
   employees,
   onEdit,
   onOpenEmployee,
+  onResolveClientReset,
   periodEnd,
   periodStart,
   setActiveTab,
 }: Readonly<{
   activeTab: CompanyTab;
+  clientResetRequests: ClientPasswordResetRequest[];
   company: StructuralCompany;
   employees: StructuralEmployee[];
   onEdit: () => void;
   onOpenEmployee: () => void;
+  onResolveClientReset: (requestId: string) => void;
   periodEnd: string;
   periodStart: string;
   setActiveTab: (tab: CompanyTab) => void;
@@ -831,7 +928,14 @@ function CompanyDetails({
     <div className="rounded-lg border border-slate-200 bg-white">
       <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h3 className="text-base font-semibold">{company.tradeName}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold">{company.tradeName}</h3>
+            <ClientAccessResetControl
+              company={company}
+              requests={clientResetRequests}
+              onResolve={onResolveClientReset}
+            />
+          </div>
           <p className="mt-1 text-sm text-slate-600">{company.legalName ?? company.cnpj}</p>
         </div>
         <button
@@ -872,6 +976,42 @@ function CompanyDetails({
         )}
       </div>
     </div>
+  );
+}
+
+function ClientAccessResetControl({
+  company,
+  onResolve,
+  requests,
+}: Readonly<{
+  company: StructuralCompany;
+  onResolve: (requestId: string) => void;
+  requests: ClientPasswordResetRequest[];
+}>) {
+  const request = requests.find(
+    (item) => item.companyId === company.id || item.companyTradeName === company.tradeName,
+  );
+
+  if (request === undefined) {
+    return null;
+  }
+
+  const isCompleted = request.status === "completed";
+
+  return (
+    <button
+      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+        isCompleted
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-400"
+      }`}
+      disabled={isCompleted}
+      title={isCompleted ? "Senha padrao liberada" : "Liberar senha padrao do Portal RH"}
+      type="button"
+      onClick={() => onResolve(request.id)}
+    >
+      Reset
+    </button>
   );
 }
 

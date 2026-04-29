@@ -8,6 +8,7 @@ import {
   riskLevelLabels,
   statusClasses,
 } from "./client-data";
+import { EmployeePasswordResetCard } from "./employee-password-reset-card";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,7 @@ export default async function ClientHomePage() {
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map((card) => (
           <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
             <p className="text-sm font-medium text-slate-500">{card.label}</p>
@@ -104,6 +105,7 @@ export default async function ClientHomePage() {
             )}
           </article>
         ))}
+        <EmployeePasswordResetCard companyTradeName={data.activeCompany.tradeName} />
       </section>
 
       <section className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">

@@ -15,5 +15,6 @@ tmp
 .tmp
 temp
 .logs
+.data
 Dockerfile.local
 pronus-labor-360/

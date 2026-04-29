@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PsychosocialQuestionnairePanel } from "./psychosocial-questionnaire-panel";
 
 type StructuralStatus = "active" | "pending_validation" | "blocked" | "inactive";
@@ -17,6 +17,8 @@ interface EmployeeAccessProfile {
   email?: string;
   phone?: string;
   registrationStatus: StructuralStatus;
+  registrationConfirmedAt?: string;
+  mustChangePassword?: boolean;
 }
 
 interface DivergenceResult {
@@ -44,12 +46,14 @@ interface Appointment {
   status: AppointmentStatus;
 }
 
-const statusLabels: Record<StructuralStatus, string> = {
-  active: "Ativo",
-  pending_validation: "Validacao pendente",
-  blocked: "Bloqueado para conferencia",
-  inactive: "Inativo",
+type RegistrationForm = {
+  department: string;
+  email: string;
+  jobPosition: string;
+  phone: string;
 };
+
+const employeeSessionKey = "pronus:employee-session";
 
 const coverageSeed: SpecialtyCoverage[] = [
   {
@@ -116,6 +120,19 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function responseMessage(payload: unknown, fallback: string) {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "message" in payload &&
+    typeof payload.message === "string"
+  ) {
+    return payload.message;
+  }
+
+  return fallback;
+}
+
 function hasCompletedSpecialtyInCurrentMonth(
   appointments: Appointment[],
   employeeId: string,
@@ -158,10 +175,42 @@ function canEnterConsultation(appointment: Appointment | undefined) {
   return now >= startAt - 60 * 60 * 1000 && now <= startAt + 90 * 60 * 1000;
 }
 
+function passwordIsValid(value: string) {
+  return (
+    value.length === 6 && /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value)
+  );
+}
+
+function profileToForm(profile: EmployeeAccessProfile): RegistrationForm {
+  return {
+    department: profile.department,
+    email: profile.email ?? "",
+    jobPosition: profile.jobPosition,
+    phone: profile.phone ?? "",
+  };
+}
+
+function saveProfile(profile: EmployeeAccessProfile) {
+  window.localStorage.setItem(employeeSessionKey, JSON.stringify(profile));
+}
+
+function readProfile(): EmployeeAccessProfile | null {
+  const raw = window.localStorage.getItem(employeeSessionKey);
+
+  if (raw === null) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as EmployeeAccessProfile;
+  } catch {
+    return null;
+  }
+}
+
 export function FirstAccessPanel() {
-  const [cpf, setCpf] = useState("98765432100");
   const [profile, setProfile] = useState<EmployeeAccessProfile | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<RegistrationForm>({
     department: "",
     email: "",
     jobPosition: "",
@@ -173,7 +222,19 @@ export function FirstAccessPanel() {
   const [result, setResult] = useState<DivergenceResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+
+  useEffect(() => {
+    const sessionProfile = readProfile();
+
+    if (sessionProfile !== null) {
+      setProfile(sessionProfile);
+      setForm(profileToForm(sessionProfile));
+    }
+
+    setIsSessionChecked(true);
+  }, []);
 
   const companyCoverages = useMemo(
     () =>
@@ -188,47 +249,20 @@ export function FirstAccessPanel() {
     [appointments, profile],
   );
   const canEnterNextAppointment = canEnterConsultation(nextAppointment);
+  const hasConfirmedRegistration = profile?.registrationConfirmedAt !== undefined;
+  const canRequestConsultations =
+    profile !== null &&
+    profile.mustChangePassword !== true &&
+    hasConfirmedRegistration &&
+    profile.registrationStatus === "active";
 
-  async function lookupCpf() {
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
-    setSelectedSpecialty(null);
-    setScheduleNotice(null);
-
-    try {
-      const response = await fetch(`${getApiUrl()}/employee-access/lookup`, {
-        body: JSON.stringify({ cpf }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      });
-      const payload = (await response.json()) as EmployeeAccessProfile | { message?: string };
-
-      if (!response.ok) {
-        setProfile(null);
-        setError("message" in payload && payload.message ? payload.message : "CPF nao localizado");
-        return;
-      }
-
-      const employeeProfile = payload as EmployeeAccessProfile;
-      setProfile(employeeProfile);
-      setForm({
-        department: employeeProfile.department,
-        email: employeeProfile.email ?? "",
-        jobPosition: employeeProfile.jobPosition,
-        phone: employeeProfile.phone ?? "",
-      });
-    } catch {
-      setError("Nao foi possivel conectar a API local.");
-      setProfile(null);
-    } finally {
-      setIsLoading(false);
-    }
+  function updateProfile(nextProfile: EmployeeAccessProfile) {
+    saveProfile(nextProfile);
+    setProfile(nextProfile);
+    setForm(profileToForm(nextProfile));
   }
 
-  async function submitDivergence() {
+  async function submitRegistrationCheck() {
     if (profile === null) {
       return;
     }
@@ -237,7 +271,32 @@ export function FirstAccessPanel() {
     setError(null);
     setResult(null);
 
+    const hasChanges =
+      form.department !== profile.department ||
+      form.email !== (profile.email ?? "") ||
+      form.jobPosition !== profile.jobPosition ||
+      form.phone !== (profile.phone ?? "");
+
     try {
+      if (!hasChanges) {
+        const response = await fetch(`${getApiUrl()}/employee-access/confirm-registration`, {
+          body: JSON.stringify({ employeeId: profile.employeeId }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        });
+        const payload = (await response.json()) as EmployeeAccessProfile | { message?: string };
+
+        if (!response.ok) {
+          setError(responseMessage(payload, "Nao foi possivel confirmar o cadastro."));
+          return;
+        }
+
+        updateProfile(payload as EmployeeAccessProfile);
+        return;
+      }
+
       const response = await fetch(`${getApiUrl()}/employee-access/divergences`, {
         body: JSON.stringify({
           employeeId: profile.employeeId,
@@ -251,14 +310,17 @@ export function FirstAccessPanel() {
       const payload = (await response.json()) as DivergenceResult | { message?: string };
 
       if (!response.ok) {
-        setError(
-          "message" in payload && payload.message
-            ? payload.message
-            : "Nao foi possivel enviar divergencia",
-        );
+        setError(responseMessage(payload, "Nao foi possivel enviar divergencia."));
         return;
       }
 
+      const nextProfile: EmployeeAccessProfile = {
+        ...profile,
+        registrationConfirmedAt: new Date().toISOString(),
+        registrationStatus: "blocked",
+      };
+
+      updateProfile(nextProfile);
       setResult(payload as DivergenceResult);
     } catch {
       setError("Nao foi possivel conectar a API local.");
@@ -272,11 +334,24 @@ export function FirstAccessPanel() {
       return;
     }
 
-    if (hasCompletedSpecialtyInCurrentMonth(appointments, profile.employeeId, coverage.specialty)) {
+    if (!canRequestConsultations) {
       setSelectedSpecialty(null);
       setScheduleNotice(
-        `No momento nao ha vagas disponiveis para ${coverage.specialty}. Ja existe consulta desta especialidade no mes atual.`,
+        "Valide seu cadastro para solicitar consultas. Enquanto isso, a pesquisa comportamental permanece disponivel.",
       );
+      return;
+    }
+
+    const companyHasNoBalance = coverage.used >= coverage.entitled;
+    const blockedByMonth = hasCompletedSpecialtyInCurrentMonth(
+      appointments,
+      profile.employeeId,
+      coverage.specialty,
+    );
+
+    if (companyHasNoBalance || blockedByMonth) {
+      setSelectedSpecialty(null);
+      setScheduleNotice(`No momento nao ha vagas disponiveis para ${coverage.specialty}.`);
       return;
     }
 
@@ -285,7 +360,7 @@ export function FirstAccessPanel() {
   }
 
   function scheduleSlot(slotId: string) {
-    if (profile === null || selectedSpecialty === null) {
+    if (profile === null || selectedSpecialty === null || !canRequestConsultations) {
       return;
     }
 
@@ -322,12 +397,43 @@ export function FirstAccessPanel() {
     setIsVideoOpen(true);
   }
 
+  function logout() {
+    window.localStorage.removeItem(employeeSessionKey);
+    window.location.href = "/login";
+  }
+
   const consultationTooltip =
     nextAppointment === undefined
       ? "O botao fica ativo quando existir consulta agendada e somente uma hora antes do horario."
       : canEnterNextAppointment
         ? "Consulta liberada. Clique para entrar na sala de video."
         : "A sala de video abre uma hora antes do horario agendado.";
+
+  if (!isSessionChecked) {
+    return (
+      <section className="w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">
+        Carregando acesso do colaborador...
+      </section>
+    );
+  }
+
+  if (profile === null) {
+    return (
+      <section className="w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <img alt="Pronus Labor" className="mx-auto h-16 w-auto" src="/brand/pronus-logo.png" />
+        <h1 className="mt-5 text-2xl font-semibold text-slate-950">Portal Colaborador</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Entre pelo login para carregar seu cadastro e acessar a jornada digital.
+        </p>
+        <a
+          className="mt-5 inline-flex rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white"
+          href="/login"
+        >
+          Ir para login
+        </a>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full max-w-7xl rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -343,24 +449,15 @@ export function FirstAccessPanel() {
             </h1>
           </div>
 
-          <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 lg:max-w-md">
-            <label className="block">
-              <span className="text-xs font-semibold uppercase text-slate-500">CPF</span>
-              <input
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
-                inputMode="numeric"
-                placeholder="Digite somente numeros"
-                value={cpf}
-                onChange={(event) => setCpf(event.target.value)}
-              />
-            </label>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <p className="font-semibold text-slate-900">{profile.companyTradeName}</p>
+            <p className="mt-1">{profile.fullName}</p>
             <button
-              className="mt-3 w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isLoading}
+              className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
               type="button"
-              onClick={() => void lookupCpf()}
+              onClick={logout}
             >
-              Consultar cadastro
+              Sair
             </button>
           </div>
         </div>
@@ -372,106 +469,109 @@ export function FirstAccessPanel() {
         )}
       </div>
 
-      {profile === null ? (
-        <div className="px-5 py-12 text-center text-sm text-slate-500">
-          Informe o CPF para carregar seu cadastro, consultar coberturas e acompanhar proximas
-          consultas.
-        </div>
-      ) : (
-        <div className="grid gap-5 p-5 xl:grid-cols-[0.85fr_1.15fr] lg:p-6">
-          <div className="space-y-5">
-            <PsychosocialQuestionnairePanel profile={profile} />
-            <ProfileCard profile={profile} />
+      <div className="grid gap-5 p-5 xl:grid-cols-[0.85fr_1.15fr] lg:p-6">
+        <div className="space-y-5">
+          <PsychosocialQuestionnairePanel profile={profile} />
+          <ProfileCard profile={profile} />
+          {!hasConfirmedRegistration && profile.mustChangePassword !== true && (
             <RegistrationCheck
               form={form}
               isLoading={isLoading}
               result={result}
               setForm={setForm}
-              submitDivergence={() => void submitDivergence()}
+              submitRegistrationCheck={() => void submitRegistrationCheck()}
             />
-          </div>
+          )}
+          {!canRequestConsultations && profile.mustChangePassword !== true && (
+            <AccessNotice profile={profile} />
+          )}
+        </div>
 
-          <div className="space-y-5">
-            <section className="rounded-lg border border-slate-200 bg-white">
-              <div className="border-b border-slate-200 px-4 py-4">
-                <h2 className="text-base font-semibold text-slate-950">Consultas</h2>
-              </div>
+        <div className="space-y-5">
+          <section className="rounded-lg border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 px-4 py-4">
+              <h2 className="text-base font-semibold text-slate-950">Consultas</h2>
+            </div>
 
-              <div className="grid gap-4 p-4 lg:grid-cols-[1fr_0.95fr]">
-                <div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {companyCoverages.map((coverage) => {
-                      const blockedByMonth = hasCompletedSpecialtyInCurrentMonth(
+            <div className="grid gap-4 p-4 lg:grid-cols-[1fr_0.95fr]">
+              <div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {companyCoverages.map((coverage) => {
+                    const isUnavailable =
+                      !canRequestConsultations ||
+                      coverage.used >= coverage.entitled ||
+                      hasCompletedSpecialtyInCurrentMonth(
                         appointments,
                         profile.employeeId,
                         coverage.specialty,
                       );
-                      const remaining = Math.max(coverage.entitled - coverage.used, 0);
 
-                      return (
+                    return (
+                      <article
+                        key={coverage.specialty}
+                        className="rounded-md border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <span className="block text-sm font-semibold text-slate-950">
+                          {coverage.specialty}
+                        </span>
                         <button
-                          key={coverage.specialty}
-                          className={`rounded-md border p-3 text-left transition ${
-                            selectedSpecialty === coverage.specialty
-                              ? "border-pronus-primary bg-sky-50"
-                              : "border-slate-200 bg-slate-50 hover:border-pronus-primary"
+                          className={`mt-3 w-full rounded-md px-3 py-2.5 text-sm font-semibold transition ${
+                            isUnavailable
+                              ? "cursor-not-allowed border border-slate-300 bg-white text-slate-500 opacity-45"
+                              : "bg-pronus-primary text-white hover:bg-pronus-primary/90"
                           }`}
+                          disabled={isUnavailable}
+                          title={
+                            isUnavailable
+                              ? "No momento nao ha vagas disponiveis para esta especialidade."
+                              : "Abrir agenda disponivel para esta especialidade."
+                          }
                           type="button"
                           onClick={() => openSpecialtyAgenda(coverage)}
                         >
-                          <span className="block text-sm font-semibold text-slate-950">
-                            {coverage.specialty}
-                          </span>
-                          <span className="mt-1 block text-xs text-slate-500">
-                            {remaining} vagas contratuais restantes
-                          </span>
-                          <span
-                            className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
-                              blockedByMonth
-                                ? "bg-red-50 text-red-700 ring-1 ring-red-200"
-                                : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                            }`}
-                          >
-                            {blockedByMonth ? "Limite mensal usado" : "Liberada para agenda"}
-                          </span>
+                          Marcar Consulta
                         </button>
-                      );
-                    })}
-                  </div>
-
-                  {companyCoverages.length === 0 && (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-                      Nenhuma especialidade foi localizada na cobertura da empresa.
-                    </div>
-                  )}
+                      </article>
+                    );
+                  })}
                 </div>
 
-                <NextConsultationCard
-                  canEnter={canEnterNextAppointment}
-                  nextAppointment={nextAppointment}
-                  tooltip={consultationTooltip}
-                  onEnter={enterConsultation}
-                />
-              </div>
-
-              <div className="border-t border-slate-200 px-4 py-4">
-                {scheduleNotice !== null && (
-                  <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">
-                    {scheduleNotice}
+                {companyCoverages.length === 0 && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                    Nenhuma especialidade foi localizada na cobertura da empresa.
                   </div>
                 )}
-
-                {selectedSpecialty === null ? (
-                  <div className="rounded-md border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
-                    Escolha uma especialidade liberada para visualizar horarios disponiveis.
-                  </div>
-                ) : (
-                  <AgendaSlots specialty={selectedSpecialty} onSchedule={scheduleSlot} />
-                )}
               </div>
-            </section>
-          </div>
+
+              <NextConsultationCard
+                canEnter={canEnterNextAppointment}
+                nextAppointment={nextAppointment}
+                tooltip={consultationTooltip}
+                onEnter={enterConsultation}
+              />
+            </div>
+
+            <div className="border-t border-slate-200 px-4 py-4">
+              {scheduleNotice !== null && (
+                <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">
+                  {scheduleNotice}
+                </div>
+              )}
+
+              {selectedSpecialty === null ? (
+                <div className="rounded-md border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
+                  Escolha uma especialidade liberada para visualizar horarios disponiveis.
+                </div>
+              ) : (
+                <AgendaSlots specialty={selectedSpecialty} onSchedule={scheduleSlot} />
+              )}
+            </div>
+          </section>
         </div>
+      </div>
+
+      {profile.mustChangePassword === true && (
+        <PasswordChangeModal profile={profile} onChanged={updateProfile} />
       )}
 
       {isVideoOpen && nextAppointment !== undefined && (
@@ -487,20 +587,25 @@ export function FirstAccessPanel() {
 function ProfileCard({ profile }: Readonly<{ profile: EmployeeAccessProfile }>) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-950">{profile.fullName}</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {profile.companyTradeName} / {profile.cpf}
-          </p>
-          <p className="mt-1 text-sm text-slate-600">
-            {profile.department} / {profile.jobPosition}
-          </p>
-        </div>
-        <span className="h-fit rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
-          {statusLabels[profile.registrationStatus]}
-        </span>
-      </div>
+      <h2 className="text-lg font-semibold text-slate-950">{profile.fullName}</h2>
+      <p className="mt-1 text-sm text-slate-600">
+        {profile.companyTradeName} / {profile.cpf}
+      </p>
+      <p className="mt-1 text-sm text-slate-600">
+        {profile.department} / {profile.jobPosition}
+      </p>
+    </section>
+  );
+}
+
+function AccessNotice({ profile }: Readonly<{ profile: EmployeeAccessProfile }>) {
+  const isBlocked = profile.registrationStatus === "blocked";
+
+  return (
+    <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      {isBlocked
+        ? "Seu cadastro foi enviado para analise do RH. Ate a conclusao, voce pode responder a pesquisa comportamental."
+        : "Valide seu cadastro para solicitar consultas. Enquanto isso, a pesquisa comportamental permanece disponivel."}
     </section>
   );
 }
@@ -510,15 +615,13 @@ function RegistrationCheck({
   isLoading,
   result,
   setForm,
-  submitDivergence,
+  submitRegistrationCheck,
 }: Readonly<{
-  form: { department: string; email: string; jobPosition: string; phone: string };
+  form: RegistrationForm;
   isLoading: boolean;
   result: DivergenceResult | null;
-  setForm: Dispatch<
-    SetStateAction<{ department: string; email: string; jobPosition: string; phone: string }>
-  >;
-  submitDivergence: () => void;
+  setForm: Dispatch<SetStateAction<RegistrationForm>>;
+  submitRegistrationCheck: () => void;
 }>) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
@@ -550,7 +653,7 @@ function RegistrationCheck({
         className="mt-4 rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         disabled={isLoading}
         type="button"
-        onClick={submitDivergence}
+        onClick={submitRegistrationCheck}
       >
         Enviar conferencia
       </button>
@@ -561,6 +664,84 @@ function RegistrationCheck({
         </div>
       )}
     </section>
+  );
+}
+
+function PasswordChangeModal({
+  onChanged,
+  profile,
+}: Readonly<{
+  onChanged: (profile: EmployeeAccessProfile) => void;
+  profile: EmployeeAccessProfile;
+}>) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const canSubmit = passwordIsValid(password) && password === confirmation && !isSaving;
+
+  async function submitPassword() {
+    if (!canSubmit) {
+      setError("Use uma senha de 6 caracteres com letra, numero e caractere especial.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${getApiUrl()}/employee-access/password`, {
+        body: JSON.stringify({ employeeId: profile.employeeId, newPassword: password }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      });
+      const payload = (await response.json()) as EmployeeAccessProfile | { message?: string };
+
+      if (!response.ok) {
+        setError(responseMessage(payload, "Nao foi possivel atualizar a senha."));
+        return;
+      }
+
+      onChanged(payload as EmployeeAccessProfile);
+    } catch {
+      setError("Nao foi possivel conectar a API local.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6">
+      <section className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
+        <h2 className="text-lg font-semibold text-slate-950">Atualize sua senha</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Para proteger o portal, escolha uma senha de 6 caracteres com letra, numero e caractere
+          especial.
+        </p>
+        <div className="mt-4 space-y-3">
+          <Field label="Nova senha" type="password" value={password} onChange={setPassword} />
+          <Field
+            label="Confirmar senha"
+            type="password"
+            value={confirmation}
+            onChange={setConfirmation}
+          />
+        </div>
+        {error !== null && (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
+        <button
+          className="mt-5 w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!canSubmit}
+          type="button"
+          onClick={() => void submitPassword()}
+        >
+          Salvar nova senha
+        </button>
+      </section>
+    </div>
   );
 }
 
@@ -674,10 +855,12 @@ function VideoConsultationModal({
 function Field({
   label,
   onChange,
+  type = "text",
   value,
 }: Readonly<{
   label: string;
   onChange: (value: string) => void;
+  type?: string;
   value: string;
 }>) {
   return (
@@ -685,6 +868,7 @@ function Field({
       <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
       <input
         className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+        type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

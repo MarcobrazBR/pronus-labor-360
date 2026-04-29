@@ -1,6 +1,8 @@
 import { riskLevelColorClasses, riskLevelLabels } from "@pronus/ui";
+import Link from "next/link";
 import {
   actionStatusClasses,
+  loadClientPasswordResetRequests,
   loadNr01Data,
   loadPsychosocialData,
   loadStructuralData,
@@ -11,10 +13,11 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function PronusDashboardPage() {
-  const [structural, nr01, psychosocial] = await Promise.all([
+  const [structural, nr01, psychosocial, clientResetRequests] = await Promise.all([
     loadStructuralData(),
     loadNr01Data(),
     loadPsychosocialData(),
+    loadClientPasswordResetRequests(),
   ]);
   const pendingEmployees = structural.employees.filter(
     (employee) => employee.registrationStatus === "pending_validation",
@@ -44,6 +47,9 @@ export default async function PronusDashboardPage() {
       detail: `${psychosocial.summary.thresholdReached} com amostra minima`,
     },
   ];
+  const pendingClientResetRequests = clientResetRequests.filter(
+    (request) => request.status === "pending",
+  );
 
   return (
     <>
@@ -60,7 +66,7 @@ export default async function PronusDashboardPage() {
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map((card) => (
           <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
             <p className="text-sm font-medium text-slate-500">{card.label}</p>
@@ -70,6 +76,30 @@ export default async function PronusDashboardPage() {
             <span className="mt-2 block text-sm text-slate-600">{card.detail}</span>
           </article>
         ))}
+        <Link
+          className={`rounded-lg border p-4 transition ${
+            pendingClientResetRequests.length > 0
+              ? "border-red-200 bg-red-50 text-red-800 hover:border-red-300"
+              : "border-slate-200 bg-white text-slate-700"
+          }`}
+          href={
+            pendingClientResetRequests[0] === undefined
+              ? "/empresas"
+              : `/empresas/busca?company=${encodeURIComponent(
+                  pendingClientResetRequests[0].companyTradeName,
+                )}&reset=client-access`
+          }
+        >
+          <p className="text-sm font-medium">Reset Portal RH</p>
+          <strong className="mt-2 block text-3xl font-semibold tracking-normal">
+            {pendingClientResetRequests.length}
+          </strong>
+          <span className="mt-2 block text-sm">
+            {pendingClientResetRequests.length > 0
+              ? "Empresa solicitou nova senha"
+              : "Nenhum pedido pendente"}
+          </span>
+        </Link>
       </section>
 
       <section className="mt-6 grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">

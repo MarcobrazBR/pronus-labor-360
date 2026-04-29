@@ -27,6 +27,7 @@ interface PsychosocialQuestion {
   factor: string;
   prompt: string;
   reverseScored: boolean;
+  options?: Array<{ value: number; label: string }>;
 }
 
 interface PsychosocialCampaign {
@@ -64,12 +65,12 @@ const campaignStatusLabels: Record<CampaignStatus, string> = {
   threshold_reached: "Amostra atingida",
 };
 
-const answerOptions = [
-  { description: "Discordo totalmente", label: "1", value: 1 },
-  { description: "Discordo", label: "2", value: 2 },
-  { description: "Neutro", label: "3", value: 3 },
-  { description: "Concordo", label: "4", value: 4 },
-  { description: "Concordo totalmente", label: "5", value: 5 },
+const defaultAnswerOptions = [
+  { label: "Discordo totalmente", value: 1 },
+  { label: "Discordo", value: 2 },
+  { label: "Neutro", value: 3 },
+  { label: "Concordo", value: 4 },
+  { label: "Concordo totalmente", value: 5 },
 ];
 
 const openCampaignStatuses = new Set<CampaignStatus>(["active", "threshold_reached", "extended"]);
@@ -347,12 +348,14 @@ export function PsychosocialQuestionnairePanel({
           onClick={() => setIsModalOpen(true)}
         >
           <span className="text-sm font-semibold">
-            {isFinalized ? "Pesquisa psicossocial concluida" : "Pesquisa psicossocial pendente"}
+            {isFinalized
+              ? "Pesquisa comportamental concluida"
+              : "Pesquisa comportamental - Clique para responder"}
           </span>
           <span className="mt-1 text-xs">
             {isFinalized
               ? "Registro finalizado. A PRONUS acompanhara os dados de forma agregada."
-              : "Clique para responder o questionario COPSQ. O progresso e salvo a cada resposta."}
+              : "O progresso e salvo automaticamente a cada resposta."}
           </span>
         </button>
       </section>
@@ -453,16 +456,16 @@ export function PsychosocialQuestionnairePanel({
                             </span>
                           </div>
 
-                          <div className="mt-3 grid grid-cols-5 gap-2">
-                            {answerOptions.map((option) => {
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                            {(question.options ?? defaultAnswerOptions).map((option) => {
                               const isSelected = scores[question.id] === option.value;
 
                               return (
                                 <button
                                   key={option.value}
-                                  aria-label={`${option.label} - ${option.description}`}
+                                  aria-label={`${option.value} - ${option.label}`}
                                   aria-pressed={isSelected}
-                                  className={`rounded-md border px-2 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                  className={`min-h-11 rounded-md border px-2 py-2 text-xs font-semibold leading-snug transition disabled:cursor-not-allowed disabled:opacity-60 ${
                                     isSelected
                                       ? "border-pronus-primary bg-pronus-primary text-white"
                                       : "border-slate-300 bg-white text-slate-700 hover:border-pronus-primary"

@@ -2,47 +2,106 @@
 
 import { useState } from "react";
 
-const defaultPassword = "pronu123";
+interface EmployeeLoginResult {
+  employeeId: string;
+  companyTradeName: string;
+  fullName: string;
+  cpf: string;
+  department: string;
+  jobPosition: string;
+  email?: string;
+  phone?: string;
+  registrationStatus: "active" | "pending_validation" | "blocked" | "inactive";
+  registrationConfirmedAt?: string;
+  mustChangePassword?: boolean;
+}
+
+function getApiUrl() {
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+}
+
+function responseMessage(payload: unknown, fallback: string) {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "message" in payload &&
+    typeof payload.message === "string"
+  ) {
+    return payload.message;
+  }
+
+  return fallback;
+}
 
 export default function EmployeeLoginPage() {
-  const [cpf, setCpf] = useState("");
-  const [password, setPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
-  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [cpf, setCpf] = useState("987.654.321-00");
+  const [password, setPassword] = useState("987654");
   const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  function login() {
+  async function login() {
     if (cpf.trim().length === 0 || password.length === 0) {
       setMessage("Informe CPF e senha para acessar.");
       return;
     }
 
-    if (password === defaultPassword) {
-      setMustChangePassword(true);
-      setMessage("Primeiro acesso identificado. Troque a senha para continuar.");
-      return;
-    }
+    setIsLoading(true);
+    setMessage(null);
 
-    setMessage("Credenciais recebidas. A autenticacao real sera ligada ao banco de usuarios.");
+    try {
+      const response = await fetch(`${getApiUrl()}/employee-access/login`, {
+        body: JSON.stringify({ cpf, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = (await response.json()) as EmployeeLoginResult | { message?: string };
+
+      if (!response.ok) {
+        setMessage(responseMessage(payload, "CPF ou senha invalidos."));
+        return;
+      }
+
+      window.localStorage.setItem("pronus:employee-session", JSON.stringify(payload));
+      window.location.href = "/";
+    } catch {
+      setMessage("Nao foi possivel conectar a API local.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function changePassword() {
-    if (newPassword.length < 8) {
-      setMessage("A nova senha deve ter pelo menos 8 caracteres.");
+  async function requestPasswordReset() {
+    if (cpf.trim().length === 0) {
+      setMessage("Informe o CPF para solicitar reset de senha.");
       return;
     }
 
-    if (newPassword !== confirmation) {
-      setMessage("A confirmacao precisa ser igual a nova senha.");
-      return;
-    }
+    setIsLoading(true);
+    setMessage(null);
 
-    setMessage("Senha alterada. O colaborador pode continuar a jornada digital.");
-    setMustChangePassword(false);
-    setPassword("");
-    setNewPassword("");
-    setConfirmation("");
+    try {
+      const response = await fetch(`${getApiUrl()}/employee-access/password-reset-requests`, {
+        body: JSON.stringify({ cpf }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = (await response.json()) as { message?: string };
+
+      if (!response.ok) {
+        setMessage(responseMessage(payload, "Nao foi possivel solicitar o reset."));
+        return;
+      }
+
+      setMessage("Solicitacao enviada ao RH da empresa.");
+    } catch {
+      setMessage("Nao foi possivel conectar a API local.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -54,55 +113,36 @@ export default function EmployeeLoginPage() {
             Acesso do colaborador
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Login por CPF para acessar conferencia cadastral, documentos e questionarios. No
-            primeiro acesso com senha padrao, a troca de senha e obrigatoria.
+            Use CPF e senha. No primeiro acesso, a senha padrao sao os 6 primeiros digitos do CPF.
           </p>
         </div>
 
         <div className="rounded-lg border border-white/70 bg-white p-5 shadow-sm">
           <div className="mb-5 border-b border-slate-200 pb-4">
             <h2 className="text-lg font-semibold">Entrar no portal</h2>
-            <p className="mt-1 text-sm text-slate-500">Use CPF e senha de acesso.</p>
+            <p className="mt-1 text-sm text-slate-500">Teste: CPF 987.654.321-00 / senha 987654.</p>
           </div>
 
           <div className="space-y-3">
             <Field label="CPF" value={cpf} onChange={setCpf} placeholder="000.000.000-00" />
             <Field label="Senha" type="password" value={password} onChange={setPassword} />
             <button
-              className="w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white"
+              className="w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isLoading}
               type="button"
-              onClick={login}
+              onClick={() => void login()}
             >
               Acessar
             </button>
+            <button
+              className="w-full rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isLoading}
+              type="button"
+              onClick={() => void requestPasswordReset()}
+            >
+              Esqueci minha senha
+            </button>
           </div>
-
-          {mustChangePassword && (
-            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <h3 className="text-sm font-semibold text-amber-900">Troca obrigatoria de senha</h3>
-              <div className="mt-3 space-y-3">
-                <Field
-                  label="Nova senha"
-                  type="password"
-                  value={newPassword}
-                  onChange={setNewPassword}
-                />
-                <Field
-                  label="Confirmar senha"
-                  type="password"
-                  value={confirmation}
-                  onChange={setConfirmation}
-                />
-                <button
-                  className="w-full rounded-md bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white"
-                  type="button"
-                  onClick={changePassword}
-                >
-                  Alterar senha
-                </button>
-              </div>
-            </div>
-          )}
 
           {message !== null && (
             <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">

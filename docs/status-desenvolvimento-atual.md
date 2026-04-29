@@ -269,3 +269,18 @@ Estado encontrado:
 - Teste no navegador do Portal PRONUS em `/empresas/busca`, confirmando busca sob demanda, abertura da empresa e aba Psicossocial com prazo, pendencias e PDF.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-colaborador-consultas-2026-04-29.md`.
 - Screenshots desktop atualizados para `portal-colaborador.png`, `portal-rh-cliente.png` e `portal-pronus.png`.
+- API de acesso evoluida com login do colaborador por CPF, login do Portal RH por CNPJ, troca obrigatoria de senha e persistencia local de credenciais/reset em `.data/access-state.json` para testes do MVP.
+- Portal Colaborador ajustado para remover consulta por CPF da tela inicial, exigir login, forcar troca de senha no primeiro acesso, esconder regras internas de vagas/limites e mostrar a pesquisa como "Pesquisa comportamental - Clique para responder".
+- Questionario COPSOQ atualizado a partir da planilha `questionario COPSOQ.xlsx`, com 46 perguntas e opcoes por pergunta.
+- Portal RH Cliente recebeu card vermelho de pedidos de reset de senha do colaborador, com modal de resolucao e retorno da senha ao padrao.
+- Portal PRONUS recebeu card vermelho de reset do Portal RH, abrindo diretamente a empresa em Busca Empresa e exibindo acao de reset ao lado do nome da empresa.
+- CORS da API passou a aceitar `ALLOWED_ORIGINS`, preparando demonstracoes externas com tunnel ou deploy.
+- Documentado o plano de acesso externo para investidores em `docs/acesso-externo-demo-investidores.md`.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-acesso-reset-portal-cliente-2026-04-29.md`.
+- Typecheck completo do monorepo apos login/reset/COPSOQ.
+- Build completo do monorepo apos login/reset/COPSOQ.
+- Teste HTTP de login do colaborador, login do Portal RH, criacao de pedido de reset do colaborador e criacao de pedido de reset do Portal RH.
+- Teste no navegador do Portal Colaborador confirmando login, troca obrigatoria de senha, consultas desabilitadas quando necessario e pesquisa comportamental.
+- Teste no navegador do Portal RH confirmando card de reset do colaborador e modal de troca obrigatoria de senha.
+- Teste no navegador do Portal PRONUS confirmando card de reset do Portal RH e abertura direta da empresa.
+- Screenshots desktop atualizados para os tres portais e tres telas de login em `docs/assets/screenshots/`.

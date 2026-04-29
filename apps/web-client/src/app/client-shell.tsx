@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { ClientPasswordGuard } from "./client-password-guard";
 
 const navigationItems = [
   { href: "/", label: "PAINEL" },
@@ -26,9 +28,44 @@ export function ClientShell({
   companyName,
 }: Readonly<{ children: ReactNode; companyName: string }>) {
   const pathname = usePathname();
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (pathname.startsWith("/login")) {
+      return;
+    }
+
+    setHasSession(window.localStorage.getItem("pronus:client-session") !== null);
+  }, [pathname]);
 
   if (pathname.startsWith("/login")) {
     return <>{children}</>;
+  }
+
+  if (hasSession === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-pronus-background px-5 text-sm text-slate-600">
+        Carregando acesso do Portal RH...
+      </div>
+    );
+  }
+
+  if (!hasSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-pronus-background px-5 text-center">
+        <section className="w-full max-w-md rounded-lg border border-white/70 bg-white p-6 shadow-sm">
+          <img alt="Pronus Labor" className="mx-auto h-16 w-auto" src="/brand/pronus-logo.png" />
+          <h1 className="mt-5 text-xl font-semibold text-slate-950">Portal RH</h1>
+          <p className="mt-2 text-sm text-slate-600">Entre pelo login para acessar a empresa.</p>
+          <Link
+            className="mt-5 inline-flex rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white"
+            href="/login"
+          >
+            Ir para login
+          </Link>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -110,7 +147,10 @@ export function ClientShell({
             </nav>
           </div>
 
-          <main className="pb-8">{children}</main>
+          <main className="pb-8">
+            <ClientPasswordGuard />
+            {children}
+          </main>
         </div>
       </div>
     </div>

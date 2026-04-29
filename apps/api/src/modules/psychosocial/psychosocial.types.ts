@@ -15,6 +15,10 @@ export interface PsychosocialQuestion {
   factor: string;
   prompt: string;
   reverseScored: boolean;
+  options: Array<{
+    value: number;
+    label: string;
+  }>;
 }
 
 export interface PsychosocialCampaign {

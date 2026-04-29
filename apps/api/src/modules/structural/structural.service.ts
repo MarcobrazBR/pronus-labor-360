@@ -4,16 +4,26 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 import type {
+  ClientAccessLoginInput,
+  ClientAccessPasswordChangeInput,
+  ClientAccessProfile,
+  ClientPasswordResetRequest,
+  ClientPasswordResetRequestInput,
   CompanyContractStatus,
+  CreateEmployeeMovementInput,
   CreateStructuralCompanyInput,
   CreateStructuralDepartmentInput,
-  CreateEmployeeMovementInput,
   CreateStructuralEmployeeInput,
   CreateStructuralJobPositionInput,
   CreateStructuralUnitInput,
+  EmployeeAccessConfirmRegistrationInput,
+  EmployeeAccessLoginInput,
   EmployeeAccessLookupInput,
+  EmployeeAccessPasswordChangeInput,
   EmployeeAccessProfile,
   EmployeeDivergenceChange,
   EmployeeDivergenceRequest,
@@ -22,6 +32,8 @@ import type {
   EmployeeMovementSource,
   EmployeeMovementStatus,
   EmployeeMovementType,
+  EmployeePasswordResetRequest,
+  EmployeePasswordResetRequestInput,
   ImportStructuralEmployeesInput,
   StructuralAudience,
   StructuralCompany,
@@ -34,9 +46,9 @@ import type {
   StructuralSummary,
   SubmitEmployeeDivergenceInput,
   UpdateEmployeeMovementInput,
+  UpdateEmployeeDivergenceInput,
   UpdateStructuralCompanyInput,
   UpdateStructuralDepartmentInput,
-  UpdateEmployeeDivergenceInput,
   UpdateStructuralEmployeeInput,
   UpdateStructuralJobPositionInput,
   UpdateStructuralUnitInput,
@@ -68,6 +80,27 @@ const divergenceStatuses = new Set<EmployeeDivergenceStatus>(["pending", "approv
 const movementStatuses = new Set<EmployeeMovementStatus>(["pending", "approved", "rejected"]);
 const movementSources = new Set<EmployeeMovementSource>(["client_portal", "pronus_portal"]);
 const movementTypes = new Set<EmployeeMovementType>(["inclusion", "update", "termination"]);
+const passwordResetStatuses = new Set(["pending", "completed"]);
+
+type AccessKind = "employee" | "client";
+
+interface AccessCredential {
+  subjectId: string;
+  passwordHash: string;
+  mustChangePassword: boolean;
+  updatedAt: string;
+}
+
+interface AccessStorageState {
+  employeeCredentials: AccessCredential[];
+  clientCredentials: AccessCredential[];
+  employeeResetRequests: EmployeePasswordResetRequest[];
+  clientResetRequests: ClientPasswordResetRequest[];
+  employeeRegistrationConfirmations: Array<{
+    employeeId: string;
+    confirmedAt: string;
+  }>;
+}
 
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
@@ -237,6 +270,71 @@ function optionalDigits(value: unknown, field: string, length?: number): string 
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function accessStatePath(): string {
+  return join(process.cwd(), ".data", "access-state.json");
+}
+
+function emptyAccessState(): AccessStorageState {
+  return {
+    clientCredentials: [],
+    clientResetRequests: [],
+    employeeCredentials: [],
+    employeeRegistrationConfirmations: [],
+    employeeResetRequests: [],
+  };
+}
+
+function loadAccessState(): AccessStorageState {
+  const filePath = accessStatePath();
+
+  if (!existsSync(filePath)) {
+    return emptyAccessState();
+  }
+
+  try {
+    return {
+      ...emptyAccessState(),
+      ...(JSON.parse(readFileSync(filePath, "utf8")) as Partial<AccessStorageState>),
+    };
+  } catch {
+    return emptyAccessState();
+  }
+}
+
+function saveAccessState(state: AccessStorageState): void {
+  const filePath = accessStatePath();
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, JSON.stringify(state, null, 2), "utf8");
+}
+
+function hashPassword(kind: AccessKind, subjectId: string, password: string): string {
+  return createHash("sha256").update(`${kind}:${subjectId}:${password}`).digest("hex");
+}
+
+function defaultEmployeePassword(cpf: string): string {
+  return onlyDigits(cpf).slice(0, 6);
+}
+
+function defaultClientPassword(cnpj: string): string {
+  return onlyDigits(cnpj).slice(0, 6);
+}
+
+function validateNewPassword(value: unknown): string {
+  const password = requireText(value, "newPassword");
+
+  if (password.length !== 6) {
+    throw new BadRequestException("A nova senha deve ter exatamente 6 caracteres");
+  }
+
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+    throw new BadRequestException(
+      "A nova senha deve conter letras, numeros e caracteres especiais",
+    );
+  }
+
+  return password;
 }
 
 function movementSlaDueAt(createdAt: string): string {
@@ -752,6 +850,8 @@ const employeeMovements: EmployeeMovementRequest[] = [
   },
 ];
 
+const accessState = loadAccessState();
+
 @Injectable()
 export class StructuralService {
   getSummary(): StructuralSummary {
@@ -770,6 +870,233 @@ export class StructuralService {
         (employee) => employee.registrationStatus === "pending_validation",
       ).length,
     };
+  }
+
+  loginEmployeeAccess(input: EmployeeAccessLoginInput): EmployeeAccessProfile {
+    const cpf = normalizeCpf(input.cpf);
+    const employee = employees.find((item) => onlyDigits(item.cpf) === onlyDigits(cpf));
+
+    if (employee === undefined || employee.registrationStatus === "inactive") {
+      throw new NotFoundException("CPF nao encontrado na base de clientes");
+    }
+
+    const credential = this.ensureEmployeeCredential(employee);
+
+    if (
+      credential.passwordHash !==
+      hashPassword("employee", employee.id, requireText(input.password, "password"))
+    ) {
+      throw new BadRequestException("CPF ou senha invalidos");
+    }
+
+    return this.toEmployeeAccessProfile(employee);
+  }
+
+  changeEmployeePassword(input: EmployeeAccessPasswordChangeInput): EmployeeAccessProfile {
+    const employee = this.findEmployee(input.employeeId);
+    const newPassword = validateNewPassword(input.newPassword);
+    const credential = this.ensureEmployeeCredential(employee);
+    const updatedAt = now();
+
+    credential.passwordHash = hashPassword("employee", employee.id, newPassword);
+    credential.mustChangePassword = false;
+    credential.updatedAt = updatedAt;
+    employee.updatedAt = updatedAt;
+    saveAccessState(accessState);
+
+    return this.toEmployeeAccessProfile(employee);
+  }
+
+  confirmEmployeeRegistration(
+    input: EmployeeAccessConfirmRegistrationInput,
+  ): EmployeeAccessProfile {
+    const employee = this.findEmployee(input.employeeId);
+    const confirmedAt = now();
+    const existing = accessState.employeeRegistrationConfirmations.find(
+      (item) => item.employeeId === employee.id,
+    );
+
+    if (existing === undefined) {
+      accessState.employeeRegistrationConfirmations.push({
+        confirmedAt,
+        employeeId: employee.id,
+      });
+    } else {
+      existing.confirmedAt = existing.confirmedAt ?? confirmedAt;
+    }
+
+    employee.registrationConfirmedAt = confirmedAt;
+    employee.registrationStatus = "active";
+    employee.updatedAt = confirmedAt;
+    saveAccessState(accessState);
+
+    return this.toEmployeeAccessProfile(employee);
+  }
+
+  listEmployeePasswordResetRequests(): EmployeePasswordResetRequest[] {
+    return accessState.employeeResetRequests;
+  }
+
+  requestEmployeePasswordReset(
+    input: EmployeePasswordResetRequestInput,
+  ): EmployeePasswordResetRequest {
+    const cpf = normalizeCpf(input.cpf);
+    const employee = employees.find((item) => onlyDigits(item.cpf) === onlyDigits(cpf));
+
+    if (employee === undefined || employee.registrationStatus === "inactive") {
+      throw new NotFoundException("CPF nao encontrado na base de clientes");
+    }
+
+    const existing = accessState.employeeResetRequests.find(
+      (item) => item.employeeId === employee.id && item.status === "pending",
+    );
+
+    if (existing !== undefined) {
+      return existing;
+    }
+
+    const requestedAt = now();
+    const request: EmployeePasswordResetRequest = {
+      id: randomUUID(),
+      companyTradeName: employee.companyTradeName,
+      cpf: employee.cpf,
+      employeeId: employee.id,
+      fullName: employee.fullName,
+      requestedAt,
+      status: "pending",
+    };
+
+    accessState.employeeResetRequests.unshift(request);
+    saveAccessState(accessState);
+    return request;
+  }
+
+  resolveEmployeePasswordReset(id: string): EmployeePasswordResetRequest {
+    const request = accessState.employeeResetRequests.find((item) => item.id === id);
+
+    if (request === undefined) {
+      throw new NotFoundException("Pedido de reset nao encontrado");
+    }
+
+    const status = "completed";
+
+    if (!passwordResetStatuses.has(status)) {
+      throw new BadRequestException("Status de reset invalido");
+    }
+
+    const employee = this.findEmployee(request.employeeId);
+    const credential = this.ensureEmployeeCredential(employee);
+    const resolvedAt = now();
+
+    credential.passwordHash = hashPassword(
+      "employee",
+      employee.id,
+      defaultEmployeePassword(employee.cpf),
+    );
+    credential.mustChangePassword = true;
+    credential.updatedAt = resolvedAt;
+    request.status = status;
+    request.resolvedAt = resolvedAt;
+    employee.updatedAt = resolvedAt;
+    saveAccessState(accessState);
+
+    return request;
+  }
+
+  loginClientAccess(input: ClientAccessLoginInput): ClientAccessProfile {
+    const cnpj = normalizeCnpj(input.cnpj);
+    const company = companies.find((item) => onlyDigits(item.cnpj) === onlyDigits(cnpj));
+
+    if (company === undefined || company.status === "inactive") {
+      throw new NotFoundException("CNPJ nao encontrado na base de empresas");
+    }
+
+    const credential = this.ensureClientCredential(company);
+
+    if (
+      credential.passwordHash !==
+      hashPassword("client", company.id, requireText(input.password, "password"))
+    ) {
+      throw new BadRequestException("CNPJ ou senha invalidos");
+    }
+
+    return this.toClientAccessProfile(company);
+  }
+
+  changeClientPassword(input: ClientAccessPasswordChangeInput): ClientAccessProfile {
+    const company = this.findCompany(input.companyId);
+    const newPassword = validateNewPassword(input.newPassword);
+    const credential = this.ensureClientCredential(company);
+    const updatedAt = now();
+
+    credential.passwordHash = hashPassword("client", company.id, newPassword);
+    credential.mustChangePassword = false;
+    credential.updatedAt = updatedAt;
+    company.updatedAt = updatedAt;
+    saveAccessState(accessState);
+
+    return this.toClientAccessProfile(company);
+  }
+
+  listClientPasswordResetRequests(): ClientPasswordResetRequest[] {
+    return accessState.clientResetRequests;
+  }
+
+  requestClientPasswordReset(input: ClientPasswordResetRequestInput): ClientPasswordResetRequest {
+    const cnpj = normalizeCnpj(input.cnpj);
+    const company = companies.find((item) => onlyDigits(item.cnpj) === onlyDigits(cnpj));
+
+    if (company === undefined || company.status === "inactive") {
+      throw new NotFoundException("CNPJ nao encontrado na base de empresas");
+    }
+
+    const existing = accessState.clientResetRequests.find(
+      (item) => item.companyId === company.id && item.status === "pending",
+    );
+
+    if (existing !== undefined) {
+      return existing;
+    }
+
+    const requestedAt = now();
+    const request: ClientPasswordResetRequest = {
+      id: randomUUID(),
+      cnpj: company.cnpj,
+      companyId: company.id,
+      companyTradeName: company.tradeName,
+      requestedAt,
+      status: "pending",
+    };
+
+    accessState.clientResetRequests.unshift(request);
+    saveAccessState(accessState);
+    return request;
+  }
+
+  resolveClientPasswordReset(id: string): ClientPasswordResetRequest {
+    const request = accessState.clientResetRequests.find((item) => item.id === id);
+
+    if (request === undefined) {
+      throw new NotFoundException("Pedido de reset da empresa nao encontrado");
+    }
+
+    const company = this.findCompany(request.companyId);
+    const credential = this.ensureClientCredential(company);
+    const resolvedAt = now();
+
+    credential.passwordHash = hashPassword(
+      "client",
+      company.id,
+      defaultClientPassword(company.cnpj),
+    );
+    credential.mustChangePassword = true;
+    credential.updatedAt = resolvedAt;
+    request.status = "completed";
+    request.resolvedAt = resolvedAt;
+    company.updatedAt = resolvedAt;
+    saveAccessState(accessState);
+
+    return request;
   }
 
   listCompanies(): StructuralCompany[] {
@@ -1553,7 +1880,17 @@ export class StructuralService {
 
     employeeDivergences.unshift(divergence);
     employee.registrationStatus = "blocked";
+    employee.registrationConfirmedAt = createdAt;
     employee.updatedAt = createdAt;
+    if (
+      accessState.employeeRegistrationConfirmations.every((item) => item.employeeId !== employee.id)
+    ) {
+      accessState.employeeRegistrationConfirmations.push({
+        confirmedAt: createdAt,
+        employeeId: employee.id,
+      });
+    }
+    saveAccessState(accessState);
 
     return divergence;
   }
@@ -1670,6 +2007,40 @@ export class StructuralService {
     };
   }
 
+  private ensureEmployeeCredential(employee: StructuralEmployee): AccessCredential {
+    let credential = accessState.employeeCredentials.find((item) => item.subjectId === employee.id);
+
+    if (credential === undefined) {
+      credential = {
+        mustChangePassword: true,
+        passwordHash: hashPassword("employee", employee.id, defaultEmployeePassword(employee.cpf)),
+        subjectId: employee.id,
+        updatedAt: now(),
+      };
+      accessState.employeeCredentials.push(credential);
+      saveAccessState(accessState);
+    }
+
+    return credential;
+  }
+
+  private ensureClientCredential(company: StructuralCompany): AccessCredential {
+    let credential = accessState.clientCredentials.find((item) => item.subjectId === company.id);
+
+    if (credential === undefined) {
+      credential = {
+        mustChangePassword: true,
+        passwordHash: hashPassword("client", company.id, defaultClientPassword(company.cnpj)),
+        subjectId: company.id,
+        updatedAt: now(),
+      };
+      accessState.clientCredentials.push(credential);
+      saveAccessState(accessState);
+    }
+
+    return credential;
+  }
+
   private findCompany(id: string): StructuralCompany {
     const company = companies.find((item) => item.id === id);
 
@@ -1767,6 +2138,11 @@ export class StructuralService {
   }
 
   private toEmployeeAccessProfile(employee: StructuralEmployee): EmployeeAccessProfile {
+    const credential = this.ensureEmployeeCredential(employee);
+    const confirmation = accessState.employeeRegistrationConfirmations.find(
+      (item) => item.employeeId === employee.id,
+    );
+
     return {
       employeeId: employee.id,
       companyTradeName: employee.companyTradeName,
@@ -1777,6 +2153,19 @@ export class StructuralService {
       email: employee.email,
       phone: employee.phone,
       registrationStatus: employee.registrationStatus,
+      registrationConfirmedAt: employee.registrationConfirmedAt ?? confirmation?.confirmedAt,
+      mustChangePassword: credential.mustChangePassword,
+    };
+  }
+
+  private toClientAccessProfile(company: StructuralCompany): ClientAccessProfile {
+    const credential = this.ensureClientCredential(company);
+
+    return {
+      cnpj: company.cnpj,
+      companyId: company.id,
+      companyTradeName: company.tradeName,
+      mustChangePassword: credential.mustChangePassword,
     };
   }
 

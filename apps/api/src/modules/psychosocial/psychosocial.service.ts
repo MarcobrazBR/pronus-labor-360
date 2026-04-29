@@ -12,6 +12,7 @@ import type {
   SubmitPsychosocialAnswerInput,
   UpdatePsychosocialCampaignInput,
 } from "./psychosocial.types";
+import { copsoqQuestions } from "./copsoq-questions";
 
 const campaignStatuses = new Set<PsychosocialCampaignStatus>([
   "draft",
@@ -133,50 +134,7 @@ function riskScoreForQuestion(question: PsychosocialQuestion, score: number): nu
 
 const startedAt = now();
 
-const questions: PsychosocialQuestion[] = [
-  {
-    id: "question-demanda-trabalho",
-    order: 1,
-    factor: "Demanda de trabalho",
-    prompt: "A carga de trabalho tem sido administravel na maior parte do tempo.",
-    reverseScored: true,
-  },
-  {
-    id: "question-autonomia",
-    order: 2,
-    factor: "Autonomia",
-    prompt: "Tenho clareza e autonomia suficiente para realizar minhas atividades.",
-    reverseScored: true,
-  },
-  {
-    id: "question-apoio-lideranca",
-    order: 3,
-    factor: "Apoio da lideranca",
-    prompt: "Recebo apoio adequado da lideranca em situacoes de pressao.",
-    reverseScored: true,
-  },
-  {
-    id: "question-conflito",
-    order: 4,
-    factor: "Conflitos e assedio",
-    prompt: "Tenho vivenciado conflitos, tratamento inadequado ou situacoes constrangedoras.",
-    reverseScored: false,
-  },
-  {
-    id: "question-reconhecimento",
-    order: 5,
-    factor: "Reconhecimento",
-    prompt: "Sinto que meu trabalho e reconhecido de forma justa.",
-    reverseScored: true,
-  },
-  {
-    id: "question-esgotamento",
-    order: 6,
-    factor: "Esgotamento",
-    prompt: "Tenho terminado o dia de trabalho com sensacao frequente de esgotamento.",
-    reverseScored: false,
-  },
-];
+const questions: PsychosocialQuestion[] = copsoqQuestions;
 
 const campaigns: PsychosocialCampaign[] = [
   {

@@ -30,6 +30,7 @@ docs/assets/screenshots/
 Capturas atuais:
 
 - `portal-pronus.png`
+- `portal-pronus-empresa-reset.png`
 - `portal-rh-cliente.png`
 - `portal-colaborador.png`
 - `login-pronus.png`

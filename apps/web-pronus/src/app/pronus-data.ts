@@ -132,6 +132,16 @@ export interface StructuralJobPosition {
   status: StructuralStatus;
 }
 
+export interface ClientPasswordResetRequest {
+  id: string;
+  companyId: string;
+  companyTradeName: string;
+  cnpj: string;
+  status: "pending" | "completed";
+  requestedAt: string;
+  resolvedAt?: string;
+}
+
 export interface Nr01Summary {
   risks: number;
   criticalRisks: number;
@@ -1244,6 +1254,10 @@ export async function loadRegulatoryIntelligenceData() {
   ]);
 
   return { cnaes, riskDegrees, obligations };
+}
+
+export async function loadClientPasswordResetRequests() {
+  return fetchApi<ClientPasswordResetRequest[]>("/client-access/password-reset-requests", []);
 }
 
 export function statusClasses(status: StructuralStatus) {
