@@ -11,7 +11,9 @@ import {
   type EmployeeMovement,
   type EmployeeMovementStatus,
   type StructuralCompany,
+  type StructuralDepartment,
   type StructuralEmployee,
+  type StructuralJobPosition,
   type StructuralStatus,
 } from "../../pronus-data";
 
@@ -25,16 +27,21 @@ const statusOptions: Array<{ label: string; value: StructuralStatus | "all" }> =
 
 type ClientInclusionForm = {
   birthDate: string;
+  cboCode: string;
   companyId: string;
   cpf: string;
   department: string;
+  departmentId: string;
   email: string;
   fullName: string;
   inclusionDate: string;
   jobPosition: string;
+  jobPositionId: string;
   notes: string;
   phone: string;
 };
+
+const clientAudiences = new Set(["client", "client_hr", "client_manager"]);
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -43,13 +50,16 @@ function todayIso() {
 function emptyInclusionForm(companies: StructuralCompany[]): ClientInclusionForm {
   return {
     birthDate: "",
+    cboCode: "",
     companyId: companies[0]?.id ?? "",
     cpf: "",
     department: "",
+    departmentId: "",
     email: "",
     fullName: "",
     inclusionDate: todayIso(),
     jobPosition: "",
+    jobPositionId: "",
     notes: "",
     phone: "",
   };
@@ -71,11 +81,15 @@ function dateLabel(value: string | undefined) {
 
 export function CompanyClientsPanel({
   companies,
+  departments,
   employees,
+  jobPositions,
   movements,
 }: Readonly<{
   companies: StructuralCompany[];
+  departments: StructuralDepartment[];
   employees: StructuralEmployee[];
+  jobPositions: StructuralJobPosition[];
   movements: EmployeeMovement[];
 }>) {
   const router = useRouter();
@@ -98,6 +112,37 @@ export function CompanyClientsPanel({
     () => currentMovements.filter((movement) => movement.status === "pending"),
     [currentMovements],
   );
+
+  const selectedCompany = useMemo(
+    () => companies.find((company) => company.id === inclusionForm.companyId),
+    [companies, inclusionForm.companyId],
+  );
+
+  const catalogDepartments = useMemo(() => {
+    const companyName = selectedCompany?.tradeName;
+
+    return departments
+      .filter(
+        (department) =>
+          department.status === "active" &&
+          clientAudiences.has(department.audience) &&
+          (companyName === undefined || department.companyTradeName === companyName),
+      )
+      .sort((first, second) => first.name.localeCompare(second.name));
+  }, [departments, selectedCompany?.tradeName]);
+
+  const catalogJobPositions = useMemo(() => {
+    const companyName = selectedCompany?.tradeName;
+
+    return jobPositions
+      .filter(
+        (jobPosition) =>
+          jobPosition.status === "active" &&
+          clientAudiences.has(jobPosition.audience) &&
+          (companyName === undefined || jobPosition.companyTradeName === companyName),
+      )
+      .sort((first, second) => first.title.localeCompare(second.title));
+  }, [jobPositions, selectedCompany?.tradeName]);
 
   const filteredEmployees = useMemo(() => {
     if (!hasSearched) {
@@ -146,6 +191,62 @@ export function CompanyClientsPanel({
   }
 
   function updateInclusionForm(field: keyof ClientInclusionForm, value: string) {
+    if (field === "companyId") {
+      setInclusionForm((current) => ({
+        ...current,
+        cboCode: "",
+        companyId: value,
+        department: "",
+        departmentId: "",
+        jobPosition: "",
+        jobPositionId: "",
+      }));
+      return;
+    }
+
+    if (field === "departmentId") {
+      const selectedDepartment = catalogDepartments.find((department) => department.id === value);
+
+      setInclusionForm((current) => ({
+        ...current,
+        department: selectedDepartment?.name ?? "",
+        departmentId: value,
+        jobPosition: "",
+        jobPositionId: "",
+        cboCode: "",
+      }));
+      return;
+    }
+
+    if (field === "jobPositionId") {
+      if (value === "manual" || value === "") {
+        setInclusionForm((current) => ({
+          ...current,
+          cboCode: "",
+          jobPosition: "",
+          jobPositionId: value,
+        }));
+        return;
+      }
+
+      const selectedJobPosition = catalogJobPositions.find(
+        (jobPosition) => jobPosition.id === value,
+      );
+      const matchingDepartment = catalogDepartments.find(
+        (department) => department.name === selectedJobPosition?.departmentName,
+      );
+
+      setInclusionForm((current) => ({
+        ...current,
+        cboCode: selectedJobPosition?.cboCode ?? current.cboCode,
+        department: selectedJobPosition?.departmentName ?? current.department,
+        departmentId: matchingDepartment?.id ?? current.departmentId,
+        jobPosition: selectedJobPosition?.title ?? "",
+        jobPositionId: value,
+      }));
+      return;
+    }
+
     setInclusionForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -163,12 +264,13 @@ export function CompanyClientsPanel({
       inclusionForm.cpf,
       inclusionForm.department,
       inclusionForm.jobPosition,
+      inclusionForm.cboCode,
     ].every((value) => value.trim().length > 0);
   }
 
   async function submitInclusion() {
     if (!validateInclusion()) {
-      setMessage("Preencha empresa, nome, CPF, setor e cargo para incluir o cliente.");
+      setMessage("Preencha empresa, nome, CPF, setor, cargo e CBO para incluir o cliente.");
       return;
     }
 
@@ -180,6 +282,7 @@ export function CompanyClientsPanel({
       const response = await fetch(`${apiUrl}/structural/employee-movements`, {
         body: JSON.stringify({
           birthDate: inclusionForm.birthDate,
+          cboCode: inclusionForm.cboCode,
           companyId: inclusionForm.companyId,
           cpf: inclusionForm.cpf,
           department: inclusionForm.department,
@@ -378,6 +481,7 @@ export function CompanyClientsPanel({
                   <p className="mt-1 text-sm text-slate-600">
                     {client.cpf ?? "CPF pendente"} / {client.companyTradeName} / {client.department}{" "}
                     / {client.jobPosition}
+                    {client.cboCode ? ` / CBO ${client.cboCode}` : ""}
                   </p>
                 </div>
                 <div className="text-sm text-slate-500">
@@ -428,6 +532,7 @@ export function CompanyClientsPanel({
                   <p className="mt-1 text-sm text-slate-600">
                     {movement.cpf} / {movement.companyTradeName} / {movement.department} /{" "}
                     {movement.jobPosition}
+                    {movement.cboCode ? ` / CBO ${movement.cboCode}` : ""}
                   </p>
                   <p className="mt-1 text-xs font-medium text-slate-500">
                     SLA {dateLabel(movement.slaDueAt)} / origem{" "}
@@ -466,6 +571,8 @@ export function CompanyClientsPanel({
 
       {isInclusionOpen && (
         <ClientInclusionModal
+          catalogDepartments={catalogDepartments}
+          catalogJobPositions={catalogJobPositions}
           companies={companies}
           form={inclusionForm}
           isSaving={isSaving}
@@ -479,6 +586,8 @@ export function CompanyClientsPanel({
 }
 
 function ClientInclusionModal({
+  catalogDepartments,
+  catalogJobPositions,
   companies,
   form,
   isSaving,
@@ -486,6 +595,8 @@ function ClientInclusionModal({
   onSubmit,
   onUpdate,
 }: Readonly<{
+  catalogDepartments: StructuralDepartment[];
+  catalogJobPositions: StructuralJobPosition[];
   companies: StructuralCompany[];
   form: ClientInclusionForm;
   isSaving: boolean;
@@ -493,6 +604,17 @@ function ClientInclusionModal({
   onSubmit: () => void;
   onUpdate: (field: keyof ClientInclusionForm, value: string) => void;
 }>) {
+  const availableJobPositions = useMemo(() => {
+    if (form.department.trim().length === 0) {
+      return catalogJobPositions;
+    }
+
+    return catalogJobPositions.filter(
+      (jobPosition) =>
+        jobPosition.departmentName === undefined || jobPosition.departmentName === form.department,
+    );
+  }, [catalogJobPositions, form.department]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 px-4 py-6">
       <div className="w-full max-w-3xl rounded-lg border border-slate-200 bg-white shadow-xl">
@@ -533,15 +655,46 @@ function ClientInclusionModal({
             onChange={(value) => onUpdate("fullName", value)}
           />
           <Field label="CPF" value={form.cpf} onChange={(value) => onUpdate("cpf", value)} />
-          <Field
-            label="Setor"
-            value={form.department}
-            onChange={(value) => onUpdate("department", value)}
+
+          <CatalogSelect
+            label="Setor cadastrado"
+            manualLabel="Informar setor manualmente"
+            options={catalogDepartments.map((department) => ({
+              label: `${department.name}${department.code ? ` / ${department.code}` : ""}`,
+              value: department.id,
+            }))}
+            value={form.departmentId}
+            onChange={(value) => onUpdate("departmentId", value)}
           />
+          {form.departmentId === "manual" && (
+            <Field
+              label="Setor informado"
+              value={form.department}
+              onChange={(value) => onUpdate("department", value)}
+            />
+          )}
+
+          <CatalogSelect
+            label="Cargo cadastrado"
+            manualLabel="Informar cargo manualmente"
+            options={availableJobPositions.map((jobPosition) => ({
+              label: `${jobPosition.title}${jobPosition.cboCode ? ` / CBO ${jobPosition.cboCode}` : ""}`,
+              value: jobPosition.id,
+            }))}
+            value={form.jobPositionId}
+            onChange={(value) => onUpdate("jobPositionId", value)}
+          />
+          {form.jobPositionId === "manual" && (
+            <Field
+              label="Cargo informado"
+              value={form.jobPosition}
+              onChange={(value) => onUpdate("jobPosition", value)}
+            />
+          )}
           <Field
-            label="Cargo"
-            value={form.jobPosition}
-            onChange={(value) => onUpdate("jobPosition", value)}
+            label="CBO"
+            value={form.cboCode}
+            onChange={(value) => onUpdate("cboCode", value)}
           />
           <Field
             label="Data nascimento"
@@ -613,6 +766,39 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+    </label>
+  );
+}
+
+function CatalogSelect({
+  label,
+  manualLabel,
+  onChange,
+  options,
+  value,
+}: Readonly<{
+  label: string;
+  manualLabel: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}>) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
+      <select
+        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">Selecionar</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+        <option value="manual">{manualLabel}</option>
+      </select>
     </label>
   );
 }

@@ -5,6 +5,12 @@ export type CompanyContractStatus =
   | "active"
   | "suspended"
   | "closed";
+export type StructuralAudience =
+  | "client"
+  | "client_hr"
+  | "client_manager"
+  | "pronus_administrative"
+  | "pronus_clinical";
 
 export interface StructuralCompany {
   id: string;
@@ -32,7 +38,30 @@ export interface StructuralEmployee {
   exclusionDate?: string;
   department: string;
   jobPosition: string;
+  cboCode?: string;
   registrationStatus: StructuralStatus;
+}
+
+export interface StructuralDepartment {
+  id: string;
+  companyTradeName?: string;
+  unitName?: string;
+  name: string;
+  code?: string;
+  audience: StructuralAudience;
+  status: StructuralStatus;
+}
+
+export interface StructuralJobPosition {
+  id: string;
+  companyTradeName?: string;
+  departmentName?: string;
+  title: string;
+  audience: StructuralAudience;
+  eSocialCode?: string;
+  cboCode?: string;
+  description?: string;
+  status: StructuralStatus;
 }
 
 export type DivergenceStatus = "pending" | "approved" | "rejected";
@@ -70,6 +99,7 @@ export interface EmployeeMovement {
   exclusionDate?: string;
   department: string;
   jobPosition: string;
+  cboCode?: string;
   email?: string;
   phone?: string;
   notes?: string;
@@ -167,8 +197,10 @@ export interface ClientPortalData {
   companies: StructuralCompany[];
   divergences: EmployeeDivergence[];
   documents: PronusDocument[];
+  departments: StructuralDepartment[];
   employees: StructuralEmployee[];
   employeeMovements: EmployeeMovement[];
+  jobPositions: StructuralJobPosition[];
   psychosocialCampaigns: PsychosocialCampaign[];
   psychosocialSignals: PsychosocialSectorSignal[];
   risks: Nr01Risk[];
@@ -302,6 +334,7 @@ const fallbackEmployees: StructuralEmployee[] = [
     id: "employee-001",
     inclusionDate: "2026-01-05",
     jobPosition: "Operadora de Maquina",
+    cboCode: "7842-05",
     registrationStatus: "active",
   },
   {
@@ -312,6 +345,7 @@ const fallbackEmployees: StructuralEmployee[] = [
     id: "employee-002",
     inclusionDate: "2026-01-05",
     jobPosition: "Tecnico de Seguranca",
+    cboCode: "3516-05",
     registrationStatus: "pending_validation",
   },
   {
@@ -322,7 +356,71 @@ const fallbackEmployees: StructuralEmployee[] = [
     id: "employee-003",
     inclusionDate: "2026-02-12",
     jobPosition: "Supervisora de Loja",
+    cboCode: "5201-10",
     registrationStatus: "active",
+  },
+];
+
+const fallbackDepartments: StructuralDepartment[] = [
+  {
+    companyTradeName: "Industria Horizonte",
+    id: "department-horizonte-producao",
+    name: "Producao",
+    code: "PROD",
+    audience: "client",
+    status: "active",
+    unitName: "Matriz",
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    id: "department-horizonte-manutencao",
+    name: "Manutencao",
+    code: "MAN",
+    audience: "client",
+    status: "active",
+    unitName: "Matriz",
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    id: "department-horizonte-rh",
+    name: "Recursos Humanos",
+    code: "RH",
+    audience: "client_hr",
+    status: "active",
+    unitName: "Centro de Distribuicao",
+  },
+];
+
+const fallbackJobPositions: StructuralJobPosition[] = [
+  {
+    companyTradeName: "Industria Horizonte",
+    departmentName: "Producao",
+    id: "job-horizonte-operadora-maquina",
+    title: "Operadora de Maquina",
+    audience: "client",
+    eSocialCode: "CARGO-001",
+    cboCode: "7842-05",
+    status: "active",
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    departmentName: "Manutencao",
+    id: "job-horizonte-tecnico-seguranca",
+    title: "Tecnico de Seguranca",
+    audience: "client",
+    eSocialCode: "CARGO-002",
+    cboCode: "3516-05",
+    status: "active",
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    departmentName: "Recursos Humanos",
+    id: "job-horizonte-analista-rh",
+    title: "Analista de RH",
+    audience: "client_hr",
+    eSocialCode: "CARGO-007",
+    cboCode: "2524-05",
+    status: "active",
   },
 ];
 
@@ -349,6 +447,7 @@ const fallbackEmployeeMovements: EmployeeMovement[] = [
     fullName: "Rafael Moreira Lima",
     id: "movement-horizonte-update-001",
     jobPosition: "Tecnico de Seguranca",
+    cboCode: "3516-05",
     notes: "RH solicitou atualizacao de telefone antes do proximo exame periodico.",
     phone: "11 98888-7777",
     requestedBy: "Mariana Costa",
@@ -490,7 +589,7 @@ async function fetchApi<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
-function byCompany<T extends { companyTradeName: string }>(items: T[], companyTradeName: string) {
+function byCompany<T extends { companyTradeName?: string }>(items: T[], companyTradeName: string) {
   return items.filter((item) => item.companyTradeName === companyTradeName);
 }
 
@@ -499,6 +598,8 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
     companies,
     employees,
     employeeMovements,
+    departments,
+    jobPositions,
     divergences,
     risks,
     riskActions,
@@ -510,6 +611,8 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
     fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
     fetchApi<StructuralEmployee[]>("/structural/employees", fallbackEmployees),
     fetchApi<EmployeeMovement[]>("/structural/employee-movements", fallbackEmployeeMovements),
+    fetchApi<StructuralDepartment[]>("/structural/departments", fallbackDepartments),
+    fetchApi<StructuralJobPosition[]>("/structural/job-positions", fallbackJobPositions),
     fetchApi<EmployeeDivergence[]>("/employee-access/divergences", fallbackDivergences),
     fetchApi<Nr01Risk[]>("/nr01/risks", fallbackRisks),
     fetchApi<Nr01ActionPlanItem[]>("/nr01/action-plan", fallbackRiskActions),
@@ -528,10 +631,12 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
   return {
     activeCompany,
     companies,
+    departments: byCompany(departments, activeName),
     divergences: byCompany(divergences, activeName),
     documents: byCompany(documents, activeName),
     employees: byCompany(employees, activeName),
     employeeMovements: byCompany(employeeMovements, activeName),
+    jobPositions: byCompany(jobPositions, activeName),
     psychosocialCampaigns: byCompany(campaigns, activeName),
     psychosocialSignals: byCompany(signals, activeName),
     risks: byCompany(risks, activeName),

@@ -1,13 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
-interface ImportCompanyOption {
-  id: string;
-  tradeName: string;
-  cnpj: string;
-}
+import { useMemo, useState } from "react";
+import type { StructuralCompany } from "../client-data";
 
 interface ImportIssue {
   rowNumber: number;
@@ -25,21 +20,14 @@ interface ImportResult {
   errors: ImportIssue[];
 }
 
-interface EmployeeImportPanelProps {
-  companies: ImportCompanyOption[];
-  title?: string;
+function buildTemplate(company: StructuralCompany) {
+  return `cnpj;nome;cpf;setor;cargo;cbo;email;telefone;data_nascimento;data_inclusao\n${company.cnpj};Maria Silva;12345678909;Producao;Operadora de Maquina;7842-05;nome@empresa.com;11999990000;1990-02-10;2026-04-28`;
 }
 
-const templateCsv =
-  "cnpj;nome;cpf;setor;cargo;cbo;email;telefone;data_nascimento;data_inclusao\n12.345.678/0001-90;Maria Silva;12345678909;Producao;Operadora de Maquina;7842-05;nome@empresa.com;11999990000;1990-02-10;2026-04-28";
-
-export function EmployeeImportPanel({
-  companies,
-  title = "Importacao de clientes",
-}: EmployeeImportPanelProps) {
+export function ClientEmployeeImportPanel({ company }: Readonly<{ company: StructuralCompany }>) {
   const router = useRouter();
+  const templateCsv = useMemo(() => buildTemplate(company), [company]);
   const [content, setContent] = useState(templateCsv);
-  const [defaultCompanyId, setDefaultCompanyId] = useState("");
   const [delimiter, setDelimiter] = useState<"," | ";">(";");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -61,7 +49,9 @@ export function EmployeeImportPanel({
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "modelo-importacao-clientes-pronus.csv";
+    link.download = `modelo-importacao-clientes-${company.tradeName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -81,7 +71,7 @@ export function EmployeeImportPanel({
           content,
           delimiter,
           dryRun,
-          defaultCompanyId: defaultCompanyId || undefined,
+          defaultCompanyId: company.id,
         }),
       });
 
@@ -107,13 +97,13 @@ export function EmployeeImportPanel({
   }
 
   return (
-    <section className="mt-4 rounded-lg border border-slate-200 bg-white">
+    <section className="mb-6 rounded-lg border border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 className="text-base font-semibold">{title}</h3>
+            <h3 className="text-base font-semibold">Importacao de clientes</h3>
             <p className="mt-1 text-sm text-slate-500">
-              CSV padrao com empresa, CPF, setor, cargo, CBO e datas cadastrais.
+              CSV padrao com CPF, setor, cargo, CBO e datas cadastrais.
             </p>
           </div>
           <button
@@ -130,19 +120,12 @@ export function EmployeeImportPanel({
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <label className="block">
-              <span className="text-xs font-semibold uppercase text-slate-500">Empresa padrao</span>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
-                value={defaultCompanyId}
-                onChange={(event) => setDefaultCompanyId(event.target.value)}
-              >
-                <option value="">Usar CNPJ da planilha</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.tradeName} - {company.cnpj}
-                  </option>
-                ))}
-              </select>
+              <span className="text-xs font-semibold uppercase text-slate-500">Empresa</span>
+              <input
+                className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700"
+                readOnly
+                value={`${company.tradeName} - ${company.cnpj}`}
+              />
             </label>
 
             <label className="block">

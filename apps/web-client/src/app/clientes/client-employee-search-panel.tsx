@@ -7,7 +7,9 @@ import {
   structuralStatusLabels,
   type EmployeeMovement,
   type StructuralCompany,
+  type StructuralDepartment,
   type StructuralEmployee,
+  type StructuralJobPosition,
   type StructuralStatus,
 } from "../client-data";
 
@@ -24,18 +26,23 @@ type MovementStatus = EmployeeMovement["status"];
 
 type MovementForm = {
   birthDate: string;
+  cboCode: string;
   cpf: string;
   department: string;
+  departmentId: string;
   email: string;
   employeeId: string;
   exclusionDate: string;
   fullName: string;
   inclusionDate: string;
   jobPosition: string;
+  jobPositionId: string;
   notes: string;
   phone: string;
   type: MovementType;
 };
+
+const clientAudiences = new Set(["client", "client_hr", "client_manager"]);
 
 const movementTypeLabels: Record<MovementType, string> = {
   inclusion: "Inclusão",
@@ -56,14 +63,17 @@ function todayIso() {
 function emptyMovementForm(): MovementForm {
   return {
     birthDate: "",
+    cboCode: "",
     cpf: "",
     department: "",
+    departmentId: "",
     email: "",
     employeeId: "",
     exclusionDate: "",
     fullName: "",
     inclusionDate: todayIso(),
     jobPosition: "",
+    jobPositionId: "",
     notes: "",
     phone: "",
     type: "inclusion",
@@ -72,11 +82,15 @@ function emptyMovementForm(): MovementForm {
 
 export function ClientEmployeeSearchPanel({
   company,
+  departments,
   employees,
+  jobPositions,
   movements,
 }: Readonly<{
   company: StructuralCompany;
+  departments: StructuralDepartment[];
   employees: StructuralEmployee[];
+  jobPositions: StructuralJobPosition[];
   movements: EmployeeMovement[];
 }>) {
   const [currentEmployees] = useState(employees);
@@ -90,9 +104,33 @@ export function ClientEmployeeSearchPanel({
   const [isSavingMovement, setIsSavingMovement] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const departments = useMemo(
+  const departmentFilters = useMemo(
     () => Array.from(new Set(currentEmployees.map((employee) => employee.department))).sort(),
     [currentEmployees],
+  );
+  const catalogDepartments = useMemo(
+    () =>
+      departments
+        .filter(
+          (item) =>
+            item.status === "active" &&
+            clientAudiences.has(item.audience) &&
+            item.companyTradeName === company.tradeName,
+        )
+        .sort((first, second) => first.name.localeCompare(second.name)),
+    [company.tradeName, departments],
+  );
+  const catalogJobPositions = useMemo(
+    () =>
+      jobPositions
+        .filter(
+          (item) =>
+            item.status === "active" &&
+            clientAudiences.has(item.audience) &&
+            item.companyTradeName === company.tradeName,
+        )
+        .sort((first, second) => first.title.localeCompare(second.title)),
+    [company.tradeName, jobPositions],
   );
   const filtered = useMemo(() => {
     if (!submitted) {
@@ -129,14 +167,64 @@ export function ClientEmployeeSearchPanel({
   function updateMovementForm(field: keyof MovementForm, value: string) {
     if (field === "employeeId") {
       const employee = currentEmployees.find((item) => item.id === value);
+      const employeeDepartment = catalogDepartments.find(
+        (departmentOption) => departmentOption.name === employee?.department,
+      );
+      const employeeJobPosition = catalogJobPositions.find(
+        (jobPositionOption) => jobPositionOption.title === employee?.jobPosition,
+      );
 
       setMovementForm((current) => ({
         ...current,
+        cboCode: employee?.cboCode ?? employeeJobPosition?.cboCode ?? current.cboCode,
         cpf: employee?.cpf ?? current.cpf,
         department: employee?.department ?? current.department,
+        departmentId: employeeDepartment?.id ?? (employee?.department ? "manual" : ""),
         employeeId: value,
         fullName: employee?.fullName ?? current.fullName,
         jobPosition: employee?.jobPosition ?? current.jobPosition,
+        jobPositionId: employeeJobPosition?.id ?? (employee?.jobPosition ? "manual" : ""),
+      }));
+      return;
+    }
+
+    if (field === "departmentId") {
+      const selectedDepartment = catalogDepartments.find((item) => item.id === value);
+
+      setMovementForm((current) => ({
+        ...current,
+        cboCode: "",
+        department: selectedDepartment?.name ?? "",
+        departmentId: value,
+        jobPosition: "",
+        jobPositionId: "",
+      }));
+      return;
+    }
+
+    if (field === "jobPositionId") {
+      if (value === "manual" || value === "") {
+        setMovementForm((current) => ({
+          ...current,
+          cboCode: "",
+          jobPosition: "",
+          jobPositionId: value,
+        }));
+        return;
+      }
+
+      const selectedJobPosition = catalogJobPositions.find((item) => item.id === value);
+      const matchingDepartment = catalogDepartments.find(
+        (item) => item.name === selectedJobPosition?.departmentName,
+      );
+
+      setMovementForm((current) => ({
+        ...current,
+        cboCode: selectedJobPosition?.cboCode ?? current.cboCode,
+        department: selectedJobPosition?.departmentName ?? current.department,
+        departmentId: matchingDepartment?.id ?? current.departmentId,
+        jobPosition: selectedJobPosition?.title ?? "",
+        jobPositionId: value,
       }));
       return;
     }
@@ -151,6 +239,7 @@ export function ClientEmployeeSearchPanel({
         movementForm.cpf,
         movementForm.department,
         movementForm.jobPosition,
+        movementForm.cboCode,
       ];
 
       return required.every((value) => value.trim().length > 0);
@@ -164,7 +253,11 @@ export function ClientEmployeeSearchPanel({
       return movementForm.exclusionDate.trim().length > 0;
     }
 
-    return movementForm.department.trim().length > 0 || movementForm.jobPosition.trim().length > 0;
+    return (
+      movementForm.department.trim().length > 0 ||
+      movementForm.jobPosition.trim().length > 0 ||
+      movementForm.cboCode.trim().length > 0
+    );
   }
 
   async function submitMovement() {
@@ -181,6 +274,7 @@ export function ClientEmployeeSearchPanel({
       const response = await fetch(`${apiUrl}/structural/employee-movements`, {
         body: JSON.stringify({
           birthDate: movementForm.birthDate,
+          cboCode: movementForm.cboCode,
           companyId: company.id,
           cpf: movementForm.cpf,
           department: movementForm.department,
@@ -276,7 +370,7 @@ export function ClientEmployeeSearchPanel({
               onChange={(event) => setDepartment(event.target.value)}
             >
               <option value="all">Todos</option>
-              {departments.map((item) => (
+              {departmentFilters.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -332,6 +426,7 @@ export function ClientEmployeeSearchPanel({
                   <p className="mt-1 text-sm text-slate-600">
                     {employee.cpf ?? "CPF pendente"} / {employee.department} /{" "}
                     {employee.jobPosition}
+                    {employee.cboCode ? ` / CBO ${employee.cboCode}` : ""}
                   </p>
                 </div>
                 <div className="text-sm text-slate-500">
@@ -369,6 +464,7 @@ export function ClientEmployeeSearchPanel({
                   <p className="mt-1 text-sm text-slate-600">
                     {movementTypeLabels[request.type]} / {request.cpf || "CPF pendente"} /{" "}
                     {request.department || "setor pendente"}
+                    {request.cboCode ? ` / CBO ${request.cboCode}` : ""}
                   </p>
                 </div>
                 <div className="text-sm text-slate-500">{dateLabel(request.createdAt)}</div>
@@ -380,6 +476,8 @@ export function ClientEmployeeSearchPanel({
 
       {isMovementModalOpen && (
         <MovementModal
+          catalogDepartments={catalogDepartments}
+          catalogJobPositions={catalogJobPositions}
           companyName={company.tradeName}
           employees={currentEmployees}
           form={movementForm}
@@ -394,6 +492,8 @@ export function ClientEmployeeSearchPanel({
 }
 
 function MovementModal({
+  catalogDepartments,
+  catalogJobPositions,
   companyName,
   employees,
   form,
@@ -402,6 +502,8 @@ function MovementModal({
   onSubmit,
   onUpdate,
 }: Readonly<{
+  catalogDepartments: StructuralDepartment[];
+  catalogJobPositions: StructuralJobPosition[];
   companyName: string;
   employees: StructuralEmployee[];
   form: MovementForm;
@@ -410,6 +512,17 @@ function MovementModal({
   onSubmit: () => void;
   onUpdate: (field: keyof MovementForm, value: string) => void;
 }>) {
+  const availableJobPositions = useMemo(() => {
+    if (form.department.trim().length === 0) {
+      return catalogJobPositions;
+    }
+
+    return catalogJobPositions.filter(
+      (jobPosition) =>
+        jobPosition.departmentName === undefined || jobPosition.departmentName === form.department,
+    );
+  }, [catalogJobPositions, form.department]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 px-4 py-6">
       <div className="w-full max-w-3xl rounded-lg border border-slate-200 bg-white shadow-xl">
@@ -486,15 +599,46 @@ function MovementModal({
             onChange={(value) => onUpdate("fullName", value)}
           />
           <Field label="CPF" value={form.cpf} onChange={(value) => onUpdate("cpf", value)} />
-          <Field
-            label="Setor"
-            value={form.department}
-            onChange={(value) => onUpdate("department", value)}
+          <CatalogSelect
+            label="Setor cadastrado"
+            manualLabel="Informar setor manualmente"
+            options={catalogDepartments.map((departmentOption) => ({
+              label: `${departmentOption.name}${
+                departmentOption.code ? ` / ${departmentOption.code}` : ""
+              }`,
+              value: departmentOption.id,
+            }))}
+            value={form.departmentId}
+            onChange={(value) => onUpdate("departmentId", value)}
           />
+          {form.departmentId === "manual" && (
+            <Field
+              label="Setor informado"
+              value={form.department}
+              onChange={(value) => onUpdate("department", value)}
+            />
+          )}
+          <CatalogSelect
+            label="Cargo cadastrado"
+            manualLabel="Informar cargo manualmente"
+            options={availableJobPositions.map((jobPosition) => ({
+              label: `${jobPosition.title}${jobPosition.cboCode ? ` / CBO ${jobPosition.cboCode}` : ""}`,
+              value: jobPosition.id,
+            }))}
+            value={form.jobPositionId}
+            onChange={(value) => onUpdate("jobPositionId", value)}
+          />
+          {form.jobPositionId === "manual" && (
+            <Field
+              label="Cargo informado"
+              value={form.jobPosition}
+              onChange={(value) => onUpdate("jobPosition", value)}
+            />
+          )}
           <Field
-            label="Cargo"
-            value={form.jobPosition}
-            onChange={(value) => onUpdate("jobPosition", value)}
+            label="CBO"
+            value={form.cboCode}
+            onChange={(value) => onUpdate("cboCode", value)}
           />
 
           {form.type === "inclusion" && (
@@ -584,6 +728,39 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+    </label>
+  );
+}
+
+function CatalogSelect({
+  label,
+  manualLabel,
+  onChange,
+  options,
+  value,
+}: Readonly<{
+  label: string;
+  manualLabel: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}>) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
+      <select
+        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">Selecionar</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+        <option value="manual">{manualLabel}</option>
+      </select>
     </label>
   );
 }

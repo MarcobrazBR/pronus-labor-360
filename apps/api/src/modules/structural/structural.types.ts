@@ -56,6 +56,7 @@ export interface StructuralEmployee {
   exclusionDate?: string;
   department: string;
   jobPosition: string;
+  cboCode?: string;
   email?: string;
   phone?: string;
   registrationStatus: StructuralStatus;
@@ -229,6 +230,7 @@ export interface CreateStructuralEmployeeInput {
   exclusionDate?: string;
   department: string;
   jobPosition: string;
+  cboCode?: string;
   email?: string;
   phone?: string;
 }
@@ -244,6 +246,7 @@ export type UpdateStructuralEmployeeInput = Partial<
     | "exclusionDate"
     | "department"
     | "jobPosition"
+    | "cboCode"
     | "email"
     | "phone"
   >
@@ -270,6 +273,7 @@ export interface EmployeeMovementRequest {
   exclusionDate?: string;
   department: string;
   jobPosition: string;
+  cboCode?: string;
   email?: string;
   phone?: string;
   notes?: string;
@@ -293,6 +297,7 @@ export interface CreateEmployeeMovementInput {
   exclusionDate?: string;
   department?: string;
   jobPosition?: string;
+  cboCode?: string;
   email?: string;
   phone?: string;
   notes?: string;

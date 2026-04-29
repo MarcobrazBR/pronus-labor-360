@@ -1,4 +1,5 @@
 import { loadClientPortalData } from "../client-data";
+import { ClientEmployeeImportPanel } from "./client-employee-import-panel";
 import { ClientEmployeeSearchPanel } from "./client-employee-search-panel";
 
 export const dynamic = "force-dynamic";
@@ -33,9 +34,13 @@ export default async function ClientEmployeesPage() {
         <Info label="Setores" value={String(departments.size)} />
       </section>
 
+      <ClientEmployeeImportPanel company={data.activeCompany} />
+
       <ClientEmployeeSearchPanel
         company={data.activeCompany}
+        departments={data.departments}
         employees={data.employees}
+        jobPositions={data.jobPositions}
         movements={data.employeeMovements}
       />
     </>

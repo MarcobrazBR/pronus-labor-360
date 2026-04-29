@@ -1294,6 +1294,7 @@ export class StructuralService {
       input.birthDate === undefined &&
       input.department === undefined &&
       input.jobPosition === undefined &&
+      input.cboCode === undefined &&
       input.email === undefined &&
       input.phone === undefined
     ) {
@@ -1319,6 +1320,7 @@ export class StructuralService {
       exclusionDate,
       department,
       jobPosition,
+      cboCode: optionalText(input.cboCode, "cboCode") ?? employee?.cboCode,
       email: optionalText(input.email, "email") ?? employee?.email,
       phone: optionalText(input.phone, "phone") ?? employee?.phone,
       notes: optionalText(input.notes, "notes"),
@@ -1354,6 +1356,7 @@ export class StructuralService {
           fullName: movement.fullName,
           inclusionDate: movement.inclusionDate,
           jobPosition: movement.jobPosition,
+          cboCode: movement.cboCode,
           phone: movement.phone,
         });
         employee.registrationStatus = "active";
@@ -1373,6 +1376,7 @@ export class StructuralService {
           email: movement.email,
           fullName: movement.fullName,
           jobPosition: movement.jobPosition,
+          cboCode: movement.cboCode,
           phone: movement.phone,
           registrationStatus: "active",
         });
@@ -1423,6 +1427,7 @@ export class StructuralService {
       exclusionDate: optionalText(input.exclusionDate, "exclusionDate"),
       department: requireText(input.department, "department"),
       jobPosition: requireText(input.jobPosition, "jobPosition"),
+      cboCode: optionalText(input.cboCode, "cboCode"),
       email: optionalText(input.email, "email"),
       phone: optionalText(input.phone, "phone"),
       registrationStatus: "pending_validation",
@@ -1496,6 +1501,7 @@ export class StructuralService {
       optionalText(input.exclusionDate, "exclusionDate") ?? employee.exclusionDate;
     employee.department = optionalText(input.department, "department") ?? employee.department;
     employee.jobPosition = optionalText(input.jobPosition, "jobPosition") ?? employee.jobPosition;
+    employee.cboCode = optionalText(input.cboCode, "cboCode") ?? employee.cboCode;
     employee.email = optionalText(input.email, "email") ?? employee.email;
     employee.phone = optionalText(input.phone, "phone") ?? employee.phone;
     employee.registrationStatus = nextStatus;
@@ -1627,8 +1633,11 @@ export class StructuralService {
             companyId: company.id,
             fullName,
             cpf,
+            birthDate: pickRowValue(row, ["datanascimento", "nascimento", "birthdate"]),
+            inclusionDate: pickRowValue(row, ["datainclusao", "admissao", "inclusiondate"]),
             department,
             jobPosition,
+            cboCode: pickRowValue(row, ["cbo", "codigocbo", "cbocode"]),
             email: pickRowValue(row, ["email", "emailcorporativo"]),
             phone: pickRowValue(row, ["telefone", "phone", "whatsapp", "celular"]),
           });

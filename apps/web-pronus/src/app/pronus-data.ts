@@ -67,6 +67,7 @@ export interface StructuralEmployee {
   phone?: string;
   department: string;
   jobPosition: string;
+  cboCode?: string;
   registrationStatus: StructuralStatus;
 }
 
@@ -89,6 +90,7 @@ export interface EmployeeMovement {
   exclusionDate?: string;
   department: string;
   jobPosition: string;
+  cboCode?: string;
   email?: string;
   phone?: string;
   notes?: string;
