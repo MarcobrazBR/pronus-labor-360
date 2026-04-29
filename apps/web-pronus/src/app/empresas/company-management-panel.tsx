@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   companyContractStatusLabels,
   contractStatusClasses,
@@ -16,7 +16,7 @@ import {
   type StructuralStatus,
 } from "../pronus-data";
 
-type CompanyTab = "general" | "coverage" | "employees" | "financial";
+type CompanyTab = "general" | "coverage" | "employees" | "psychosocial" | "financial";
 
 type CompanyForm = {
   groupName: string;
@@ -148,6 +148,17 @@ const coverageSeed = [
   { company: "Rede Norte", specialty: "Psicologia", entitled: 60, used: 24, absenteeism: 5.3 },
 ];
 
+const psychosocialCompanySeed = [
+  { company: "Industria Horizonte", dueDate: "2026-05-01", responseCount: 134 },
+  { company: "Rede Norte", dueDate: "2026-05-10", responseCount: 251 },
+];
+
+const psychosocialAnswerSeed = [
+  { completedAt: "2026-04-18", employeeId: "employee-001", responded: true },
+  { completedAt: undefined, employeeId: "employee-002", responded: false },
+  { completedAt: "2026-04-20", employeeId: "employee-003", responded: true },
+];
+
 const invoiceSeed = [
   {
     company: "Industria Horizonte",
@@ -211,6 +222,7 @@ const tabs: Array<{ id: CompanyTab; label: string }> = [
   { id: "general", label: "Geral" },
   { id: "coverage", label: "Cobertura" },
   { id: "employees", label: "Clientes" },
+  { id: "psychosocial", label: "Psicossocial" },
   { id: "financial", label: "Financeiro" },
 ];
 
@@ -271,6 +283,75 @@ function dateLabel(value: string | undefined) {
   }
 
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
+}
+
+function escapeHtml(value: string | undefined) {
+  return (value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function savePsychosocialPendingPdf(
+  company: StructuralCompany,
+  dueDate: string,
+  employees: StructuralEmployee[],
+) {
+  const reportWindow = window.open("", "_blank", "width=920,height=720");
+
+  if (reportWindow === null) {
+    return;
+  }
+
+  const rows = employees
+    .map(
+      (employee) => `
+        <tr>
+          <td>${escapeHtml(employee.id)}</td>
+          <td>${escapeHtml(employee.fullName)}</td>
+          <td>${escapeHtml(employee.department)}</td>
+          <td>${escapeHtml(employee.jobPosition)}</td>
+        </tr>`,
+    )
+    .join("");
+
+  reportWindow.document.write(`
+    <!doctype html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8" />
+        <title>Pendentes psicossociais - ${escapeHtml(company.tradeName)}</title>
+        <style>
+          body { color: #1f2937; font-family: Arial, sans-serif; margin: 32px; }
+          h1 { color: #003b71; font-size: 22px; margin: 0 0 8px; }
+          p { font-size: 13px; margin: 0 0 18px; }
+          table { border-collapse: collapse; font-size: 12px; width: 100%; }
+          th, td { border: 1px solid #d8dee9; padding: 8px; text-align: left; }
+          th { background: #eef4f8; color: #475569; text-transform: uppercase; }
+        </style>
+      </head>
+      <body>
+        <h1>Clientes pendentes na pesquisa psicossocial</h1>
+        <p>Empresa: ${escapeHtml(company.tradeName)} / CNPJ: ${escapeHtml(company.cnpj)} / Prazo: ${escapeHtml(dateLabel(dueDate))}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Codigo do cliente</th>
+              <th>Nome completo</th>
+              <th>Setor</th>
+              <th>Cargo</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  reportWindow.document.close();
+  reportWindow.focus();
+  reportWindow.print();
 }
 
 function invoiceStatusLabel(status: string) {
@@ -783,6 +864,9 @@ function CompanyDetails({
         {activeTab === "employees" && (
           <EmployeesTab employees={employees} onOpenEmployee={onOpenEmployee} />
         )}
+        {activeTab === "psychosocial" && (
+          <PsychosocialTab company={company} employees={employees} />
+        )}
         {activeTab === "financial" && (
           <FinancialTab company={company} periodEnd={periodEnd} periodStart={periodStart} />
         )}
@@ -865,6 +949,7 @@ function EmployeesTab({
               <th className="px-4 py-3 font-semibold">Inclusao</th>
               <th className="px-4 py-3 font-semibold">Exclusao</th>
               <th className="px-4 py-3 font-semibold">Setor</th>
+              <th className="px-4 py-3 font-semibold">Psicossocial</th>
               <th className="px-4 py-3 font-semibold">Status</th>
             </tr>
           </thead>
@@ -876,6 +961,9 @@ function EmployeesTab({
                 <td className="px-4 py-3">{dateLabel(employee.inclusionDate)}</td>
                 <td className="px-4 py-3">{dateLabel(employee.exclusionDate)}</td>
                 <td className="px-4 py-3">{employee.department}</td>
+                <td className="px-4 py-3">
+                  <PsychosocialAnswerBadge employeeId={employee.id} />
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
@@ -890,6 +978,128 @@ function EmployeesTab({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function PsychosocialAnswerBadge({ employeeId }: Readonly<{ employeeId: string }>) {
+  const answer = psychosocialAnswerSeed.find((item) => item.employeeId === employeeId);
+  const hasResponded = answer?.responded === true;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ${
+        hasResponded
+          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+          : "bg-red-50 text-red-700 ring-1 ring-red-200"
+      }`}
+      title={hasResponded ? "Pesquisa respondida" : "Pesquisa pendente"}
+    >
+      <span
+        aria-hidden="true"
+        className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
+          hasResponded ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+        }`}
+      >
+        {hasResponded ? "✓" : "X"}
+      </span>
+      {hasResponded ? "Respondido" : "Pendente"}
+    </span>
+  );
+}
+
+function PsychosocialTab({
+  company,
+  employees,
+}: Readonly<{ company: StructuralCompany; employees: StructuralEmployee[] }>) {
+  const companyConfig = psychosocialCompanySeed.find((item) => item.company === company.tradeName);
+  const [dueDate, setDueDate] = useState(companyConfig?.dueDate ?? "");
+
+  useEffect(() => {
+    setDueDate(companyConfig?.dueDate ?? "");
+  }, [companyConfig?.dueDate, company.tradeName]);
+
+  const responseCount =
+    companyConfig?.responseCount ??
+    employees.filter((employee) => {
+      const answer = psychosocialAnswerSeed.find((item) => item.employeeId === employee.id);
+
+      return answer?.responded === true;
+    }).length;
+  const pendingCount = Math.max(company.employees - responseCount, 0);
+  const responseRate =
+    company.employees === 0 ? 0 : Math.round((responseCount / company.employees) * 100);
+  const pendingEmployees = employees.filter((employee) => {
+    const answer = psychosocialAnswerSeed.find((item) => item.employeeId === employee.id);
+
+    return answer?.responded !== true;
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_1fr]">
+        <label className="rounded-md bg-slate-100 px-3 py-2">
+          <span className="text-xs font-medium text-slate-500">Prazo da campanha</span>
+          <input
+            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
+            type="date"
+            value={dueDate}
+            onChange={(event) => setDueDate(event.target.value)}
+          />
+        </label>
+        <Info label="Vidas no contrato" value={String(company.employees)} />
+        <Info label="Respondidas" value={String(responseCount)} />
+        <Info label="Faltam responder" value={`${pendingCount} / ${responseRate}% adesao`} />
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h4 className="text-sm font-semibold text-slate-950">Clientes pendentes</h4>
+          <p className="mt-1 text-sm text-slate-600">
+            Lista operacional para acionar o RH quando a adesao estiver abaixo do esperado.
+          </p>
+        </div>
+        <button
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
+          type="button"
+          onClick={() => savePsychosocialPendingPdf(company, dueDate, pendingEmployees)}
+        >
+          Salvar PDF
+        </button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3 font-semibold">Codigo</th>
+              <th className="px-4 py-3 font-semibold">Nome</th>
+              <th className="px-4 py-3 font-semibold">Setor</th>
+              <th className="px-4 py-3 font-semibold">Cargo</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {pendingEmployees.map((employee) => (
+              <tr key={employee.id}>
+                <td className="px-4 py-3 font-semibold">{employee.id}</td>
+                <td className="px-4 py-3">{employee.fullName}</td>
+                <td className="px-4 py-3">{employee.department}</td>
+                <td className="px-4 py-3">{employee.jobPosition}</td>
+                <td className="px-4 py-3">
+                  <PsychosocialAnswerBadge employeeId={employee.id} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {pendingEmployees.length === 0 && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Todos os clientes listados responderam a pesquisa psicossocial.
+        </div>
+      )}
     </div>
   );
 }

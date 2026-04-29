@@ -1,6 +1,6 @@
 # Pronus Labor 360 - Status de Desenvolvimento
 
-Data: 2026-04-28
+Data: 2026-04-29
 
 ## Ponto de Retomada
 
@@ -157,6 +157,13 @@ Estado encontrado:
 - Portal RH Cliente agora possui o mesmo modelo de importacao por planilha do Portal PRONUS, mantendo a empresa travada conforme permissao do usuario RH.
 - README agora possui galeria visual do MVP com imagens dos tres portais e das tres telas de login para apoio a apresentacoes comerciais e captacao de investimento.
 - Criada regra formal de atualizacao de screenshots: mudancas visuais relevantes devem atualizar `docs/assets/screenshots/`, a galeria do README e o status de desenvolvimento no mesmo ciclo.
+- Portal Colaborador agora possui experiencia de agenda por cobertura contratual: especialidades aparecem conforme cobertura da empresa, o sistema bloqueia nova marcacao quando ja houve consulta da mesma especialidade no mes e a escolha do profissional fica automatica pela PRONUS.
+- Portal Colaborador agora exibe proxima consulta, botao de entrada em video sempre contextualizado por estado e liberacao visual somente a partir de uma hora antes do horario agendado.
+- Pesquisa psicossocial COPSQ no Portal Colaborador foi transformada em modal com link de prioridade no topo, salvamento local a cada resposta, retomada do ponto salvo, termometro percentual e finalizacao da pesquisa.
+- Busca Empresa no Portal PRONUS ganhou aba Psicossocial entre Clientes e Financeiro, com prazo configuravel, vidas contratadas, respondidas, pendentes, lista de clientes que ainda nao responderam e acao para gerar relatorio em PDF via impressao do navegador.
+- Aba Clientes do cadastro de empresa agora sinaliza a conclusao psicossocial por cliente, com indicacao visual verde para respondido e vermelha para pendente.
+- Painel do Portal RH Cliente agora calcula a adesao psicossocial sobre as vidas cadastradas/contratadas e mostra o prazo final no card, em azul dentro do prazo e preparado para vermelho em destaque apos vencimento.
+- Screenshots do README foram atualizados para refletir o novo Portal Colaborador, o card Psicossocial do Portal RH Cliente e a aba Psicossocial do Portal PRONUS.
 - Painel PRONUS agora exibe:
   - resumo de empresas, clientes, risco ocupacional e campanhas;
   - unidades, setores e cargos;
@@ -180,6 +187,8 @@ Estado encontrado:
 - Implementar dimensionamento exato de CIPA e SESMT conforme quadros oficiais, numero de empregados e excecoes aplicaveis.
 - Persistir parametros do modulo Configuracoes em banco real, com trilha de auditoria e controle de versao regulatoria.
 - Evoluir risco psicossocial para anonimato por regra minima, relatorios tecnicos e plano de intervencao.
+- Persistir progresso parcial do questionario psicossocial em backend/banco real, hoje representado no MVP por salvamento local do navegador ate a sincronizacao final.
+- Conectar agenda do Portal Colaborador a uma API real de disponibilidade, cobertura mensal e sala de video.
 - Criar testes automatizados quando os fluxos deixarem de ser somente fundacao.
 
 ## Validacoes Executadas
@@ -252,3 +261,11 @@ Estado encontrado:
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-importacao-clientes-2026-04-28.md`.
 - Screenshots desktop gerados para Portal PRONUS, Portal RH Cliente, Portal Colaborador e logins dos tres portais em `docs/assets/screenshots/`.
 - README validado com galeria visual e regra de atualizacao das imagens apos mudancas de UI.
+- Typecheck completo do monorepo apos ajustes do Portal Colaborador, Portal RH Cliente e Busca Empresa.
+- Build do Portal Colaborador, Portal RH Cliente e Portal PRONUS apos ajustes de agenda, COPSQ, psicossocial empresarial e card de prazo.
+- Teste no navegador do Portal Colaborador confirmando consulta por CPF, alerta de pesquisa psicossocial, coberturas, regra de limite mensal e botao de proxima consulta.
+- Teste no navegador do modal COPSQ confirmando termometro de progresso, salvamento por resposta, fechamento e finalizacao controlada.
+- Teste no navegador do Portal RH Cliente confirmando adesao psicossocial calculada e prazo final no card do painel.
+- Teste no navegador do Portal PRONUS em `/empresas/busca`, confirmando busca sob demanda, abertura da empresa e aba Psicossocial com prazo, pendencias e PDF.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-colaborador-consultas-2026-04-29.md`.
+- Screenshots desktop atualizados para `portal-colaborador.png`, `portal-rh-cliente.png` e `portal-pronus.png`.

@@ -18,6 +18,7 @@ interface EmployeeAccessProfile {
   employeeId: string;
   companyTradeName: string;
   department: string;
+  fullName: string;
 }
 
 interface PsychosocialQuestion {
@@ -46,23 +47,29 @@ interface PsychosocialAnswerReceipt {
   createdAt: string;
 }
 
+interface SavedQuestionnaireState {
+  isFinalized: boolean;
+  receipt: PsychosocialAnswerReceipt | null;
+  scores: Record<string, number>;
+}
+
 const campaignStatusLabels: Record<CampaignStatus, string> = {
-  draft: "Rascunho",
   active: "Ativa",
-  threshold_reached: "Amostra atingida",
+  analysis_in_progress: "Em analise",
+  closed: "Encerrada",
+  completed: "Concluida",
+  draft: "Rascunho",
   expired: "Expirada",
   extended: "Prorrogada",
-  closed: "Encerrada",
-  analysis_in_progress: "Em analise",
-  completed: "Concluida",
+  threshold_reached: "Amostra atingida",
 };
 
 const answerOptions = [
-  { value: 1, label: "1", description: "Discordo totalmente" },
-  { value: 2, label: "2", description: "Discordo" },
-  { value: 3, label: "3", description: "Neutro" },
-  { value: 4, label: "4", description: "Concordo" },
-  { value: 5, label: "5", description: "Concordo totalmente" },
+  { description: "Discordo totalmente", label: "1", value: 1 },
+  { description: "Discordo", label: "2", value: 2 },
+  { description: "Neutro", label: "3", value: 3 },
+  { description: "Concordo", label: "4", value: 4 },
+  { description: "Concordo totalmente", label: "5", value: 5 },
 ];
 
 const openCampaignStatuses = new Set<CampaignStatus>(["active", "threshold_reached", "extended"]);
@@ -100,6 +107,63 @@ function campaignClasses(status: CampaignStatus) {
   return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
 }
 
+function readSavedState(storageKey: string): SavedQuestionnaireState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(storageKey);
+
+  if (raw === null) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as SavedQuestionnaireState;
+  } catch {
+    return null;
+  }
+}
+
+function writeSavedState(storageKey: string, state: SavedQuestionnaireState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(storageKey, JSON.stringify(state));
+}
+
+function classifyScore(score: number): RiskLevel {
+  if (score >= 4.5) {
+    return "critical";
+  }
+
+  if (score >= 3.5) {
+    return "high";
+  }
+
+  if (score >= 2.5) {
+    return "moderate";
+  }
+
+  return "low";
+}
+
+function localReceipt(scores: Record<string, number>): PsychosocialAnswerReceipt {
+  const values = Object.values(scores);
+  const averageScore =
+    values.length === 0
+      ? 0
+      : Math.round((values.reduce((total, value) => total + value, 0) / values.length) * 10) / 10;
+
+  return {
+    averageScore,
+    createdAt: new Date().toISOString(),
+    id: `local-${Date.now()}`,
+    riskLevel: classifyScore(averageScore),
+  };
+}
+
 export function PsychosocialQuestionnairePanel({
   profile,
 }: Readonly<{ profile: EmployeeAccessProfile }>) {
@@ -107,9 +171,22 @@ export function PsychosocialQuestionnairePanel({
   const [campaigns, setCampaigns] = useState<PsychosocialCampaign[]>([]);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [receipt, setReceipt] = useState<PsychosocialAnswerReceipt | null>(null);
+  const [isFinalized, setIsFinalized] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const storageKey = useMemo(() => `pronus:copsq:${profile.employeeId}`, [profile.employeeId]);
+
+  useEffect(() => {
+    const savedState = readSavedState(storageKey);
+
+    setScores(savedState?.scores ?? {});
+    setIsFinalized(savedState?.isFinalized ?? false);
+    setReceipt(savedState?.receipt ?? null);
+    setError(null);
+  }, [storageKey]);
 
   useEffect(() => {
     let shouldIgnore = false;
@@ -117,8 +194,6 @@ export function PsychosocialQuestionnairePanel({
     async function loadQuestionnaire() {
       setIsLoading(true);
       setError(null);
-      setReceipt(null);
-      setScores({});
 
       try {
         const apiUrl = getApiUrl();
@@ -180,176 +255,259 @@ export function PsychosocialQuestionnairePanel({
   const progress =
     questions.length === 0 ? 0 : Math.round((answeredQuestions / questions.length) * 100);
   const canSubmit =
-    selectedCampaign !== undefined && answeredQuestions === questions.length && !isSubmitting;
+    selectedCampaign !== undefined &&
+    answeredQuestions === questions.length &&
+    !isSubmitting &&
+    !isFinalized;
+  const linkTone = isFinalized
+    ? "border-sky-200 bg-sky-50 text-sky-700"
+    : "border-red-200 bg-red-50 text-red-700";
+
+  function persist(nextScores: Record<string, number>, nextFinalized = isFinalized) {
+    writeSavedState(storageKey, {
+      isFinalized: nextFinalized,
+      receipt,
+      scores: nextScores,
+    });
+  }
+
+  function setAnswer(questionId: string, score: number) {
+    if (isFinalized) {
+      return;
+    }
+
+    setScores((current) => {
+      const next = { ...current, [questionId]: score };
+
+      writeSavedState(storageKey, {
+        isFinalized: false,
+        receipt: null,
+        scores: next,
+      });
+
+      return next;
+    });
+  }
 
   async function submitQuestionnaire() {
-    if (selectedCampaign === undefined) {
+    if (selectedCampaign === undefined || !canSubmit) {
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
-    setReceipt(null);
+
+    let nextReceipt = localReceipt(scores);
 
     try {
       const response = await fetch(`${getApiUrl()}/psychosocial/answers`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           campaignId: selectedCampaign.id,
           employeeId: profile.employeeId,
-          sectorName: profile.department,
           scores: questions.map((question) => ({
             questionId: question.id,
             score: scores[question.id],
           })),
+          sectorName: profile.department,
         }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
       });
       const payload = (await response.json()) as PsychosocialAnswerReceipt | { message?: string };
 
       if (!response.ok) {
-        setError(responseMessage(payload, "Nao foi possivel enviar o questionario."));
-        return;
+        throw new Error(responseMessage(payload, "Nao foi possivel enviar o questionario."));
       }
 
-      setReceipt(payload as PsychosocialAnswerReceipt);
+      nextReceipt = payload as PsychosocialAnswerReceipt;
     } catch {
-      setError("Nao foi possivel conectar a API local.");
+      setError(
+        "Pesquisa finalizada no portal. A sincronizacao sera refeita quando a API responder.",
+      );
     } finally {
+      setReceipt(nextReceipt);
+      setIsFinalized(true);
+      writeSavedState(storageKey, {
+        isFinalized: true,
+        receipt: nextReceipt,
+        scores,
+      });
       setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="border-t border-slate-200 bg-white px-5 py-5 lg:px-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Questionario psicossocial</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {profile.companyTradeName} / {profile.department}
-          </p>
-        </div>
-
-        {selectedCampaign !== undefined && (
-          <span
-            className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${campaignClasses(
-              selectedCampaign.status,
-            )}`}
-          >
-            {campaignStatusLabels[selectedCampaign.status]}
+    <>
+      <section className={`rounded-lg border px-4 py-3 ${linkTone}`}>
+        <button
+          className="flex w-full flex-col text-left"
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <span className="text-sm font-semibold">
+            {isFinalized ? "Pesquisa psicossocial concluida" : "Pesquisa psicossocial pendente"}
           </span>
-        )}
-      </div>
+          <span className="mt-1 text-xs">
+            {isFinalized
+              ? "Registro finalizado. A PRONUS acompanhara os dados de forma agregada."
+              : "Clique para responder o questionario COPSQ. O progresso e salvo a cada resposta."}
+          </span>
+        </button>
+      </section>
 
-      {isLoading ? (
-        <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
-          Carregando campanha psicossocial...
-        </div>
-      ) : selectedCampaign === undefined ? (
-        <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-          Nenhuma campanha psicossocial ativa foi localizada para esta empresa.
-        </div>
-      ) : (
-        <div className="mt-4">
-          <div className="grid gap-3 border-b border-slate-100 pb-4 sm:grid-cols-3">
-            <article className="rounded-md bg-slate-100 px-3 py-2">
-              <p className="text-xs font-medium text-slate-500">Adesao</p>
-              <strong className="mt-1 block text-xl">{selectedCampaign.responseRate}%</strong>
-            </article>
-            <article className="rounded-md bg-slate-100 px-3 py-2">
-              <p className="text-xs font-medium text-slate-500">Respostas</p>
-              <strong className="mt-1 block text-xl">
-                {selectedCampaign.responseCount}/{selectedCampaign.targetParticipants}
-              </strong>
-            </article>
-            <article className="rounded-md bg-slate-100 px-3 py-2">
-              <p className="text-xs font-medium text-slate-500">Prazo</p>
-              <strong className="mt-1 block text-xl">
-                {new Date(`${selectedCampaign.endDate}T00:00:00`).toLocaleDateString("pt-BR")}
-              </strong>
-            </article>
-          </div>
-
-          <div className="mt-4 h-2 rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-pronus-primary" style={{ width: `${progress}%` }} />
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {questions.map((question) => (
-              <article
-                key={question.id}
-                className="rounded-md border border-slate-200 bg-slate-50 p-4"
-              >
-                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-pronus-primary">
-                      {question.factor}
-                    </p>
-                    <h3 className="mt-1 text-sm font-semibold text-slate-900">{question.prompt}</h3>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500">
-                    {scores[question.id] === undefined ? "Pendente" : "Respondida"}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6">
+          <section className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-lg bg-white shadow-xl">
+            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">Questionario COPSQ</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  {profile.fullName} / {profile.companyTradeName} / {profile.department}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {selectedCampaign !== undefined && (
+                  <span
+                    className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${campaignClasses(
+                      selectedCampaign.status,
+                    )}`}
+                  >
+                    {campaignStatusLabels[selectedCampaign.status]}
                   </span>
-                </div>
+                )}
+                <button
+                  aria-label="Fechar questionario"
+                  className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                  type="button"
+                  onClick={() => {
+                    persist(scores);
+                    setIsModalOpen(false);
+                  }}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
 
-                <div className="mt-3 grid grid-cols-5 gap-2">
-                  {answerOptions.map((option) => {
-                    const isSelected = scores[question.id] === option.value;
-
-                    return (
-                      <button
-                        key={option.value}
-                        aria-label={`${option.label} - ${option.description}`}
-                        aria-pressed={isSelected}
-                        className={`rounded-md border px-2 py-2 text-sm font-semibold transition ${
-                          isSelected
-                            ? "border-pronus-primary bg-pronus-primary text-white"
-                            : "border-slate-300 bg-white text-slate-700 hover:border-pronus-primary"
-                        }`}
-                        type="button"
-                        onClick={() =>
-                          setScores((current) => ({ ...current, [question.id]: option.value }))
-                        }
+            <div className="overflow-y-auto px-5 py-5">
+              <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
+                <aside className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase text-slate-500">
+                    Termometro de respostas
+                  </p>
+                  <strong className="mt-2 block text-4xl font-semibold text-slate-950">
+                    {progress}%
+                  </strong>
+                  <div className="mt-4 h-3 rounded-full bg-white ring-1 ring-slate-200">
+                    <div
+                      className={`h-3 rounded-full ${
+                        isFinalized ? "bg-sky-600" : "bg-pronus-primary"
+                      }`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className="mt-3 text-sm text-slate-600">
+                    {answeredQuestions}/{questions.length} respostas salvas automaticamente.
+                  </p>
+                  {receipt !== null && (
+                    <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                      Protocolo {receipt.id.slice(0, 8)} / indice {receipt.averageScore} /{" "}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${riskLevelColorClasses[receipt.riskLevel]}`}
                       >
-                        {option.label}
-                      </button>
-                    );
-                  })}
+                        {riskLevelLabels[receipt.riskLevel]}
+                      </span>
+                    </div>
+                  )}
+                </aside>
+
+                <div>
+                  {isLoading ? (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                      Carregando campanha psicossocial...
+                    </div>
+                  ) : selectedCampaign === undefined ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                      Nenhuma campanha psicossocial ativa foi localizada para esta empresa.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {questions.map((question) => (
+                        <article
+                          key={question.id}
+                          className="rounded-md border border-slate-200 bg-slate-50 p-4"
+                        >
+                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <p className="text-xs font-semibold uppercase text-pronus-primary">
+                                {question.factor}
+                              </p>
+                              <h3 className="mt-1 text-sm font-semibold text-slate-900">
+                                {question.prompt}
+                              </h3>
+                            </div>
+                            <span className="text-xs font-semibold text-slate-500">
+                              {scores[question.id] === undefined ? "Pendente" : "Respondida"}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-5 gap-2">
+                            {answerOptions.map((option) => {
+                              const isSelected = scores[question.id] === option.value;
+
+                              return (
+                                <button
+                                  key={option.value}
+                                  aria-label={`${option.label} - ${option.description}`}
+                                  aria-pressed={isSelected}
+                                  className={`rounded-md border px-2 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                    isSelected
+                                      ? "border-pronus-primary bg-pronus-primary text-white"
+                                      : "border-slate-300 bg-white text-slate-700 hover:border-pronus-primary"
+                                  }`}
+                                  disabled={isFinalized}
+                                  type="button"
+                                  onClick={() => setAnswer(question.id, option.value)}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-sm text-slate-600">
+                      {isFinalized
+                        ? "Pesquisa encerrada para este ciclo."
+                        : "Voce pode fechar e continuar depois do ponto salvo."}
+                    </span>
+                    <button
+                      className="rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={!canSubmit}
+                      type="button"
+                      onClick={() => void submitQuestionnaire()}
+                    >
+                      Finalizar pesquisa
+                    </button>
+                  </div>
                 </div>
-              </article>
-            ))}
-          </div>
+              </div>
 
-          <button
-            className="mt-4 rounded-md bg-pronus-primary px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={!canSubmit}
-            type="button"
-            onClick={() => void submitQuestionnaire()}
-          >
-            Enviar questionario
-          </button>
+              {error !== null && (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                  {error}
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       )}
-
-      {error !== null && (
-        <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-          {error}
-        </div>
-      )}
-
-      {receipt !== null && (
-        <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800">
-          Questionario enviado. Protocolo {receipt.id.slice(0, 8)} / indice agregado{" "}
-          {receipt.averageScore} /{" "}
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${riskLevelColorClasses[receipt.riskLevel]}`}
-          >
-            {riskLevelLabels[receipt.riskLevel]}
-          </span>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

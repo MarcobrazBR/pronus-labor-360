@@ -11,6 +11,14 @@ import {
 
 export const dynamic = "force-dynamic";
 
+type SummaryCard = {
+  detail: string;
+  label: string;
+  secondaryDetail?: string;
+  secondaryDetailClassName?: string;
+  value: string;
+};
+
 export default async function ClientHomePage() {
   const data = await loadClientPortalData();
   const pendingDivergences = data.divergences.filter((item) => item.status === "pending");
@@ -21,7 +29,15 @@ export default async function ClientHomePage() {
     (item) => item.status === "draft" || item.status === "in_review" || item.status === "expired",
   );
   const activeCampaign = data.psychosocialCampaigns[0];
-  const summaryCards = [
+  const psychosocialBase = Math.max(data.activeCompany.employees, data.employees.length);
+  const psychosocialRate =
+    activeCampaign === undefined || psychosocialBase === 0
+      ? 0
+      : Math.round((activeCampaign.responseCount / psychosocialBase) * 100);
+  const psychosocialDeadline = activeCampaign?.endDate;
+  const isPsychosocialDeadlineOverdue =
+    psychosocialDeadline !== undefined && isDateOverdue(psychosocialDeadline);
+  const summaryCards: SummaryCard[] = [
     {
       detail: `${data.activeCompany.units} unidades / ${data.activeCompany.departments} setores`,
       label: "Clientes ativos",
@@ -40,11 +56,13 @@ export default async function ClientHomePage() {
       value: String(openActions.length + pendingDocuments.length),
     },
     {
-      detail:
-        activeCampaign === undefined
-          ? "Sem campanha ativa"
-          : `${activeCampaign.responseRate}% adesão`,
+      detail: activeCampaign === undefined ? "Sem campanha ativa" : `${psychosocialRate}% adesao`,
       label: "Psicossocial",
+      secondaryDetail:
+        psychosocialDeadline === undefined ? undefined : dateLabel(psychosocialDeadline),
+      secondaryDetailClassName: isPsychosocialDeadlineOverdue
+        ? "font-bold italic text-red-700"
+        : "font-medium text-sky-700",
       value: activeCampaign === undefined ? "0" : String(activeCampaign.responseCount),
     },
   ];
@@ -76,7 +94,14 @@ export default async function ClientHomePage() {
             <strong className="mt-2 block text-3xl font-semibold tracking-normal">
               {card.value}
             </strong>
-            <span className="mt-2 block text-sm text-slate-600">{card.detail}</span>
+            {card.secondaryDetail === undefined ? (
+              <span className="mt-2 block text-sm text-slate-600">{card.detail}</span>
+            ) : (
+              <div className="mt-2 flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-600">{card.detail}</span>
+                <span className={card.secondaryDetailClassName}>{card.secondaryDetail}</span>
+              </div>
+            )}
           </article>
         ))}
       </section>
@@ -208,4 +233,13 @@ function PanelTitle({ title }: Readonly<{ title: string }>) {
       <h3 className="text-base font-semibold">{title}</h3>
     </div>
   );
+}
+
+function isDateOverdue(value: string) {
+  const dueDate = new Date(`${value}T00:00:00`);
+  const today = new Date();
+
+  today.setHours(0, 0, 0, 0);
+
+  return !Number.isNaN(dueDate.getTime()) && dueDate.getTime() < today.getTime();
 }
