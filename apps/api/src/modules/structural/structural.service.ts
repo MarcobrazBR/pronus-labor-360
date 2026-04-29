@@ -35,6 +35,11 @@ import type {
   EmployeePasswordResetRequest,
   EmployeePasswordResetRequestInput,
   ImportStructuralEmployeesInput,
+  PronusAccessLoginInput,
+  PronusAccessPasswordChangeInput,
+  PronusAccessProfile,
+  PronusAccessRole,
+  PronusAccessUser,
   StructuralAudience,
   StructuralCompany,
   StructuralDepartment,
@@ -82,7 +87,7 @@ const movementSources = new Set<EmployeeMovementSource>(["client_portal", "pronu
 const movementTypes = new Set<EmployeeMovementType>(["inclusion", "update", "termination"]);
 const passwordResetStatuses = new Set(["pending", "completed"]);
 
-type AccessKind = "employee" | "client";
+type AccessKind = "employee" | "client" | "pronus";
 
 interface AccessCredential {
   subjectId: string;
@@ -94,6 +99,7 @@ interface AccessCredential {
 interface AccessStorageState {
   employeeCredentials: AccessCredential[];
   clientCredentials: AccessCredential[];
+  pronusCredentials: AccessCredential[];
   employeeResetRequests: EmployeePasswordResetRequest[];
   clientResetRequests: ClientPasswordResetRequest[];
   employeeRegistrationConfirmations: Array<{
@@ -272,8 +278,31 @@ function now(): string {
   return new Date().toISOString();
 }
 
+function workspaceRoot(): string {
+  let current = process.cwd();
+
+  while (true) {
+    const packagePath = join(current, "package.json");
+
+    if (
+      existsSync(packagePath) &&
+      readFileSync(packagePath, "utf8").includes('"name": "pronus-labor-360"')
+    ) {
+      return current;
+    }
+
+    const parent = dirname(current);
+
+    if (parent === current) {
+      return process.cwd();
+    }
+
+    current = parent;
+  }
+}
+
 function accessStatePath(): string {
-  return join(process.cwd(), ".data", "access-state.json");
+  return join(workspaceRoot(), ".data", "access-state.json");
 }
 
 function emptyAccessState(): AccessStorageState {
@@ -283,20 +312,23 @@ function emptyAccessState(): AccessStorageState {
     employeeCredentials: [],
     employeeRegistrationConfirmations: [],
     employeeResetRequests: [],
+    pronusCredentials: [],
   };
 }
 
 function loadAccessState(): AccessStorageState {
   const filePath = accessStatePath();
+  const legacyPath = join(process.cwd(), ".data", "access-state.json");
+  const readablePath = existsSync(filePath) ? filePath : legacyPath;
 
-  if (!existsSync(filePath)) {
+  if (!existsSync(readablePath)) {
     return emptyAccessState();
   }
 
   try {
     return {
       ...emptyAccessState(),
-      ...(JSON.parse(readFileSync(filePath, "utf8")) as Partial<AccessStorageState>),
+      ...(JSON.parse(readFileSync(readablePath, "utf8")) as Partial<AccessStorageState>),
     };
   } catch {
     return emptyAccessState();
@@ -319,6 +351,10 @@ function defaultEmployeePassword(cpf: string): string {
 
 function defaultClientPassword(cnpj: string): string {
   return onlyDigits(cnpj).slice(0, 6);
+}
+
+function defaultPronusPassword(cpf: string): string {
+  return onlyDigits(cpf).slice(0, 6);
 }
 
 function validateNewPassword(value: unknown): string {
@@ -850,6 +886,53 @@ const employeeMovements: EmployeeMovementRequest[] = [
   },
 ];
 
+const pronusAccessUsers: PronusAccessUser[] = [
+  {
+    id: "pronus-master-admin",
+    fullName: "Administrador Geral PRONUS",
+    cpf: "111.222.333-00",
+    email: "admin.master@pronus.com.br",
+    department: "Operacao PRONUS",
+    jobPosition: "Administrador geral",
+    audience: "pronus_administrative",
+    role: "master_admin",
+    status: "active",
+  },
+  {
+    id: "pronus-ana-admin",
+    fullName: "Ana Paula Martins",
+    cpf: "456.789.123-88",
+    email: "ana.martins@pronus.com.br",
+    department: "Administrativo PRONUS",
+    jobPosition: "Analista Administrativo PRONUS",
+    audience: "pronus_administrative",
+    role: "administrative",
+    status: "active",
+  },
+  {
+    id: "pronus-dr-carlos",
+    fullName: "Carlos Henrique Nunes",
+    cpf: "654.987.321-11",
+    email: "carlos.nunes@pronus.com.br",
+    department: "Corpo Clinico PRONUS",
+    jobPosition: "Medico do Trabalho",
+    audience: "pronus_clinical",
+    role: "clinical",
+    status: "active",
+  },
+  {
+    id: "pronus-psi-larissa",
+    fullName: "Larissa Moreira",
+    cpf: "789.123.456-22",
+    email: "larissa.moreira@pronus.com.br",
+    department: "Corpo Clinico PRONUS",
+    jobPosition: "Psicologa Ocupacional",
+    audience: "pronus_clinical",
+    role: "clinical",
+    status: "active",
+  },
+];
+
 const accessState = loadAccessState();
 
 @Injectable()
@@ -870,6 +953,57 @@ export class StructuralService {
         (employee) => employee.registrationStatus === "pending_validation",
       ).length,
     };
+  }
+
+  loginPronusAccess(input: PronusAccessLoginInput): PronusAccessProfile {
+    const cpf = normalizeCpf(input.cpf);
+    const user = pronusAccessUsers.find((item) => onlyDigits(item.cpf) === onlyDigits(cpf));
+
+    if (user === undefined || user.status === "inactive") {
+      throw new NotFoundException("CPF nao encontrado na base PRONUS");
+    }
+
+    const credential = this.ensurePronusCredential(user);
+
+    if (
+      credential.passwordHash !==
+      hashPassword("pronus", user.id, requireText(input.password, "password"))
+    ) {
+      throw new BadRequestException("CPF ou senha invalidos");
+    }
+
+    return this.toPronusAccessProfile(user);
+  }
+
+  changePronusPassword(input: PronusAccessPasswordChangeInput): PronusAccessProfile {
+    const user = this.findPronusAccessUser(input.userId);
+    const newPassword = validateNewPassword(input.newPassword);
+    const credential = this.ensurePronusCredential(user);
+    const updatedAt = now();
+
+    credential.passwordHash = hashPassword("pronus", user.id, newPassword);
+    credential.mustChangePassword = false;
+    credential.updatedAt = updatedAt;
+    saveAccessState(accessState);
+
+    return this.toPronusAccessProfile(user);
+  }
+
+  listPronusAccessUsers(): PronusAccessProfile[] {
+    return pronusAccessUsers.map((user) => this.toPronusAccessProfile(user));
+  }
+
+  resetPronusAccessUserPassword(id: string): PronusAccessProfile {
+    const user = this.findPronusAccessUser(id);
+    const credential = this.ensurePronusCredential(user);
+    const updatedAt = now();
+
+    credential.passwordHash = hashPassword("pronus", user.id, defaultPronusPassword(user.cpf));
+    credential.mustChangePassword = true;
+    credential.updatedAt = updatedAt;
+    saveAccessState(accessState);
+
+    return this.toPronusAccessProfile(user);
   }
 
   loginEmployeeAccess(input: EmployeeAccessLoginInput): EmployeeAccessProfile {
@@ -2041,6 +2175,33 @@ export class StructuralService {
     return credential;
   }
 
+  private ensurePronusCredential(user: PronusAccessUser): AccessCredential {
+    let credential = accessState.pronusCredentials.find((item) => item.subjectId === user.id);
+
+    if (credential === undefined) {
+      credential = {
+        mustChangePassword: true,
+        passwordHash: hashPassword("pronus", user.id, defaultPronusPassword(user.cpf)),
+        subjectId: user.id,
+        updatedAt: now(),
+      };
+      accessState.pronusCredentials.push(credential);
+      saveAccessState(accessState);
+    }
+
+    return credential;
+  }
+
+  private findPronusAccessUser(id: string): PronusAccessUser {
+    const user = pronusAccessUsers.find((item) => item.id === id);
+
+    if (user === undefined) {
+      throw new NotFoundException("Usuario PRONUS nao encontrado");
+    }
+
+    return user;
+  }
+
   private findCompany(id: string): StructuralCompany {
     const company = companies.find((item) => item.id === id);
 
@@ -2166,6 +2327,24 @@ export class StructuralService {
       companyId: company.id,
       companyTradeName: company.tradeName,
       mustChangePassword: credential.mustChangePassword,
+    };
+  }
+
+  private toPronusAccessProfile(user: PronusAccessUser): PronusAccessProfile {
+    const credential = this.ensurePronusCredential(user);
+    const isMaster = user.role === "master_admin";
+    const isAdministrative = user.role === "administrative" || isMaster;
+
+    return {
+      ...user,
+      mustChangePassword: credential.mustChangePassword,
+      permissions: {
+        canManageCompanies: isAdministrative,
+        canManageSchedule: isAdministrative || user.role === "clinical",
+        canResetPronusUsers: isMaster,
+        canViewClinicalRecords: isMaster || user.role === "clinical",
+        fullAccess: isMaster,
+      },
     };
   }
 

@@ -108,7 +108,7 @@ export default function EmployeeLoginPage() {
     <main className="min-h-screen bg-pronus-background px-5 py-8 text-pronus-text">
       <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1fr_420px]">
         <div>
-          <img alt="Pronus Labor" className="h-20 w-auto" src="/brand/pronus-logo.png" />
+          <img alt="Pronus Labor" className="h-24 w-auto" src="/brand/pronus-logo.png" />
           <h1 className="mt-8 max-w-2xl text-3xl font-semibold tracking-normal">
             Acesso do colaborador
           </h1>

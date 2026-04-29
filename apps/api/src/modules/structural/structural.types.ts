@@ -413,6 +413,41 @@ export interface ClientPasswordResetRequest {
   resolvedAt?: string;
 }
 
+export type PronusAccessRole = "master_admin" | "administrative" | "clinical";
+
+export interface PronusAccessUser {
+  id: string;
+  fullName: string;
+  cpf: string;
+  email: string;
+  department: string;
+  jobPosition: string;
+  audience: Extract<StructuralAudience, "pronus_administrative" | "pronus_clinical">;
+  role: PronusAccessRole;
+  status: StructuralStatus;
+}
+
+export interface PronusAccessProfile extends PronusAccessUser {
+  mustChangePassword: boolean;
+  permissions: {
+    fullAccess: boolean;
+    canResetPronusUsers: boolean;
+    canViewClinicalRecords: boolean;
+    canManageCompanies: boolean;
+    canManageSchedule: boolean;
+  };
+}
+
+export interface PronusAccessLoginInput {
+  cpf: string;
+  password: string;
+}
+
+export interface PronusAccessPasswordChangeInput {
+  userId: string;
+  newPassword: string;
+}
+
 export type EmployeeDivergenceField = "email" | "phone" | "department" | "jobPosition";
 
 export interface EmployeeAccessSubmittedData {

@@ -413,11 +413,11 @@ export interface DocumentSignatureRequest {
 }
 
 export const modules = [
-  { name: "Cadastro estrutural", owner: "Operacao", progress: 72, status: "Em desenvolvimento" },
-  { name: "Inteligencia regulatoria", owner: "SST", progress: 28, status: "Base inicial" },
-  { name: "Risco ocupacional", owner: "SST", progress: 40, status: "Base inicial" },
-  { name: "Risco psicossocial", owner: "Psicologia", progress: 34, status: "Base inicial" },
-  { name: "Gestao documental", owner: "Operacao", progress: 30, status: "Base inicial" },
+  { name: "Cadastro estrutural", owner: "Operacao", progress: 72, status: "Operacional" },
+  { name: "Inteligencia regulatoria", owner: "SST", progress: 28, status: "Parametrizado" },
+  { name: "Risco ocupacional", owner: "SST", progress: 40, status: "Monitorado" },
+  { name: "Risco psicossocial", owner: "Psicologia", progress: 34, status: "Monitorado" },
+  { name: "Gestao documental", owner: "Operacao", progress: 30, status: "Organizado" },
 ];
 
 export const structuralStatusLabels: Record<StructuralStatus, string> = {

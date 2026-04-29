@@ -8,6 +8,7 @@ import { Nr01Controller } from "./nr01/nr01.controller";
 import { Nr01Service } from "./nr01/nr01.service";
 import { PsychosocialController } from "./psychosocial/psychosocial.controller";
 import { PsychosocialService } from "./psychosocial/psychosocial.service";
+import { PronusAccessController } from "./pronus-access/pronus-access.controller";
 import { RegulatoryIntelligenceController } from "./regulatory-intelligence/regulatory-intelligence.controller";
 import { RegulatoryIntelligenceService } from "./regulatory-intelligence/regulatory-intelligence.service";
 import { StructuralController } from "./structural/structural.controller";
@@ -19,6 +20,7 @@ import { StructuralService } from "./structural/structural.service";
     StructuralController,
     EmployeeAccessController,
     ClientAccessController,
+    PronusAccessController,
     Nr01Controller,
     PsychosocialController,
     DocumentsController,

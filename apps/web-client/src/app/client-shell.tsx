@@ -74,7 +74,7 @@ export function ClientShell({
         <aside className="hidden w-72 shrink-0 xl:block">
           <div className="sticky top-5 rounded-lg border border-white/70 bg-white/95 p-4 shadow-sm">
             <div className="mb-7">
-              <img alt="Pronus Labor" className="h-16 w-auto" src="/brand/pronus-logo.png" />
+              <img alt="Pronus Labor" className="h-20 w-auto" src="/brand/pronus-logo.png" />
               <h1 className="mt-4 text-lg font-semibold uppercase tracking-wide">PORTAL RH</h1>
             </div>
             <div className="mb-5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
@@ -116,7 +116,7 @@ export function ClientShell({
         <div className="min-w-0 flex-1">
           <div className="mb-5 rounded-lg border border-white/70 bg-white/90 p-4 shadow-sm xl:hidden">
             <div className="mb-4">
-              <img alt="Pronus Labor" className="h-12 w-auto" src="/brand/pronus-logo.png" />
+              <img alt="Pronus Labor" className="h-14 w-auto" src="/brand/pronus-logo.png" />
               <h1 className="mt-2 text-lg font-semibold uppercase tracking-wide">PORTAL RH</h1>
               <p className="mt-1 truncate text-sm font-semibold text-slate-600" title={companyName}>
                 {companyName}

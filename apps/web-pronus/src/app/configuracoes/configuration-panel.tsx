@@ -405,14 +405,14 @@ export function ConfigurationPanel({
       obligations: ["pgr", "pcmso", "ltcat", "esocial_s2210", "esocial_s2220", "esocial_s2240"],
       riskDegree,
       sourceNote:
-        "Parametro criado na interface do MVP; persistencia definitiva sera ligada ao backend.",
+        "Parametro criado na interface operacional; persistencia definitiva sera ligada ao backend.",
     };
 
     setCnaes((current) => [nextCnae, ...current.filter((item) => item.code !== code)]);
     setAssessmentCnae(code);
     setCnaeForm(initialCnaeForm);
     setIsCnaeModalOpen(false);
-    setMessage("CNAE incluido na parametrizacao local do MVP.");
+    setMessage("CNAE incluido na parametrizacao local.");
   }
 
   function analyzeCompany() {

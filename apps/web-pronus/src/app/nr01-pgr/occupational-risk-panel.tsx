@@ -293,7 +293,7 @@ export function OccupationalRiskPanel({
 
     setRisks((current) => [createdRisk, ...current]);
     setRiskForm(initialRiskForm);
-    setMessage("Risco cadastrado no painel do MVP.");
+    setMessage("Risco cadastrado no painel operacional.");
     closeModal();
   }
 

@@ -2,60 +2,113 @@
 
 import { useState } from "react";
 
-const defaultPassword = "pronu123";
+interface PronusLoginResult {
+  id: string;
+  fullName: string;
+  cpf: string;
+  email: string;
+  department: string;
+  jobPosition: string;
+  role: "master_admin" | "administrative" | "clinical";
+  status: "active" | "pending_validation" | "blocked" | "inactive";
+  mustChangePassword: boolean;
+  permissions: {
+    fullAccess: boolean;
+    canResetPronusUsers: boolean;
+    canViewClinicalRecords: boolean;
+    canManageCompanies: boolean;
+    canManageSchedule: boolean;
+  };
+}
+
+const testAccesses = [
+  {
+    cpf: "111.222.333-00",
+    label: "Administrador geral",
+    password: "111222",
+  },
+  {
+    cpf: "456.789.123-88",
+    label: "Administrativo PRONUS",
+    password: "456789",
+  },
+] as const;
+
+const defaultAccess = testAccesses[0];
+
+function getApiUrl() {
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+}
+
+function responseMessage(payload: unknown, fallback: string) {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "message" in payload &&
+    typeof payload.message === "string"
+  ) {
+    return payload.message;
+  }
+
+  return fallback;
+}
 
 export default function PronusLoginPage() {
-  const [cpf, setCpf] = useState("");
-  const [password, setPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
-  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [cpf, setCpf] = useState<string>(defaultAccess.cpf);
+  const [password, setPassword] = useState<string>(defaultAccess.password);
   const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  function login() {
+  async function login() {
     if (cpf.trim().length === 0 || password.length === 0) {
       setMessage("Informe CPF e senha para acessar.");
       return;
     }
 
-    if (password === defaultPassword) {
-      setMustChangePassword(true);
-      setMessage("Primeiro acesso identificado. Troque a senha para continuar.");
-      return;
-    }
+    setIsLoading(true);
+    setMessage(null);
 
-    setMessage("Credenciais recebidas. A autenticacao real sera ligada ao banco de usuarios.");
+    try {
+      const response = await fetch(`${getApiUrl()}/pronus-access/login`, {
+        body: JSON.stringify({ cpf, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = (await response.json()) as PronusLoginResult | { message?: string };
+
+      if (!response.ok) {
+        setMessage(responseMessage(payload, "CPF ou senha invalidos."));
+        return;
+      }
+
+      window.localStorage.setItem("pronus:operator-session", JSON.stringify(payload));
+      window.location.href = "/";
+    } catch {
+      setMessage("Nao foi possivel conectar a API local.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function changePassword() {
-    if (newPassword.length < 8) {
-      setMessage("A nova senha deve ter pelo menos 8 caracteres.");
-      return;
-    }
-
-    if (newPassword !== confirmation) {
-      setMessage("A confirmacao precisa ser igual a nova senha.");
-      return;
-    }
-
-    setMessage("Senha alterada. O usuario pode acessar o Portal PRONUS.");
-    setMustChangePassword(false);
-    setPassword("");
-    setNewPassword("");
-    setConfirmation("");
+  function applyTestAccess(cpfValue: string, passwordValue: string) {
+    setCpf(cpfValue);
+    setPassword(passwordValue);
+    setMessage(null);
   }
 
   return (
     <main className="min-h-screen bg-pronus-background px-5 py-8 text-pronus-text">
       <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1fr_420px]">
         <div>
-          <img alt="Pronus Labor" className="h-20 w-auto" src="/brand/pronus-logo.png" />
+          <img alt="Pronus Labor" className="h-24 w-auto" src="/brand/pronus-logo.png" />
           <h1 className="mt-8 max-w-2xl text-3xl font-semibold tracking-normal">
-            Acesso administrativo PRONUS
+            Acesso operacional PRONUS
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Login por CPF para equipe administrativa e corpo clinico. No primeiro acesso com senha
-            padrao, a troca de senha e obrigatoria antes de entrar no sistema.
+            Entrada segura para equipe administrativa e corpo clinico. No primeiro acesso, use os 6
+            primeiros digitos do CPF e atualize a senha antes de continuar.
           </p>
         </div>
 
@@ -65,44 +118,32 @@ export default function PronusLoginPage() {
             <p className="mt-1 text-sm text-slate-500">Use CPF e senha de acesso.</p>
           </div>
 
+          <div className="mb-4 grid gap-2">
+            {testAccesses.map((access) => (
+              <button
+                key={access.cpf}
+                className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 hover:border-pronus-primary"
+                type="button"
+                onClick={() => applyTestAccess(access.cpf, access.password)}
+              >
+                <span className="block font-semibold text-slate-900">{access.label}</span>
+                {access.cpf} / senha {access.password}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-3">
             <Field label="CPF" value={cpf} onChange={setCpf} placeholder="000.000.000-00" />
             <Field label="Senha" type="password" value={password} onChange={setPassword} />
             <button
-              className="w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white"
+              className="w-full rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isLoading}
               type="button"
-              onClick={login}
+              onClick={() => void login()}
             >
               Acessar
             </button>
           </div>
-
-          {mustChangePassword && (
-            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <h3 className="text-sm font-semibold text-amber-900">Troca obrigatoria de senha</h3>
-              <div className="mt-3 space-y-3">
-                <Field
-                  label="Nova senha"
-                  type="password"
-                  value={newPassword}
-                  onChange={setNewPassword}
-                />
-                <Field
-                  label="Confirmar senha"
-                  type="password"
-                  value={confirmation}
-                  onChange={setConfirmation}
-                />
-                <button
-                  className="w-full rounded-md bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white"
-                  type="button"
-                  onClick={changePassword}
-                >
-                  Alterar senha
-                </button>
-              </div>
-            </div>
-          )}
 
           {message !== null && (
             <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">

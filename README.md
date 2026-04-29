@@ -1,10 +1,10 @@
 # Pronus Labor 360
 
-Pronus Labor 360 e uma plataforma em desenvolvimento para transformar a gestao de saude ocupacional, riscos trabalhistas e bem-estar corporativo em uma operacao digital, auditavel e orientada por dados.
+Pronus Labor 360 e uma plataforma para transformar a gestao de saude ocupacional, riscos trabalhistas e bem-estar corporativo em uma operacao digital, auditavel e orientada por dados.
 
 A proposta vai alem de um ERP tradicional. O produto nasce para conectar, em uma unica base, a operacao tecnica da PRONUS, o RH das empresas clientes e a jornada do colaborador. O objetivo e reduzir retrabalho, aumentar confiabilidade juridica, acelerar entregas de SST e criar inteligencia operacional sobre NR-01/GRO/PGR, risco psicossocial, documentos, indicadores e preparacao futura para eSocial.
 
-## Galeria Visual Do MVP
+## Galeria Visual Do Produto
 
 Capturas demonstrativas atualizadas em 2026-04-29 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
 
@@ -90,7 +90,7 @@ docs/              Documentacao de produto, arquitetura, dados e fluxos
 
 ## Estado Atual
 
-O projeto esta em fase inicial de desenvolvimento do MVP.
+A versao atual ja demonstra os fluxos centrais do produto e serve como base operacional para evolucao tecnica, apresentacoes comerciais e validacao com clientes.
 
 Ja existe:
 
@@ -111,6 +111,8 @@ Ja existe:
 - cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
 - modulo Colaboradores com Usuarios, permissoes do sistema, agenda do corpo clinico, feriados e tabela de pagamento profissional;
 - telas de login para Portal PRONUS, Portal RH Cliente e Portal Colaborador, com troca obrigatoria quando o usuario acessa pela senha padrao;
+- login administrativo do Portal PRONUS por CPF, com perfil Administrador Geral, acesso full e acesso administrativo demonstrativo;
+- reset de senha de usuarios administrativos e corpo clinico PRONUS pelo modulo Colaboradores;
 - login do Portal Colaborador por CPF e login do Portal RH Cliente por CNPJ, com senha inicial baseada nos seis primeiros digitos do documento;
 - pedidos de reset de senha: colaborador solicita no login, RH libera pelo painel, e empresa/RH solicita no login para liberacao pela operacao PRONUS;
 - logo oficial aplicada aos portais e favicon do produto configurado;
@@ -123,7 +125,7 @@ Ja existe:
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
 - questionario COPSOQ no Portal Colaborador, com 46 perguntas importadas da planilha-base, salvamento progressivo local e termometro de progresso;
-- configuracao local de acesso para testes do MVP em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
+- configuracao local de acesso para testes em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
 - modulo Documentos com fila documental, modelos, publicacoes e solicitacoes de assinatura;
 - documentacao funcional e tecnica em `docs/`.
 
@@ -139,9 +141,9 @@ Ainda esta em andamento:
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;
 - anexos reais, auditoria documental e dashboards avancados.
 
-## Sinais De Tracao Do MVP
+## Sinais De Tracao Do Produto
 
-O MVP ja demonstra a tese central do produto: uma base unica que conecta operacao, RH e colaborador sem perder governanca.
+A versao atual ja demonstra a tese central do produto: uma base unica que conecta operacao, RH e colaborador sem perder governanca.
 
 - A operacao PRONUS ja visualiza empresas, CNPJs, estrutura, clientes, NR-01 e risco psicossocial em um painel inicial.
 - O RH Cliente ja tem uma porta de entrada para acompanhar pendencias cadastrais e reduzir retrabalho.
@@ -177,7 +179,7 @@ pnpm dev:pronus
 pnpm dev:api
 ```
 
-## Roadmap Do MVP
+## Roadmap Do Produto
 
 1. Cadastro estrutural: empresas, unidades, setores, cargos e colaboradores.
 2. Importacao e validacao de colaboradores.

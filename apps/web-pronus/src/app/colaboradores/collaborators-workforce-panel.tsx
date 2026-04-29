@@ -90,7 +90,9 @@ type RateItem = {
 
 type RateForm = Omit<RateItem, "id" | "endDate">;
 
-const standardPassword = "pronu123";
+function standardPassword(cpf: string) {
+  return cpf.replace(/\D/g, "").slice(0, 6);
+}
 
 const tabs: Array<{ id: CollaboratorsTab; label: string }> = [
   { id: "users", label: "Usuarios" },
@@ -132,6 +134,17 @@ const statusLabels: Record<PersonStatus, string> = {
 };
 
 const initialUsers: Person[] = [
+  {
+    id: "pronus-master-admin",
+    name: "Administrador Geral PRONUS",
+    cpf: "111.222.333-00",
+    email: "admin.master@pronus.com.br",
+    registeredAt: "2026-04-29",
+    department: "Operacao PRONUS",
+    jobPosition: "Administrador geral",
+    audience: "pronus_administrative",
+    status: "active",
+  },
   {
     id: "rh-industria-mariana",
     name: "Mariana Costa",
@@ -405,10 +418,38 @@ export function CollaboratorsWorkforcePanel({
     setMessage(`Usuario ${statusLabels[status].toLowerCase()} com sucesso.`);
   }
 
-  function resetPassword(person: Person) {
-    setMessage(
-      `Senha de ${person.name} redefinida para ${standardPassword}. O proximo acesso exigira troca de senha.`,
-    );
+  async function resetPassword(person: Person) {
+    const isPronusUser =
+      person.audience === "pronus_administrative" || person.audience === "pronus_clinical";
+
+    if (!isPronusUser) {
+      setMessage(
+        `Senha de ${person.name} preparada para ${standardPassword(
+          person.cpf,
+        )}. O proximo acesso exigira troca de senha.`,
+      );
+      return;
+    }
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const response = await fetch(`${apiUrl}/pronus-access/users/${person.id}/reset-password`, {
+        method: "PATCH",
+      });
+
+      if (!response.ok) {
+        setMessage("Nao foi possivel redefinir a senha deste usuario PRONUS.");
+        return;
+      }
+
+      setMessage(
+        `Senha de ${person.name} redefinida para ${standardPassword(
+          person.cpf,
+        )}. O proximo acesso exigira troca de senha.`,
+      );
+    } catch {
+      setMessage("Nao foi possivel conectar a API local para redefinir a senha.");
+    }
   }
 
   function addUser(form: UserForm) {
@@ -420,7 +461,7 @@ export function CollaboratorsWorkforcePanel({
       },
       ...current,
     ]);
-    setMessage(`Usuario ${form.name} cadastrado com senha inicial ${standardPassword}.`);
+    setMessage(`Usuario ${form.name} cadastrado com senha inicial ${standardPassword(form.cpf)}.`);
   }
 
   function togglePermission(profileIndex: number, permission: PermissionKey) {
@@ -610,7 +651,7 @@ export function CollaboratorsWorkforcePanel({
         <UsersTab
           users={users}
           onAddUser={addUser}
-          onResetPassword={resetPassword}
+          onResetPassword={(person) => void resetPassword(person)}
           onUpdateStatus={updateUserStatus}
         />
       )}
@@ -972,9 +1013,9 @@ function UsersTab({
                     Senha
                   </span>
                   <button
-                    aria-label={`Resete de senha de ${person.name}`}
+                    aria-label={`Reset de senha de ${person.name}`}
                     className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
-                    title="Resete de senha"
+                    title="Reset de senha"
                     type="button"
                     onClick={() => onResetPassword(person)}
                   >

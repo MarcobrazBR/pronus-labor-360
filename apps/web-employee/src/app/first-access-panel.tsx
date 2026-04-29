@@ -420,7 +420,7 @@ export function FirstAccessPanel() {
   if (profile === null) {
     return (
       <section className="w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <img alt="Pronus Labor" className="mx-auto h-16 w-auto" src="/brand/pronus-logo.png" />
+        <img alt="Pronus Labor" className="mx-auto h-20 w-auto" src="/brand/pronus-logo.png" />
         <h1 className="mt-5 text-2xl font-semibold text-slate-950">Portal Colaborador</h1>
         <p className="mt-2 text-sm text-slate-600">
           Entre pelo login para carregar seu cadastro e acessar a jornada digital.
@@ -440,7 +440,7 @@ export function FirstAccessPanel() {
       <div className="border-b border-slate-200 px-5 py-5 lg:px-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <img alt="Pronus Labor" className="h-16 w-auto" src="/brand/pronus-logo.png" />
+            <img alt="Pronus Labor" className="h-20 w-auto" src="/brand/pronus-logo.png" />
             <p className="mt-4 text-xs font-semibold uppercase text-pronus-primary">
               Portal Colaborador
             </p>
