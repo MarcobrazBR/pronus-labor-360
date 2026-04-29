@@ -14,8 +14,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const data = await loadClientPortalData();
 
   return (
-    <html lang="pt-BR">
-      <body>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <ClientShell companyName={data.activeCompany.tradeName}>{children}</ClientShell>
       </body>
     </html>
