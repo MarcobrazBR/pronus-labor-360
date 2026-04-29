@@ -90,6 +90,7 @@ export function ClientPasswordGuard() {
       const nextSession = payload as ClientAccessProfile;
       window.localStorage.setItem(clientSessionKey, JSON.stringify(nextSession));
       setSession(nextSession);
+      window.dispatchEvent(new Event("pronus-client-session-updated"));
     } catch {
       setError("Nao foi possivel conectar a API local.");
     } finally {

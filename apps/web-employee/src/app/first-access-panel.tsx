@@ -438,7 +438,7 @@ export function FirstAccessPanel() {
   return (
     <section className="w-full max-w-7xl rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 px-5 py-5 lg:px-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <img alt="Pronus Labor" className="h-20 w-auto" src="/brand/pronus-logo.png" />
             <p className="mt-4 text-xs font-semibold uppercase text-pronus-primary">
@@ -447,19 +447,18 @@ export function FirstAccessPanel() {
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">
               Jornada digital de saude ocupacional
             </h1>
+            <p className="mt-2 text-sm font-medium text-slate-600">
+              {profile.fullName} / {profile.companyTradeName}
+            </p>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            <p className="font-semibold text-slate-900">{profile.companyTradeName}</p>
-            <p className="mt-1">{profile.fullName}</p>
-            <button
-              className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
-              type="button"
-              onClick={logout}
-            >
-              Sair
-            </button>
-          </div>
+          <button
+            className="self-start rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-pronus-primary hover:text-pronus-primary lg:self-auto"
+            type="button"
+            onClick={logout}
+          >
+            Sair
+          </button>
         </div>
 
         {error !== null && (

@@ -27,8 +27,8 @@ function responseMessage(payload: unknown, fallback: string) {
 }
 
 export default function ClientLoginPage() {
-  const [cnpj, setCnpj] = useState("12.345.678/0001-90");
-  const [password, setPassword] = useState("123456");
+  const [cnpj, setCnpj] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -113,9 +113,7 @@ export default function ClientLoginPage() {
         <div className="rounded-lg border border-white/70 bg-white p-5 shadow-sm">
           <div className="mb-5 border-b border-slate-200 pb-4">
             <h2 className="text-lg font-semibold">Entrar no portal</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Teste: Industria Horizonte / senha 123456.
-            </p>
+            <p className="mt-1 text-sm text-slate-500">Use CNPJ e senha de acesso.</p>
           </div>
 
           <div className="space-y-3">

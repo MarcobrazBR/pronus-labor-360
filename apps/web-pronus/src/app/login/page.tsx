@@ -21,21 +21,6 @@ interface PronusLoginResult {
   };
 }
 
-const testAccesses = [
-  {
-    cpf: "111.222.333-00",
-    label: "Administrador geral",
-    password: "111222",
-  },
-  {
-    cpf: "456.789.123-88",
-    label: "Administrativo PRONUS",
-    password: "456789",
-  },
-] as const;
-
-const defaultAccess = testAccesses[0];
-
 function getApiUrl() {
   return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 }
@@ -54,8 +39,8 @@ function responseMessage(payload: unknown, fallback: string) {
 }
 
 export default function PronusLoginPage() {
-  const [cpf, setCpf] = useState<string>(defaultAccess.cpf);
-  const [password, setPassword] = useState<string>(defaultAccess.password);
+  const [cpf, setCpf] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -92,12 +77,6 @@ export default function PronusLoginPage() {
     }
   }
 
-  function applyTestAccess(cpfValue: string, passwordValue: string) {
-    setCpf(cpfValue);
-    setPassword(passwordValue);
-    setMessage(null);
-  }
-
   return (
     <main className="min-h-screen bg-pronus-background px-5 py-8 text-pronus-text">
       <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1fr_420px]">
@@ -116,20 +95,6 @@ export default function PronusLoginPage() {
           <div className="mb-5 border-b border-slate-200 pb-4">
             <h2 className="text-lg font-semibold">Entrar no portal</h2>
             <p className="mt-1 text-sm text-slate-500">Use CPF e senha de acesso.</p>
-          </div>
-
-          <div className="mb-4 grid gap-2">
-            {testAccesses.map((access) => (
-              <button
-                key={access.cpf}
-                className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 hover:border-pronus-primary"
-                type="button"
-                onClick={() => applyTestAccess(access.cpf, access.password)}
-              >
-                <span className="block font-semibold text-slate-900">{access.label}</span>
-                {access.cpf} / senha {access.password}
-              </button>
-            ))}
           </div>
 
           <div className="space-y-3">

@@ -179,6 +179,10 @@ pnpm dev:pronus
 pnpm dev:api
 ```
 
+Os acessos demonstrativos do ambiente local ficam documentados em
+[`docs/acessos-teste-portais.md`](docs/acessos-teste-portais.md). As telas de login nao devem
+exibir credenciais de teste.
+
 ## Roadmap Do Produto
 
 1. Cadastro estrutural: empresas, unidades, setores, cargos e colaboradores.

@@ -295,3 +295,11 @@ Estado encontrado:
 - Build completo do monorepo apos login PRONUS, persistencia de senha e ajustes de marca.
 - Teste HTTP de troca de senha, persistencia, bloqueio da senha antiga e reset para senha padrao nos fluxos Colaborador, RH Cliente e PRONUS administrativo.
 - Screenshots desktop atualizados novamente para os tres portais, tres telas de login e fluxo de reset da empresa.
+- Telas de login dos tres portais foram ajustadas para nao exibir credenciais demonstrativas nem iniciar com CPF/CNPJ/senha preenchidos.
+- Criado `docs/acessos-teste-portais.md` com URLs, perfis, documentos, senhas padrao, regra de primeiro acesso e fluxos de reset.
+- Portal PRONUS, Portal RH Cliente e Portal Colaborador agora exibem botao Sair padronizado no canto superior direito apos login.
+- Header do Portal Colaborador foi simplificado para remover o bloco visual de sessao com botao interno, mantendo apenas identificacao discreta do colaborador/empresa e acao Sair no topo.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-logins-logout-seguranca-2026-04-29.md`.
+- Teste no navegador confirmou `http://localhost:3000/login` sem 404 e sem vazamento de credenciais.
+- Teste no navegador confirmou troca obrigatoria de senha saindo corretamente do modal no Portal RH Cliente e Portal Colaborador.
+- Teste no navegador confirmou troca obrigatoria de senha e botao Sair no Portal PRONUS.

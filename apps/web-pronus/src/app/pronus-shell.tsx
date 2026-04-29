@@ -43,6 +43,12 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
     return () => window.removeEventListener("pronus-session-updated", updateSessionState);
   }, [pathname]);
 
+  function logout() {
+    window.localStorage.removeItem("pronus:operator-session");
+    setHasSession(false);
+    window.location.href = "/login";
+  }
+
   if (pathname.startsWith("/login")) {
     return <>{children}</>;
   }
@@ -118,6 +124,16 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
         </aside>
 
         <div className="min-w-0 flex-1">
+          <div className="mb-4 flex justify-end">
+            <button
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-pronus-primary hover:text-pronus-primary"
+              type="button"
+              onClick={logout}
+            >
+              Sair
+            </button>
+          </div>
+
           <div className="mb-5 rounded-lg border border-white/70 bg-white/90 p-4 shadow-sm xl:hidden">
             <div className="mb-4">
               <img alt="Pronus Labor" className="h-14 w-auto" src="/brand/pronus-logo.png" />
