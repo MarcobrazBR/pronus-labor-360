@@ -4,6 +4,28 @@ Pronus Labor 360 e uma plataforma em desenvolvimento para transformar a gestao d
 
 A proposta vai alem de um ERP tradicional. O produto nasce para conectar, em uma unica base, a operacao tecnica da PRONUS, o RH das empresas clientes e a jornada do colaborador. O objetivo e reduzir retrabalho, aumentar confiabilidade juridica, acelerar entregas de SST e criar inteligencia operacional sobre NR-01/GRO/PGR, risco psicossocial, documentos, indicadores e preparacao futura para eSocial.
 
+## Galeria Visual Do MVP
+
+Capturas demonstrativas atualizadas em 2026-04-29 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
+
+### Portais
+
+| Portal PRONUS                                                           | Portal RH Cliente                                                   | Portal Colaborador                                                    |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| ![Portal operacional PRONUS](docs/assets/screenshots/portal-pronus.png) | ![Portal RH Cliente](docs/assets/screenshots/portal-rh-cliente.png) | ![Portal Colaborador](docs/assets/screenshots/portal-colaborador.png) |
+
+### Login Dos Portais
+
+| Login PRONUS                                                             | Login RH Cliente                                                         | Login Colaborador                                                          |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| ![Login administrativo PRONUS](docs/assets/screenshots/login-pronus.png) | ![Login Portal RH Cliente](docs/assets/screenshots/login-rh-cliente.png) | ![Login Portal Colaborador](docs/assets/screenshots/login-colaborador.png) |
+
+## Regra De Atualizacao Visual
+
+Toda alteracao visual relevante no sistema deve atualizar tambem as capturas em `docs/assets/screenshots/` e a galeria acima no README. Essa regra faz parte do Definition of Done de qualquer mudanca em layout, identidade visual, navegacao, dashboards, telas de login ou fluxos apresentados a clientes e investidores.
+
+As imagens publicadas no GitHub devem usar dados demonstrativos e nao devem expor CPF, dados medicos, informacoes financeiras, documentos reais ou qualquer dado sensivel de pessoas/empresas.
+
 ## Visao
 
 Empresas lidam com saude ocupacional em um ambiente cada vez mais regulado, sensivel e fragmentado. Dados ficam espalhados em planilhas, documentos, sistemas isolados, e-mails e processos manuais. Isso cria risco juridico, perda de produtividade, pouca rastreabilidade e baixa capacidade de decisao.

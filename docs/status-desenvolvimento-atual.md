@@ -155,6 +155,8 @@ Estado encontrado:
 - Inclusao manual de clientes no Portal PRONUS e no Portal RH Cliente agora usa catalogos cadastrados de setores e cargos, com CBO visivel/editavel para preparar a base futura do eSocial.
 - Importacao de clientes por planilha foi redesenhada nos dois portais com modelo CSV baixavel, etapa de simulacao, importacao real, metricas de retorno e campos padrao: CNPJ, nome, CPF, setor, cargo, CBO, e-mail, telefone, data de nascimento e data de inclusao.
 - Portal RH Cliente agora possui o mesmo modelo de importacao por planilha do Portal PRONUS, mantendo a empresa travada conforme permissao do usuario RH.
+- README agora possui galeria visual do MVP com imagens dos tres portais e das tres telas de login para apoio a apresentacoes comerciais e captacao de investimento.
+- Criada regra formal de atualizacao de screenshots: mudancas visuais relevantes devem atualizar `docs/assets/screenshots/`, a galeria do README e o status de desenvolvimento no mesmo ciclo.
 - Painel PRONUS agora exibe:
   - resumo de empresas, clientes, risco ocupacional e campanhas;
   - unidades, setores e cargos;
@@ -248,3 +250,5 @@ Estado encontrado:
 - Teste interativo no navegador do Portal PRONUS em `/empresas/clientes`, confirmando importacao com modelo CSV, simulacao/importacao, modal de inclusao com setor/cargo catalogado e CBO.
 - Teste interativo no navegador do Portal RH Cliente em `/clientes`, confirmando importacao com modelo CSV, empresa travada, simulacao/importacao e modal de inclusao com setor/cargo catalogado e CBO.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-importacao-clientes-2026-04-28.md`.
+- Screenshots desktop gerados para Portal PRONUS, Portal RH Cliente, Portal Colaborador e logins dos tres portais em `docs/assets/screenshots/`.
+- README validado com galeria visual e regra de atualizacao das imagens apos mudancas de UI.

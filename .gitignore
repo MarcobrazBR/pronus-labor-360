@@ -12,6 +12,7 @@ coverage
 *.tsbuildinfo
 prisma/dev.db
 tmp
+.tmp
 temp
 .logs
 Dockerfile.local
