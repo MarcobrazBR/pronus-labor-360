@@ -339,6 +339,54 @@ export function FirstAccessPanel() {
     setForm(profileToForm(nextProfile));
   }
 
+  async function refreshPortalState(employeeId: string) {
+    try {
+      const apiUrl = getApiUrl();
+      const [profileResponse, answerResponse] = await Promise.all([
+        fetch(`${apiUrl}/employee-access/profile/${employeeId}`),
+        fetch(`${apiUrl}/psychosocial/answers/employee/${employeeId}`),
+      ]);
+
+      if (profileResponse.ok) {
+        const profilePayload = (await profileResponse.json()) as EmployeeAccessProfile;
+        updateProfile(profilePayload);
+      }
+
+      if (answerResponse.ok) {
+        const answerPayload = (await answerResponse.json()) as PsychosocialAnswerReceipt | null;
+
+        if (answerPayload !== null) {
+          setPsychosocialRisk(answerPayload.riskLevel);
+        }
+      }
+    } catch {
+      // Atualizacao passiva: falhas silenciosas preservam o uso offline do prototipo.
+    }
+  }
+
+  useEffect(() => {
+    if (profile === null) {
+      return;
+    }
+
+    let isActive = true;
+    const refresh = () => {
+      if (isActive) {
+        void refreshPortalState(profile.employeeId);
+      }
+    };
+
+    refresh();
+    const intervalId = window.setInterval(refresh, 12000);
+    window.addEventListener("focus", refresh);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [profile?.employeeId]);
+
   async function submitRegistrationCheck() {
     if (profile === null) {
       return;

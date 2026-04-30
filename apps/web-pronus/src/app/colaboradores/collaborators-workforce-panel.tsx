@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   structuralAudienceLabels,
   type StructuralAudience,
@@ -39,6 +39,13 @@ type PermissionProfile = {
   audience: StructuralAudience;
   permissions: Record<PermissionKey, boolean>;
 };
+
+interface PronusOperatorSession {
+  role: "master_admin" | "administrative" | "clinical";
+  permissions?: {
+    fullAccess?: boolean;
+  };
+}
 
 type Weekday = "mon" | "tue" | "wed" | "thu" | "fri";
 
@@ -94,6 +101,24 @@ function standardPassword(cpf: string) {
   return cpf.replace(/\D/g, "").slice(0, 6);
 }
 
+function readOperatorSession(): PronusOperatorSession | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem("pronus:operator-session");
+
+  if (raw === null) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as PronusOperatorSession;
+  } catch {
+    return null;
+  }
+}
+
 const tabs: Array<{ id: CollaboratorsTab; label: string }> = [
   { id: "users", label: "Usuarios" },
   { id: "permissions", label: "Permissoes do sistema" },
@@ -141,7 +166,7 @@ const initialUsers: Person[] = [
     email: "admin.master@pronus.com.br",
     registeredAt: "2026-04-29",
     department: "Operacao PRONUS",
-    jobPosition: "Administrador geral",
+    jobPosition: "Master",
     audience: "pronus_administrative",
     status: "active",
   },
@@ -219,6 +244,18 @@ function createEmptyUserForm(): UserForm {
 }
 
 const initialPermissions: PermissionProfile[] = [
+  {
+    jobPosition: "Master",
+    audience: "pronus_administrative",
+    permissions: {
+      billing: true,
+      clientRecords: true,
+      companyRegistration: true,
+      medicalRecords: true,
+      psychosocialReports: true,
+      schedule: true,
+    },
+  },
   {
     jobPosition: "RH cliente",
     audience: "client_hr",
@@ -397,8 +434,13 @@ export function CollaboratorsWorkforcePanel({
   const [isHolidayOpen, setIsHolidayOpen] = useState(false);
   const [isRateOpen, setIsRateOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [isMasterOperator, setIsMasterOperator] = useState(false);
 
   const clinicalPeople = users.filter((person) => person.audience === "pronus_clinical");
+  const visibleTabs = useMemo(
+    () => (isMasterOperator ? tabs : tabs.filter((tab) => tab.id !== "permissions")),
+    [isMasterOperator],
+  );
   const roleOptions = useMemo(
     () =>
       jobPositions.filter(
@@ -410,6 +452,17 @@ export function CollaboratorsWorkforcePanel({
       ),
     [jobPositions],
   );
+
+  useEffect(() => {
+    const session = readOperatorSession();
+    const isMaster = session?.role === "master_admin" || session?.permissions?.fullAccess === true;
+
+    setIsMasterOperator(isMaster);
+
+    if (!isMaster && activeTab === "permissions") {
+      setActiveTab("users");
+    }
+  }, [activeTab]);
 
   function updateUserStatus(id: string, status: PersonStatus) {
     setUsers((current) =>
@@ -621,7 +674,7 @@ export function CollaboratorsWorkforcePanel({
     <section className="rounded-lg border border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-4">
         <div className="flex flex-wrap gap-2">
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               className={`rounded-md px-3 py-2 text-sm font-semibold ${
@@ -655,7 +708,7 @@ export function CollaboratorsWorkforcePanel({
           onUpdateStatus={updateUserStatus}
         />
       )}
-      {activeTab === "permissions" && (
+      {activeTab === "permissions" && isMasterOperator && (
         <PermissionsTab
           permissions={permissions}
           roleOptions={roleOptions}

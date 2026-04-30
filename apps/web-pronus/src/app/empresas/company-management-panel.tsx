@@ -564,16 +564,18 @@ export function CompanyManagementPanel({
           setPsychosocialAnswers(payload);
         }
       } catch {
-        if (!shouldIgnore) {
-          setError("Nao foi possivel atualizar respostas psicossociais.");
-        }
+        // Atualizacao passiva: a tela mantem o ultimo estado valido se a API oscilar.
       }
     }
 
     void refreshPsychosocialAnswers();
+    const intervalId = window.setInterval(refreshPsychosocialAnswers, 12000);
+    window.addEventListener("focus", refreshPsychosocialAnswers);
 
     return () => {
       shouldIgnore = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshPsychosocialAnswers);
     };
   }, [activeTab]);
 

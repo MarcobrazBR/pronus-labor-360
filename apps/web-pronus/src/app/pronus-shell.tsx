@@ -16,6 +16,18 @@ const navigationItems = [
   { label: "DOCUMENTOS", href: "/documentos" },
 ];
 
+interface PronusOperatorSession {
+  fullName: string;
+  jobPosition: string;
+  role: "master_admin" | "administrative" | "clinical";
+}
+
+const roleLabels: Record<PronusOperatorSession["role"], string> = {
+  administrative: "Administrativo",
+  clinical: "Corpo clinico",
+  master_admin: "Master",
+};
+
 function isActive(pathname: string, href: string) {
   if (href === "/") {
     return pathname === "/";
@@ -27,6 +39,7 @@ function isActive(pathname: string, href: string) {
 export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
   const [hasSession, setHasSession] = useState<boolean | null>(null);
+  const [operatorSession, setOperatorSession] = useState<PronusOperatorSession | null>(null);
 
   useEffect(() => {
     if (pathname.startsWith("/login")) {
@@ -34,7 +47,19 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
     }
 
     const updateSessionState = () => {
-      setHasSession(window.localStorage.getItem("pronus:operator-session") !== null);
+      const rawSession = window.localStorage.getItem("pronus:operator-session");
+      setHasSession(rawSession !== null);
+
+      if (rawSession === null) {
+        setOperatorSession(null);
+        return;
+      }
+
+      try {
+        setOperatorSession(JSON.parse(rawSession) as PronusOperatorSession);
+      } catch {
+        setOperatorSession(null);
+      }
     };
 
     updateSessionState();
@@ -46,6 +71,7 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
   function logout() {
     window.localStorage.removeItem("pronus:operator-session");
     setHasSession(false);
+    setOperatorSession(null);
     window.location.href = "/login";
   }
 
@@ -125,13 +151,23 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
 
         <div className="min-w-0 flex-1">
           <div className="mb-4 flex justify-end">
-            <button
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-pronus-primary hover:text-pronus-primary"
-              type="button"
-              onClick={logout}
-            >
-              Sair
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-pronus-primary hover:text-pronus-primary"
+                type="button"
+                onClick={logout}
+              >
+                Sair
+              </button>
+              {operatorSession !== null && (
+                <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-right shadow-sm">
+                  <p className="text-sm font-semibold text-slate-900">{operatorSession.fullName}</p>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">
+                    {operatorSession.jobPosition} / {roleLabels[operatorSession.role]}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mb-5 rounded-lg border border-white/70 bg-white/90 p-4 shadow-sm xl:hidden">

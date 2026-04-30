@@ -184,6 +184,16 @@ const seededAnswers: PsychosocialEmployeeAnswer[] = [
     createdAt: "2026-04-18T12:00:00.000Z",
   },
   {
+    id: "answer-employee-002",
+    campaignId: "campaign-horizonte-2026-01",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-002",
+    sectorName: "Manutencao",
+    averageScore: 3.9,
+    riskLevel: "high",
+    createdAt: "2026-04-29T19:00:00.000Z",
+  },
+  {
     id: "answer-employee-003",
     campaignId: "campaign-horizonte-2026-01",
     companyTradeName: "Industria Horizonte",
@@ -238,9 +248,20 @@ function loadPsychosocialState(): PsychosocialStorageState {
   }
 
   try {
+    const parsedState = JSON.parse(
+      readFileSync(readablePath, "utf8"),
+    ) as Partial<PsychosocialStorageState>;
+    const storedAnswers = parsedState.answers ?? [];
+
     return {
       ...emptyPsychosocialState(),
-      ...(JSON.parse(readFileSync(readablePath, "utf8")) as Partial<PsychosocialStorageState>),
+      ...parsedState,
+      answers: [
+        ...storedAnswers,
+        ...seededAnswers.filter((seededAnswer) =>
+          storedAnswers.every((answer) => answer.employeeId !== seededAnswer.employeeId),
+        ),
+      ],
     };
   } catch {
     return emptyPsychosocialState();
@@ -407,6 +428,14 @@ export class PsychosocialService {
 
   listAnswers(): PsychosocialEmployeeAnswer[] {
     return psychosocialState.answers;
+  }
+
+  getEmployeeAnswer(employeeId: string): PsychosocialEmployeeAnswer | null {
+    return (
+      psychosocialState.answers
+        .filter((answer) => answer.employeeId === employeeId)
+        .sort((first, second) => second.createdAt.localeCompare(first.createdAt))[0] ?? null
+    );
   }
 
   submitAnswer(input: SubmitPsychosocialAnswerInput): PsychosocialAnswerReceipt {

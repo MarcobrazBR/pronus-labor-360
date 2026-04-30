@@ -50,6 +50,11 @@ export class PsychosocialController {
     return this.psychosocialService.listAnswers();
   }
 
+  @Get("answers/employee/:employeeId")
+  getEmployeeAnswer(@Param("employeeId") employeeId: string) {
+    return this.psychosocialService.getEmployeeAnswer(employeeId);
+  }
+
   @Post("answers")
   submitAnswer(@Body() body: SubmitPsychosocialAnswerInput) {
     return this.psychosocialService.submitAnswer(body);

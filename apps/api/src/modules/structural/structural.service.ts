@@ -712,6 +712,19 @@ const departments: StructuralDepartment[] = [
 
 const jobPositions: StructuralJobPosition[] = [
   {
+    id: "job-pronus-master",
+    departmentId: "department-pronus-administrativo",
+    departmentName: "Administrativo PRONUS",
+    title: "Master",
+    audience: "pronus_administrative",
+    eSocialCode: "PRONUS-MASTER",
+    cboCode: "2521-05",
+    description: "Perfil administrativo geral com acesso integral as rotinas do sistema PRONUS.",
+    status: "active",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+  },
+  {
     id: "job-horizonte-operadora-maquina",
     companyId: "company-pronus-demo",
     companyTradeName: "Industria Horizonte",
@@ -893,7 +906,7 @@ const pronusAccessUsers: PronusAccessUser[] = [
     cpf: "111.222.333-00",
     email: "admin.master@pronus.com.br",
     department: "Operacao PRONUS",
-    jobPosition: "Administrador geral",
+    jobPosition: "Master",
     audience: "pronus_administrative",
     role: "master_admin",
     status: "active",
@@ -1987,6 +2000,10 @@ export class StructuralService {
     return this.toEmployeeAccessProfile(employee);
   }
 
+  getEmployeeAccessProfile(id: string): EmployeeAccessProfile {
+    return this.toEmployeeAccessProfile(this.findEmployee(id));
+  }
+
   listEmployeeDivergences(): EmployeeDivergenceRequest[] {
     return employeeDivergences;
   }
@@ -2303,6 +2320,11 @@ export class StructuralService {
     const confirmation = accessState.employeeRegistrationConfirmations.find(
       (item) => item.employeeId === employee.id,
     );
+    const registrationConfirmedAt = employee.registrationConfirmedAt ?? confirmation?.confirmedAt;
+    const registrationStatus =
+      registrationConfirmedAt !== undefined && employee.registrationStatus === "pending_validation"
+        ? "active"
+        : employee.registrationStatus;
 
     return {
       employeeId: employee.id,
@@ -2313,8 +2335,8 @@ export class StructuralService {
       jobPosition: employee.jobPosition,
       email: employee.email,
       phone: employee.phone,
-      registrationStatus: employee.registrationStatus,
-      registrationConfirmedAt: employee.registrationConfirmedAt ?? confirmation?.confirmedAt,
+      registrationStatus,
+      registrationConfirmedAt,
       mustChangePassword: credential.mustChangePassword,
     };
   }

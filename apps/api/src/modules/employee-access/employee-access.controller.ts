@@ -24,6 +24,11 @@ export class EmployeeAccessController {
     return this.structuralService.loginEmployeeAccess(body);
   }
 
+  @Get("profile/:id")
+  getProfile(@Param("id") id: string) {
+    return this.structuralService.getEmployeeAccessProfile(id);
+  }
+
   @Patch("password")
   changePassword(@Body() body: EmployeeAccessPasswordChangeInput) {
     return this.structuralService.changeEmployeePassword(body);

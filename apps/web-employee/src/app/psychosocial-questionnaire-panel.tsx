@@ -54,16 +54,11 @@ interface SavedQuestionnaireState {
   scores: Record<string, number>;
 }
 
-const campaignStatusLabels: Record<CampaignStatus, string> = {
-  active: "Ativa",
-  analysis_in_progress: "Em analise",
-  closed: "Encerrada",
-  completed: "Concluida",
-  draft: "Rascunho",
-  expired: "Expirada",
-  extended: "Prorrogada",
-  threshold_reached: "Amostra atingida",
-};
+interface QuestionBlock {
+  id: string;
+  title: string;
+  questions: PsychosocialQuestion[];
+}
 
 const defaultAnswerOptions = [
   { label: "Discordo totalmente", value: 1 },
@@ -90,22 +85,6 @@ function responseMessage(payload: unknown, fallback: string) {
   }
 
   return fallback;
-}
-
-function campaignClasses(status: CampaignStatus) {
-  if (status === "threshold_reached" || status === "completed") {
-    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
-  }
-
-  if (status === "active" || status === "analysis_in_progress") {
-    return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
-  }
-
-  if (status === "expired") {
-    return "bg-red-50 text-red-700 ring-1 ring-red-200";
-  }
-
-  return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
 }
 
 function readSavedState(storageKey: string): SavedQuestionnaireState | null {
@@ -165,6 +144,47 @@ function localReceipt(scores: Record<string, number>): PsychosocialAnswerReceipt
   };
 }
 
+function buildQuestionBlocks(questions: PsychosocialQuestion[]): QuestionBlock[] {
+  const sortedQuestions = [...questions].sort((first, second) => first.order - second.order);
+  const firstQuestions = sortedQuestions.slice(0, 2);
+  const remainingQuestions = sortedQuestions.slice(2);
+  const blocks: QuestionBlock[] = [];
+
+  if (firstQuestions.length > 0) {
+    blocks.push({
+      id: "inicio",
+      questions: firstQuestions,
+      title: "Inicio da pesquisa",
+    });
+  }
+
+  for (const question of remainingQuestions) {
+    const existingBlock = blocks.find((block) => block.id === question.factor);
+
+    if (existingBlock === undefined) {
+      blocks.push({
+        id: question.factor,
+        questions: [question],
+        title: question.factor,
+      });
+    } else {
+      existingBlock.questions.push(question);
+    }
+  }
+
+  return blocks;
+}
+
+function isBlockAnswered(block: QuestionBlock | undefined, scores: Record<string, number>) {
+  return block?.questions.every((question) => scores[question.id] !== undefined) === true;
+}
+
+function firstIncompleteBlockIndex(blocks: QuestionBlock[], scores: Record<string, number>) {
+  const index = blocks.findIndex((block) => !isBlockAnswered(block, scores));
+
+  return index === -1 ? Math.max(blocks.length - 1, 0) : index;
+}
+
 export function PsychosocialQuestionnairePanel({
   onCompleted,
   profile,
@@ -182,6 +202,8 @@ export function PsychosocialQuestionnairePanel({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSyncedFinalized, setHasSyncedFinalized] = useState(false);
+  const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
 
   const storageKey = useMemo(() => `pronus:copsq:${profile.employeeId}`, [profile.employeeId]);
 
@@ -262,6 +284,10 @@ export function PsychosocialQuestionnairePanel({
   const answeredQuestions = questions.filter(
     (question) => scores[question.id] !== undefined,
   ).length;
+  const questionBlocks = useMemo(() => buildQuestionBlocks(questions), [questions]);
+  const currentBlock = questionBlocks[currentBlockIndex];
+  const currentBlockAnswered = isBlockAnswered(currentBlock, scores);
+  const isLastBlock = currentBlockIndex >= questionBlocks.length - 1;
   const progress =
     questions.length === 0 ? 0 : Math.round((answeredQuestions / questions.length) * 100);
   const canSubmit =
@@ -272,6 +298,12 @@ export function PsychosocialQuestionnairePanel({
   const linkTone = isFinalized
     ? "border-sky-200 bg-sky-50 text-sky-700"
     : "border-red-200 bg-red-50 text-red-700";
+
+  function openQuestionnaire() {
+    setCurrentBlockIndex(firstIncompleteBlockIndex(questionBlocks, scores));
+    setShowCompletionMessage(isFinalized);
+    setIsModalOpen(true);
+  }
 
   function persist(nextScores: Record<string, number>, nextFinalized = isFinalized) {
     writeSavedState(storageKey, {
@@ -411,6 +443,7 @@ export function PsychosocialQuestionnairePanel({
       setIsFinalized(true);
       setHasSyncedFinalized(true);
       onCompleted?.(nextReceipt);
+      setShowCompletionMessage(true);
       writeSavedState(storageKey, {
         isFinalized: true,
         receipt: nextReceipt,
@@ -426,7 +459,7 @@ export function PsychosocialQuestionnairePanel({
         <button
           className="flex w-full flex-col text-left"
           type="button"
-          onClick={() => setIsModalOpen(true)}
+          onClick={openQuestionnaire}
         >
           <span className="text-sm font-semibold">
             {isFinalized
@@ -446,23 +479,16 @@ export function PsychosocialQuestionnairePanel({
           <section className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-lg bg-white shadow-xl">
             <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-start md:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-950">Questionario COPSQ</h2>
+                <h2 className="text-lg font-semibold text-slate-950">
+                  Pesquisa de Clima Organizacional
+                </h2>
                 <p className="mt-1 text-sm text-slate-600">
                   {profile.fullName} / {profile.companyTradeName} / {profile.department}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {selectedCampaign !== undefined && (
-                  <span
-                    className={`h-fit rounded-full px-2.5 py-1 text-xs font-semibold ${campaignClasses(
-                      selectedCampaign.status,
-                    )}`}
-                  >
-                    {campaignStatusLabels[selectedCampaign.status]}
-                  </span>
-                )}
                 <button
-                  aria-label="Fechar questionario"
+                  aria-label="Fechar pesquisa"
                   className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
                   type="button"
                   onClick={() => {
@@ -477,7 +503,7 @@ export function PsychosocialQuestionnairePanel({
 
             <div className="overflow-y-auto px-5 py-5">
               <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
-                <aside className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <aside className="sticky top-4 self-start rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase text-slate-500">
                     Termometro de respostas
                   </p>
@@ -508,78 +534,113 @@ export function PsychosocialQuestionnairePanel({
                 </aside>
 
                 <div>
-                  {isLoading ? (
+                  {showCompletionMessage ? (
+                    <CompletionMessage onClose={() => setIsModalOpen(false)} />
+                  ) : isLoading ? (
                     <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                      Carregando campanha psicossocial...
+                      Carregando pesquisa...
                     </div>
                   ) : selectedCampaign === undefined ? (
                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-                      Nenhuma campanha psicossocial ativa foi localizada para esta empresa.
+                      Nenhuma campanha ativa foi localizada para esta empresa.
+                    </div>
+                  ) : currentBlock === undefined ? (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                      Nenhuma pergunta disponivel para este ciclo.
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {questions.map((question) => (
-                        <article
-                          key={question.id}
-                          className="rounded-md border border-slate-200 bg-slate-50 p-4"
-                        >
-                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                            <div>
-                              <p className="text-xs font-semibold uppercase text-pronus-primary">
-                                {question.factor}
-                              </p>
-                              <h3 className="mt-1 text-sm font-semibold text-slate-900">
+                    <>
+                      <div className="mb-4 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-xs font-semibold uppercase text-pronus-primary">
+                          Bloco {currentBlockIndex + 1} de {questionBlocks.length}
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold text-slate-950">
+                          {currentBlock.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Responda este bloco para seguir para a proxima etapa.
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {currentBlock.questions.map((question) => (
+                          <article
+                            key={question.id}
+                            className="rounded-md border border-slate-200 bg-slate-50 p-4"
+                          >
+                            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                              <h4 className="text-sm font-semibold text-slate-900">
                                 {question.prompt}
-                              </h3>
+                              </h4>
+                              <span className="text-xs font-semibold text-slate-500">
+                                {scores[question.id] === undefined ? "Pendente" : "Respondida"}
+                              </span>
                             </div>
-                            <span className="text-xs font-semibold text-slate-500">
-                              {scores[question.id] === undefined ? "Pendente" : "Respondida"}
-                            </span>
-                          </div>
 
-                          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-                            {(question.options ?? defaultAnswerOptions).map((option) => {
-                              const isSelected = scores[question.id] === option.value;
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                              {(question.options ?? defaultAnswerOptions).map((option) => {
+                                const isSelected = scores[question.id] === option.value;
 
-                              return (
-                                <button
-                                  key={option.value}
-                                  aria-label={`${option.value} - ${option.label}`}
-                                  aria-pressed={isSelected}
-                                  className={`min-h-11 rounded-md border px-2 py-2 text-xs font-semibold leading-snug transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                                    isSelected
-                                      ? "border-pronus-primary bg-pronus-primary text-white"
-                                      : "border-slate-300 bg-white text-slate-700 hover:border-pronus-primary"
-                                  }`}
-                                  disabled={isFinalized}
-                                  type="button"
-                                  onClick={() => setAnswer(question.id, option.value)}
-                                >
-                                  {option.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </article>
-                      ))}
-                    </div>
+                                return (
+                                  <button
+                                    key={option.value}
+                                    aria-label={`${option.value} - ${option.label}`}
+                                    aria-pressed={isSelected}
+                                    className={`min-h-11 rounded-md border px-2 py-2 text-xs font-semibold leading-snug transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                      isSelected
+                                        ? "border-pronus-primary bg-pronus-primary text-white"
+                                        : "border-slate-300 bg-white text-slate-700 hover:border-pronus-primary"
+                                    }`}
+                                    disabled={isFinalized}
+                                    type="button"
+                                    onClick={() => setAnswer(question.id, option.value)}
+                                  >
+                                    {option.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+
+                      <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <button
+                          className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={currentBlockIndex === 0 || isSubmitting}
+                          type="button"
+                          onClick={() =>
+                            setCurrentBlockIndex((current) => Math.max(current - 1, 0))
+                          }
+                        >
+                          Voltar
+                        </button>
+                        {isLastBlock ? (
+                          <button
+                            className="rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={!canSubmit}
+                            type="button"
+                            onClick={() => void submitQuestionnaire()}
+                          >
+                            {isSubmitting ? "Finalizando..." : "Finalizar pesquisa"}
+                          </button>
+                        ) : (
+                          <button
+                            className="rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={!currentBlockAnswered || isSubmitting}
+                            type="button"
+                            onClick={() =>
+                              setCurrentBlockIndex((current) =>
+                                Math.min(current + 1, questionBlocks.length - 1),
+                              )
+                            }
+                          >
+                            Proximo
+                          </button>
+                        )}
+                      </div>
+                    </>
                   )}
-
-                  <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-sm text-slate-600">
-                      {isFinalized
-                        ? "Pesquisa encerrada para este ciclo."
-                        : "Voce pode fechar e continuar depois do ponto salvo."}
-                    </span>
-                    <button
-                      className="rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={!canSubmit}
-                      type="button"
-                      onClick={() => void submitQuestionnaire()}
-                    >
-                      Finalizar pesquisa
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -593,5 +654,26 @@ export function PsychosocialQuestionnairePanel({
         </div>
       )}
     </>
+  );
+}
+
+function CompletionMessage({ onClose }: Readonly<{ onClose: () => void }>) {
+  return (
+    <section className="rounded-lg border border-sky-200 bg-sky-50 p-5 text-center">
+      <p className="text-sm leading-6 text-slate-700">
+        Agradecemos por dedicar seu tempo para responder à pesquisa — sua participação é muito
+        importante para entendermos melhor o dia a dia na empresa.
+        <br />
+        Com isso, conseguimos evoluir continuamente e construir um ambiente cada vez mais positivo
+        para todos 💙
+      </p>
+      <button
+        className="mt-5 rounded-md bg-pronus-primary px-5 py-2.5 text-sm font-semibold text-white"
+        type="button"
+        onClick={onClose}
+      >
+        Fechar
+      </button>
+    </section>
   );
 }
