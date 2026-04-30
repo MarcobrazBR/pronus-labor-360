@@ -39,7 +39,10 @@ export interface StructuralEmployee {
   department: string;
   jobPosition: string;
   cboCode?: string;
+  email?: string;
+  phone?: string;
   registrationStatus: StructuralStatus;
+  updatedAt?: string;
 }
 
 export interface StructuralDepartment {

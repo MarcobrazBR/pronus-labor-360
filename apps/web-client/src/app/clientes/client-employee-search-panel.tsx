@@ -23,6 +23,9 @@ const statusOptions: Array<StructuralStatus | "all"> = [
 
 type MovementType = "inclusion" | "update" | "termination";
 type MovementStatus = EmployeeMovement["status"];
+type SearchRow =
+  | { kind: "employee"; employee: StructuralEmployee }
+  | { kind: "movement"; movement: EmployeeMovement };
 
 type MovementForm = {
   birthDate: string;
@@ -52,9 +55,21 @@ const movementTypeLabels: Record<MovementType, string> = {
 
 const movementStatusLabels: Record<MovementStatus, string> = {
   approved: "Aprovada",
-  pending: "Pendente PRONUS",
+  pending: "Registrada",
   rejected: "Recusada",
 };
+
+function employeeStatusDate(employee: StructuralEmployee) {
+  if (employee.registrationStatus === "inactive") {
+    return employee.exclusionDate ?? employee.updatedAt ?? "";
+  }
+
+  return employee.inclusionDate ?? employee.updatedAt ?? "";
+}
+
+function rowDate(row: SearchRow) {
+  return row.kind === "employee" ? employeeStatusDate(row.employee) : row.movement.createdAt;
+}
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -99,7 +114,6 @@ export function ClientEmployeeSearchPanel({
   const [status, setStatus] = useState<StructuralStatus | "all">("all");
   const [submitted, setSubmitted] = useState(false);
   const [movementForm, setMovementForm] = useState<MovementForm>(emptyMovementForm);
-  const [movementRequests, setMovementRequests] = useState<EmployeeMovement[]>(movements);
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
   const [isSavingMovement, setIsSavingMovement] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -132,34 +146,82 @@ export function ClientEmployeeSearchPanel({
         .sort((first, second) => first.title.localeCompare(second.title)),
     [company.tradeName, jobPositions],
   );
-  const filtered = useMemo(() => {
+  const filtered = useMemo<SearchRow[]>(() => {
     if (!submitted) {
       return [];
     }
 
     const normalized = query.trim().toLowerCase();
 
-    return currentEmployees.filter((employee) => {
-      const text = [
-        employee.fullName,
-        employee.cpf,
-        employee.department,
-        employee.jobPosition,
-        structuralStatusLabels[employee.registrationStatus],
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      const matchesText = normalized.length === 0 || text.includes(normalized);
-      const matchesDepartment = department === "all" || employee.department === department;
-      const matchesStatus = status === "all" || employee.registrationStatus === status;
+    const employeeRows = currentEmployees
+      .filter((employee) => {
+        const text = [
+          employee.fullName,
+          employee.cpf,
+          employee.department,
+          employee.jobPosition,
+          structuralStatusLabels[employee.registrationStatus],
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        const matchesText = normalized.length === 0 || text.includes(normalized);
+        const matchesDepartment = department === "all" || employee.department === department;
+        const matchesStatus = status === "all" || employee.registrationStatus === status;
 
-      return matchesText && matchesDepartment && matchesStatus;
+        return matchesText && matchesDepartment && matchesStatus;
+      })
+      .map((employee) => ({ employee, kind: "employee" }) as const);
+
+    const movementRows = movements
+      .filter((movement) => {
+        const text = [
+          movement.fullName,
+          movement.cpf,
+          movement.department,
+          movement.jobPosition,
+          movementTypeLabels[movement.type],
+          movementStatusLabels[movement.status],
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        const matchesText = normalized.length === 0 || text.includes(normalized);
+        const matchesDepartment = department === "all" || movement.department === department;
+        const matchesStatus =
+          status === "all" ||
+          (status === "pending_validation" && movement.status === "pending") ||
+          (status === "active" && movement.status === "approved");
+
+        return matchesText && matchesDepartment && matchesStatus;
+      })
+      .map((movement) => ({ kind: "movement", movement }) as const);
+
+    return [...employeeRows, ...movementRows].sort((first, second) =>
+      rowDate(second).localeCompare(rowDate(first)),
+    );
+  }, [currentEmployees, department, movements, query, status, submitted]);
+
+  function openMovementModal(type: MovementType, employeeId?: string) {
+    const employee = currentEmployees.find((item) => item.id === employeeId);
+
+    setMovementForm({
+      ...emptyMovementForm(),
+      birthDate: employee?.birthDate ?? "",
+      cboCode: employee?.cboCode ?? "",
+      cpf: employee?.cpf ?? "",
+      department: employee?.department ?? "",
+      departmentId: "",
+      email: employee?.email ?? "",
+      employeeId: employee?.id ?? "",
+      exclusionDate: employee?.exclusionDate ?? todayIso(),
+      fullName: employee?.fullName ?? "",
+      inclusionDate: employee?.inclusionDate ?? todayIso(),
+      jobPosition: employee?.jobPosition ?? "",
+      jobPositionId: "",
+      phone: employee?.phone ?? "",
+      type,
     });
-  }, [currentEmployees, department, query, status, submitted]);
-
-  function openMovementModal(type: MovementType) {
-    setMovementForm({ ...emptyMovementForm(), type });
     setMessage(null);
     setIsMovementModalOpen(true);
   }
@@ -308,44 +370,49 @@ export function ClientEmployeeSearchPanel({
         return;
       }
 
-      const response = await fetch(`${apiUrl}/structural/employee-movements`, {
+      const response = await fetch(`${apiUrl}/structural/employees/${movementForm.employeeId}`, {
         body: JSON.stringify({
           birthDate: movementForm.birthDate,
           cboCode: movementForm.cboCode,
-          companyId: company.id,
           cpf: movementForm.cpf,
           department: movementForm.department,
           email: movementForm.email,
-          employeeId: movementForm.employeeId || undefined,
-          exclusionDate: movementForm.exclusionDate,
+          exclusionDate:
+            movementForm.type === "termination" ? movementForm.exclusionDate : undefined,
           fullName: movementForm.fullName,
           inclusionDate: movementForm.inclusionDate,
           jobPosition: movementForm.jobPosition,
-          notes: movementForm.notes,
           phone: movementForm.phone,
-          requestedBy: "RH cliente",
-          source: "client_portal",
-          type: movementForm.type,
+          registrationStatus: movementForm.type === "termination" ? "inactive" : "active",
         }),
         headers: { "Content-Type": "application/json" },
-        method: "POST",
+        method: "PATCH",
       });
-      const payload = (await response.json()) as EmployeeMovement | { message?: string };
+      const payload = (await response.json()) as StructuralEmployee | { message?: string };
 
       if (!response.ok) {
         setMessage(
           typeof payload === "object" && payload !== null && "message" in payload
             ? String(payload.message)
-            : "Nao foi possivel enviar a movimentacao.",
+            : "Nao foi possivel atualizar o cliente.",
         );
         return;
       }
 
-      setMovementRequests((current) => [payload as EmployeeMovement, ...current]);
+      const updatedEmployee = payload as StructuralEmployee;
+      setCurrentEmployees((current) =>
+        current.map((employee) =>
+          employee.id === updatedEmployee.id ? updatedEmployee : employee,
+        ),
+      );
       setSubmitted(true);
       setIsMovementModalOpen(false);
       setMovementForm(emptyMovementForm());
-      setMessage("Movimentacao enviada para fila de validacao PRONUS.");
+      setMessage(
+        movementForm.type === "termination"
+          ? "Cliente desligado no cadastro da empresa."
+          : "Cadastro do cliente atualizado pela empresa.",
+      );
     } catch {
       setMessage("Nao foi possivel conectar a API local.");
     } finally {
@@ -365,20 +432,6 @@ export function ClientEmployeeSearchPanel({
               onClick={() => openMovementModal("inclusion")}
             >
               + Incluir
-            </button>
-            <button
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-              type="button"
-              onClick={() => openMovementModal("update")}
-            >
-              Alterar
-            </button>
-            <button
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-              type="button"
-              onClick={() => openMovementModal("termination")}
-            >
-              Desligar
             </button>
           </div>
         </div>
@@ -446,67 +499,33 @@ export function ClientEmployeeSearchPanel({
             Nenhum cliente encontrado para os filtros.
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 border-t border-slate-100">
-            {filtered.map((employee) => (
-              <article key={employee.id} className="grid gap-3 px-5 py-4 xl:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-sm font-semibold">{employee.fullName}</h4>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
-                        employee.registrationStatus,
-                      )}`}
-                    >
-                      {structuralStatusLabels[employee.registrationStatus]}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {employee.cpf ?? "CPF pendente"} / {employee.department} /{" "}
-                    {employee.jobPosition}
-                    {employee.cboCode ? ` / CBO ${employee.cboCode}` : ""}
-                  </p>
-                </div>
-                <div className="text-sm text-slate-500">
-                  Inclusão {dateLabel(employee.inclusionDate)}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-4 rounded-lg border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h3 className="text-base font-semibold">Movimentações recentes</h3>
-        </div>
-        {movementRequests.length === 0 ? (
-          <div className="px-5 py-6 text-sm text-slate-500">
-            Nenhuma movimentação registrada nesta sessão.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {movementRequests.map((request) => (
-              <article key={request.id} className="grid gap-3 px-5 py-4 xl:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-sm font-semibold">{request.fullName}</h4>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
-                        request.status,
-                      )}`}
-                    >
-                      {movementStatusLabels[request.status]}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {movementTypeLabels[request.type]} / {request.cpf || "CPF pendente"} /{" "}
-                    {request.department || "setor pendente"}
-                    {request.cboCode ? ` / CBO ${request.cboCode}` : ""}
-                  </p>
-                </div>
-                <div className="text-sm text-slate-500">{dateLabel(request.createdAt)}</div>
-              </article>
-            ))}
+          <div className="overflow-x-auto border-t border-slate-100">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Nome</th>
+                  <th className="px-4 py-3 font-semibold">Situacao</th>
+                  <th className="px-4 py-3 font-semibold">CPF</th>
+                  <th className="px-4 py-3 font-semibold">Setor</th>
+                  <th className="px-4 py-3 font-semibold">Cargo</th>
+                  <th className="px-4 py-3 font-semibold">Data do status</th>
+                  <th className="px-4 py-3 text-right font-semibold">Acoes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((row) =>
+                  row.kind === "employee" ? (
+                    <EmployeeRow
+                      key={row.employee.id}
+                      employee={row.employee}
+                      onOpenMovement={openMovementModal}
+                    />
+                  ) : (
+                    <MovementRow key={row.movement.id} movement={row.movement} />
+                  ),
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
@@ -525,6 +544,83 @@ export function ClientEmployeeSearchPanel({
         />
       )}
     </>
+  );
+}
+
+function EmployeeRow({
+  employee,
+  onOpenMovement,
+}: Readonly<{
+  employee: StructuralEmployee;
+  onOpenMovement: (type: MovementType, employeeId?: string) => void;
+}>) {
+  return (
+    <tr>
+      <td className="px-4 py-3 font-semibold text-slate-900">{employee.fullName}</td>
+      <td className="px-4 py-3">
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+            employee.registrationStatus,
+          )}`}
+        >
+          {structuralStatusLabels[employee.registrationStatus]}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-slate-700">{employee.cpf ?? "CPF pendente"}</td>
+      <td className="px-4 py-3 text-slate-700">{employee.department}</td>
+      <td className="px-4 py-3 text-slate-700">
+        {employee.jobPosition}
+        {employee.cboCode ? (
+          <span className="mt-0.5 block text-xs text-slate-500">CBO {employee.cboCode}</span>
+        ) : null}
+      </td>
+      <td className="px-4 py-3 text-slate-700">{dateLabel(employeeStatusDate(employee))}</td>
+      <td className="px-4 py-3">
+        <div className="flex justify-end gap-2">
+          <button
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
+            type="button"
+            onClick={() => onOpenMovement("update", employee.id)}
+          >
+            Alterar
+          </button>
+          <button
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-red-300 hover:text-red-700"
+            type="button"
+            onClick={() => onOpenMovement("termination", employee.id)}
+          >
+            Desligar
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function MovementRow({ movement }: Readonly<{ movement: EmployeeMovement }>) {
+  return (
+    <tr className="bg-slate-50/70">
+      <td className="px-4 py-3 font-semibold text-slate-900">{movement.fullName}</td>
+      <td className="px-4 py-3">
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(
+            movement.status,
+          )}`}
+        >
+          {movementTypeLabels[movement.type]} / {movementStatusLabels[movement.status]}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-slate-700">{movement.cpf || "CPF pendente"}</td>
+      <td className="px-4 py-3 text-slate-700">{movement.department || "setor pendente"}</td>
+      <td className="px-4 py-3 text-slate-700">
+        {movement.jobPosition || "cargo pendente"}
+        {movement.cboCode ? (
+          <span className="mt-0.5 block text-xs text-slate-500">CBO {movement.cboCode}</span>
+        ) : null}
+      </td>
+      <td className="px-4 py-3 text-slate-700">{dateLabel(movement.createdAt)}</td>
+      <td className="px-4 py-3 text-right text-xs font-medium text-slate-500">Historico</td>
+    </tr>
   );
 }
 
@@ -741,7 +837,9 @@ function MovementModal({
               ? "Enviando..."
               : form.type === "inclusion"
                 ? "Cadastrar cliente ativo"
-                : "Registrar movimentacao"}
+                : form.type === "termination"
+                  ? "Desligar cliente"
+                  : "Salvar alteracao"}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 # Regra de Atualizacao de Screenshots
 
 Data de criacao: 2026-04-29
+Ultima atualizacao: 2026-04-30
 
 ## Objetivo
 
@@ -31,7 +32,9 @@ Capturas atuais:
 
 - `portal-pronus.png`
 - `portal-pronus-empresa-reset.png`
+- `portal-pronus-clientes.png`
 - `portal-rh-cliente.png`
+- `portal-rh-clientes.png`
 - `portal-colaborador.png`
 - `login-pronus.png`
 - `login-rh-cliente.png`

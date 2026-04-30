@@ -31,6 +31,7 @@ type PermissionKey =
   | "clientRecords"
   | "medicalRecords"
   | "psychosocialReports"
+  | "systemPermissions"
   | "schedule"
   | "billing";
 
@@ -140,6 +141,7 @@ const permissionLabels: Record<PermissionKey, string> = {
   clientRecords: "Clientes das empresas",
   medicalRecords: "Prontuarios",
   psychosocialReports: "Relatorios psicossociais",
+  systemPermissions: "Permissoes do sistema",
   schedule: "Agenda clinica",
   billing: "Financeiro",
 };
@@ -253,6 +255,7 @@ const initialPermissions: PermissionProfile[] = [
       companyRegistration: true,
       medicalRecords: true,
       psychosocialReports: true,
+      systemPermissions: true,
       schedule: true,
     },
   },
@@ -265,6 +268,7 @@ const initialPermissions: PermissionProfile[] = [
       companyRegistration: false,
       medicalRecords: false,
       psychosocialReports: true,
+      systemPermissions: false,
       schedule: false,
     },
   },
@@ -277,6 +281,7 @@ const initialPermissions: PermissionProfile[] = [
       companyRegistration: false,
       medicalRecords: false,
       psychosocialReports: true,
+      systemPermissions: false,
       schedule: false,
     },
   },
@@ -289,6 +294,7 @@ const initialPermissions: PermissionProfile[] = [
       companyRegistration: true,
       medicalRecords: false,
       psychosocialReports: false,
+      systemPermissions: false,
       schedule: true,
     },
   },
@@ -301,6 +307,7 @@ const initialPermissions: PermissionProfile[] = [
       companyRegistration: false,
       medicalRecords: true,
       psychosocialReports: false,
+      systemPermissions: false,
       schedule: true,
     },
   },
@@ -313,6 +320,7 @@ const initialPermissions: PermissionProfile[] = [
       companyRegistration: false,
       medicalRecords: false,
       psychosocialReports: true,
+      systemPermissions: false,
       schedule: true,
     },
   },

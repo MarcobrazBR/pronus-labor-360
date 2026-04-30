@@ -6,13 +6,19 @@ A proposta vai alem de um ERP tradicional. O produto nasce para conectar, em uma
 
 ## Galeria Visual Do Produto
 
-Capturas demonstrativas atualizadas em 2026-04-29 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
+Capturas demonstrativas atualizadas em 2026-04-30 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
 
 ### Portais
 
 | Portal PRONUS                                                           | Portal RH Cliente                                                   | Portal Colaborador                                                    |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | ![Portal operacional PRONUS](docs/assets/screenshots/portal-pronus.png) | ![Portal RH Cliente](docs/assets/screenshots/portal-rh-cliente.png) | ![Portal Colaborador](docs/assets/screenshots/portal-colaborador.png) |
+
+### Fluxos De Clientes
+
+| Portal RH Cliente - Clientes                                             | Portal PRONUS - Clientes                                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| ![Clientes no Portal RH](docs/assets/screenshots/portal-rh-clientes.png) | ![Clientes no Portal PRONUS](docs/assets/screenshots/portal-pronus-clientes.png) |
 
 ### Login Dos Portais
 
@@ -100,7 +106,7 @@ Ja existe:
 - schema inicial Prisma;
 - cadastro estrutural inicial na API;
 - endpoints para empresas, unidades, setores, cargos e colaboradores;
-- importacao inicial de colaboradores via CSV com modo de simulacao;
+- importacao inicial de colaboradores via CSV com modelo baixavel, modo de simulacao, erro por linha/campo e confirmacao clara ao importar;
 - painel operacional inicial no Portal PRONUS com navegacao por paginas;
 - modulo Empresas do Portal PRONUS organizado em resumo, busca, cargos e setores;
 - modulo Configuracoes com CNAE, grau de risco, checklist tecnico, estruturas e parametros operacionais;
@@ -120,11 +126,11 @@ Ja existe:
 - Portal RH Cliente com navegacao real por Painel, Clientes, Divergencias, Documentos, Risco Ocupacional e Psicossocial;
 - painel RH Cliente com indicadores da empresa, pendencias cadastrais, documentos, assinaturas, riscos, plano de acao e campanhas psicossociais;
 - area Clientes do Portal RH com busca por nome, CPF, setor, cargo e status, mantendo a lista vazia ate a consulta;
-- area Clientes do Portal RH com movimentacoes cadastrais para inclusao, alteracao e desligamento, iniciando a fila operacional do RH cliente;
+- area Clientes do Portal RH com inclusao, alteracao e desligamento direto de clientes ativos, mantendo acoes por linha e busca sem listagem inicial;
 - area Divergencias do Portal RH preparada para aprovar ou recusar divergencias cadastrais via API;
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
-- questionario COPSOQ no Portal Colaborador, com 46 perguntas importadas da planilha-base, salvamento progressivo local e termometro de progresso;
+- Pesquisa de Clima Organizacional no Portal Colaborador, com 46 perguntas importadas da planilha-base, salvamento progressivo local, blocos por tema e termometro de progresso;
 - configuracao local de acesso para testes em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
 - modulo Documentos com fila documental, modelos, publicacoes e solicitacoes de assinatura;
 - documentacao funcional e tecnica em `docs/`.
@@ -135,7 +141,7 @@ Ainda esta em andamento:
 - autenticacao e permissoes completas com auditoria, expiracao de senha e isolamento multiempresa;
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
 - visao multiempresa real no Portal RH Cliente, com selecao segura por usuario autenticado;
-- backend definitivo para fila de movimentacoes cadastrais do RH cliente, com aprovacao PRONUS, auditoria e notificacoes;
+- backend definitivo para auditoria, historico e notificacoes das movimentacoes cadastrais do RH cliente, sem aprovacao PRONUS obrigatoria quando a regra de negocio for responsabilidade do RH;
 - persistencia real dos formularios de risco ocupacional, documentos e evidencias anexas;
 - carga oficial completa de CNAE/Grau de Risco, dimensionamento exato de CIPA/SESMT e revisao juridico-tecnica das regras reguladoras;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;

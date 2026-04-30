@@ -10,6 +10,7 @@ interface ImportCompanyOption {
 }
 
 interface ImportIssue {
+  field?: string;
   rowNumber: number;
   message: string;
 }
@@ -33,17 +34,25 @@ interface EmployeeImportPanelProps {
 const templateCsv =
   "cnpj;nome;cpf;setor;cargo;cbo;email;telefone;data_nascimento;data_inclusao\n12.345.678/0001-90;Maria Silva;12345678909;Producao;Operadora de Maquina;7842-05;nome@empresa.com;11999990000;1990-02-10;2026-04-28";
 
+function issueLabel(issue: ImportIssue) {
+  return `Linha ${issue.rowNumber}${issue.field ? ` / coluna ${issue.field}` : ""}: ${
+    issue.message
+  }`;
+}
+
 export function EmployeeImportPanel({
   companies,
   title = "Importacao de clientes",
 }: EmployeeImportPanelProps) {
   const router = useRouter();
-  const [content, setContent] = useState(templateCsv);
+  const [content, setContent] = useState("");
   const [defaultCompanyId, setDefaultCompanyId] = useState("");
-  const [delimiter, setDelimiter] = useState<"," | ";">(";");
+  const [fileName, setFileName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [successResult, setSuccessResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const canSubmit = content.trim().length > 0 && !isLoading;
 
   async function readFile(file: File | undefined) {
     if (file === undefined) {
@@ -51,7 +60,9 @@ export function EmployeeImportPanel({
     }
 
     setContent(await file.text());
+    setFileName(file.name);
     setResult(null);
+    setSuccessResult(null);
     setError(null);
   }
 
@@ -67,8 +78,14 @@ export function EmployeeImportPanel({
   }
 
   async function submitImport(dryRun: boolean) {
+    if (content.trim().length === 0) {
+      setError("Selecione um arquivo CSV preenchido com o modelo antes de continuar.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+    setSuccessResult(null);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
@@ -79,7 +96,7 @@ export function EmployeeImportPanel({
         },
         body: JSON.stringify({
           content,
-          delimiter,
+          delimiter: ";",
           dryRun,
           defaultCompanyId: defaultCompanyId || undefined,
         }),
@@ -93,9 +110,11 @@ export function EmployeeImportPanel({
         return;
       }
 
-      setResult(payload as ImportResult);
+      const nextResult = payload as ImportResult;
+      setResult(nextResult);
 
       if (!dryRun) {
+        setSuccessResult(nextResult);
         router.refresh();
       }
     } catch {
@@ -110,12 +129,7 @@ export function EmployeeImportPanel({
     <section className="mt-4 rounded-lg border border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-base font-semibold">{title}</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              CSV padrao com empresa, CPF, setor, cargo, CBO e datas cadastrais.
-            </p>
-          </div>
+          <h3 className="text-base font-semibold">{title}</h3>
           <button
             className="rounded-md border border-pronus-primary/30 bg-pronus-primary/5 px-3 py-2 text-sm font-semibold text-pronus-primary"
             type="button"
@@ -126,128 +140,124 @@ export function EmployeeImportPanel({
         </div>
       </div>
 
-      <div className="grid gap-5 px-5 py-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <label className="block">
-              <span className="text-xs font-semibold uppercase text-slate-500">Empresa padrao</span>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
-                value={defaultCompanyId}
-                onChange={(event) => setDefaultCompanyId(event.target.value)}
-              >
-                <option value="">Usar CNPJ da planilha</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.tradeName} - {company.cnpj}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-semibold uppercase text-slate-500">Separador</span>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
-                value={delimiter}
-                onChange={(event) => setDelimiter(event.target.value as "," | ";")}
-              >
-                <option value=";">Ponto e virgula</option>
-                <option value=",">Virgula</option>
-              </select>
-            </label>
-
-            <label className="block sm:col-span-2 xl:col-span-1">
-              <span className="text-xs font-semibold uppercase text-slate-500">Arquivo CSV</span>
-              <input
-                accept=".csv,text/csv"
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
-                type="file"
-                onChange={(event) => void readFile(event.target.files?.[0])}
-              />
-            </label>
-          </div>
-
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <Step label="Modelo" value="1" />
-              <Step label="Simular" value="2" />
-              <Step label="Importar" value="3" />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isLoading}
-              type="button"
-              onClick={() => void submitImport(true)}
-            >
-              Simular planilha
-            </button>
-            <button
-              className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isLoading}
-              type="button"
-              onClick={() => void submitImport(false)}
-            >
-              Importar clientes
-            </button>
-          </div>
-        </div>
-
-        <div>
+      <div className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div className="grid gap-3 md:grid-cols-2">
           <label className="block">
-            <span className="text-xs font-semibold uppercase text-slate-500">
-              Conteudo da planilha
-            </span>
-            <textarea
-              className="mt-1 min-h-52 w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-800"
-              spellCheck={false}
-              value={content}
-              onChange={(event) => {
-                setContent(event.target.value);
-                setResult(null);
-                setError(null);
-              }}
-            />
+            <span className="text-xs font-semibold uppercase text-slate-500">Empresa padrao</span>
+            <select
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+              value={defaultCompanyId}
+              onChange={(event) => setDefaultCompanyId(event.target.value)}
+            >
+              <option value="">Usar CNPJ da planilha</option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.tradeName} - {company.cnpj}
+                </option>
+              ))}
+            </select>
           </label>
 
+          <label className="block">
+            <span className="text-xs font-semibold uppercase text-slate-500">Arquivo CSV</span>
+            <input
+              accept=".csv,text/csv"
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+              type="file"
+              onChange={(event) => void readFile(event.target.files?.[0])}
+            />
+          </label>
+        </div>
+
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <button
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!canSubmit}
+            type="button"
+            onClick={() => void submitImport(true)}
+          >
+            Simular planilha
+          </button>
+          <button
+            className="rounded-md bg-pronus-primary px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!canSubmit}
+            type="button"
+            onClick={() => void submitImport(false)}
+          >
+            Importar clientes
+          </button>
+        </div>
+      </div>
+
+      {(fileName !== "" || error !== null || result !== null) && (
+        <div className="border-t border-slate-100 px-5 py-4">
+          {fileName !== "" && (
+            <p className="mb-3 text-sm font-medium text-slate-600">
+              Arquivo selecionado: {fileName}
+            </p>
+          )}
+
           {error !== null && (
-            <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
               {error}
             </div>
           )}
 
-          {result !== null && (
-            <div className="mt-3 grid gap-2 sm:grid-cols-4">
-              <Metric label="Linhas" value={result.totalRows} />
-              <Metric label="Validas" value={result.validRows} />
-              <Metric label="Criadas" value={result.createdRows} />
-              <Metric label="Ajustar" value={result.errorRows + result.skippedRows} />
-            </div>
-          )}
-
-          {result !== null && (result.errors.length > 0 || result.skipped.length > 0) && (
-            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              {[...result.errors, ...result.skipped].slice(0, 3).map((issue) => (
-                <p key={`${issue.rowNumber}-${issue.message}`}>
-                  Linha {issue.rowNumber}: {issue.message}
-                </p>
-              ))}
-            </div>
-          )}
+          {result !== null && <ImportResultPanel result={result} />}
         </div>
-      </div>
+      )}
+
+      {successResult !== null && (
+        <ImportSuccessModal result={successResult} onClose={() => setSuccessResult(null)} />
+      )}
     </section>
   );
 }
 
-function Step({ label, value }: Readonly<{ label: string; value: string }>) {
+function ImportResultPanel({ result }: Readonly<{ result: ImportResult }>) {
+  const issues = [...result.errors, ...result.skipped];
+
   return (
-    <div className="rounded-md bg-white px-2 py-2 text-sm ring-1 ring-slate-200">
-      <strong className="block text-pronus-primary">{value}</strong>
-      <span className="text-xs font-semibold text-slate-600">{label}</span>
+    <div className="space-y-3">
+      <div className="grid gap-2 sm:grid-cols-4">
+        <Metric label="Linhas" value={result.totalRows} />
+        <Metric label="Validas" value={result.validRows} />
+        <Metric label="Criadas" value={result.createdRows} />
+        <Metric label="Ajustar" value={result.errorRows + result.skippedRows} />
+      </div>
+
+      {issues.length > 0 && (
+        <div className="max-h-40 overflow-y-auto rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {issues.map((issue) => (
+            <p key={`${issue.rowNumber}-${issue.field ?? "linha"}-${issue.message}`}>
+              {issueLabel(issue)}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImportSuccessModal({
+  onClose,
+  result,
+}: Readonly<{ onClose: () => void; result: ImportResult }>) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
+      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-5 text-center shadow-xl">
+        <h3 className="text-lg font-semibold text-slate-950">Importacao concluida</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Processo realizado com sucesso. {result.createdRows} cliente(s) importado(s).
+        </p>
+        <button
+          className="mt-5 rounded-md bg-pronus-primary px-5 py-2.5 text-sm font-semibold text-white"
+          type="button"
+          onClick={onClose}
+        >
+          Fechar
+        </button>
+      </section>
     </div>
   );
 }

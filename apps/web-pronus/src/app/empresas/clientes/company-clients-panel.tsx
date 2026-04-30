@@ -3,13 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
-  employeeMovementStatusClasses,
-  employeeMovementStatusLabels,
-  employeeMovementTypeLabels,
   statusClasses,
   structuralStatusLabels,
   type EmployeeMovement,
-  type EmployeeMovementStatus,
   type StructuralCompany,
   type StructuralDepartment,
   type StructuralEmployee,
@@ -84,7 +80,7 @@ export function CompanyClientsPanel({
   departments,
   employees,
   jobPositions,
-  movements,
+  movements: _movements,
 }: Readonly<{
   companies: StructuralCompany[];
   departments: StructuralDepartment[];
@@ -93,8 +89,7 @@ export function CompanyClientsPanel({
   movements: EmployeeMovement[];
 }>) {
   const router = useRouter();
-  const [currentEmployees] = useState(employees);
-  const [currentMovements, setCurrentMovements] = useState(movements);
+  const [currentEmployees, setCurrentEmployees] = useState(employees);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StructuralStatus | "all">("all");
   const [hasSearched, setHasSearched] = useState(false);
@@ -103,14 +98,8 @@ export function CompanyClientsPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [isInclusionOpen, setIsInclusionOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [inclusionForm, setInclusionForm] = useState<ClientInclusionForm>(() =>
     emptyInclusionForm(companies),
-  );
-
-  const pendingMovements = useMemo(
-    () => currentMovements.filter((movement) => movement.status === "pending"),
-    [currentMovements],
   );
 
   const selectedCompany = useMemo(
@@ -279,7 +268,7 @@ export function CompanyClientsPanel({
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
-      const response = await fetch(`${apiUrl}/structural/employee-movements`, {
+      const response = await fetch(`${apiUrl}/structural/employees`, {
         body: JSON.stringify({
           birthDate: inclusionForm.birthDate,
           cboCode: inclusionForm.cboCode,
@@ -290,80 +279,34 @@ export function CompanyClientsPanel({
           fullName: inclusionForm.fullName,
           inclusionDate: inclusionForm.inclusionDate,
           jobPosition: inclusionForm.jobPosition,
-          notes: inclusionForm.notes,
           phone: inclusionForm.phone,
-          requestedBy: "Operacao PRONUS",
-          source: "pronus_portal",
-          type: "inclusion",
         }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
-      const payload = (await response.json()) as EmployeeMovement | { message?: string };
+      const payload = (await response.json()) as StructuralEmployee | { message?: string };
 
       if (!response.ok) {
         setMessage(
           typeof payload === "object" && payload !== null && "message" in payload
             ? String(payload.message)
-            : "Nao foi possivel enviar a inclusao.",
+            : "Nao foi possivel cadastrar o cliente.",
         );
         return;
       }
 
-      setCurrentMovements((current) => [payload as EmployeeMovement, ...current]);
+      setCurrentEmployees((current) => [payload as StructuralEmployee, ...current]);
       setHasSearched(true);
       setSubmittedSearch("");
       setStatus("all");
       setIsInclusionOpen(false);
       setInclusionForm(emptyInclusionForm(companies));
-      setMessage("Inclusao enviada para fila de validacao PRONUS.");
-    } catch {
-      setMessage("Nao foi possivel conectar a API local.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function reviewMovement(movementId: string, nextStatus: EmployeeMovementStatus) {
-    setReviewingId(movementId);
-    setMessage(null);
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
-      const response = await fetch(`${apiUrl}/structural/employee-movements/${movementId}`, {
-        body: JSON.stringify({
-          reviewerName: "Operacao PRONUS",
-          status: nextStatus,
-        }),
-        headers: { "Content-Type": "application/json" },
-        method: "PATCH",
-      });
-      const payload = (await response.json()) as EmployeeMovement | { message?: string };
-
-      if (!response.ok) {
-        setMessage(
-          typeof payload === "object" && payload !== null && "message" in payload
-            ? String(payload.message)
-            : "Nao foi possivel atualizar a movimentacao.",
-        );
-        return;
-      }
-
-      setCurrentMovements((current) =>
-        current.map((movement) =>
-          movement.id === movementId ? (payload as EmployeeMovement) : movement,
-        ),
-      );
-      setMessage(
-        nextStatus === "approved"
-          ? "Movimentacao aprovada e refletida no cadastro."
-          : "Movimentacao recusada e mantida no historico.",
-      );
+      setMessage("Cliente cadastrado como ativo no cadastro operacional.");
       router.refresh();
     } catch {
       setMessage("Nao foi possivel conectar a API local.");
     } finally {
-      setReviewingId(null);
+      setIsSaving(false);
     }
   }
 
@@ -382,9 +325,6 @@ export function CompanyClientsPanel({
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
                 {currentEmployees.length} clientes vinculados
-              </span>
-              <span className="rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
-                {pendingMovements.length} movimentacoes pendentes
               </span>
               <button
                 className="rounded-md bg-pronus-primary px-3 py-2 text-sm font-semibold text-white"
@@ -443,9 +383,7 @@ export function CompanyClientsPanel({
           {(error !== null || message !== null) && (
             <div
               className={`mt-3 rounded-md border px-3 py-2 text-sm font-medium ${
-                error !== null ||
-                (message !== "Inclusao enviada para fila de validacao PRONUS." &&
-                  message !== "Movimentacao aprovada e refletida no cadastro.")
+                error !== null
                   ? "border-amber-200 bg-amber-50 text-amber-800"
                   : "border-sky-200 bg-sky-50 text-sky-800"
               }`}
@@ -487,82 +425,6 @@ export function CompanyClientsPanel({
                 <div className="text-sm text-slate-500">
                   Inclusao {dateLabel(client.inclusionDate)}
                 </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-4 rounded-lg border border-slate-200 bg-white">
-        <div className="flex flex-col gap-2 border-b border-slate-200 px-5 py-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h3 className="text-base font-semibold">Fila de movimentacoes</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Solicitacoes do Portal RH e da operacao PRONUS aguardam validacao antes de alterar o
-              cadastro.
-            </p>
-          </div>
-          <span className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-            {pendingMovements.length} pendentes
-          </span>
-        </div>
-
-        {currentMovements.length === 0 ? (
-          <div className="px-5 py-6 text-sm text-slate-500">
-            Nenhuma movimentacao cadastrada na fila.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {currentMovements.map((movement) => (
-              <article key={movement.id} className="grid gap-3 px-5 py-4 xl:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-sm font-semibold">{movement.fullName}</h4>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${employeeMovementStatusClasses(
-                        movement.status,
-                      )}`}
-                    >
-                      {employeeMovementStatusLabels[movement.status]}
-                    </span>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                      {employeeMovementTypeLabels[movement.type]}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {movement.cpf} / {movement.companyTradeName} / {movement.department} /{" "}
-                    {movement.jobPosition}
-                    {movement.cboCode ? ` / CBO ${movement.cboCode}` : ""}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    SLA {dateLabel(movement.slaDueAt)} / origem{" "}
-                    {movement.source === "client_portal" ? "Portal RH" : "Portal PRONUS"}
-                  </p>
-                </div>
-                {movement.status === "pending" ? (
-                  <div className="flex flex-wrap items-start gap-2 xl:justify-end">
-                    <button
-                      className="rounded-md bg-pronus-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                      disabled={reviewingId === movement.id}
-                      type="button"
-                      onClick={() => void reviewMovement(movement.id, "approved")}
-                    >
-                      Aprovar
-                    </button>
-                    <button
-                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
-                      disabled={reviewingId === movement.id}
-                      type="button"
-                      onClick={() => void reviewMovement(movement.id, "rejected")}
-                    >
-                      Recusar
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-sm text-slate-500">
-                    {movement.reviewerName ?? "Operacao PRONUS"} / {dateLabel(movement.decidedAt)}
-                  </div>
-                )}
               </article>
             ))}
           </div>
@@ -738,7 +600,7 @@ function ClientInclusionModal({
             type="button"
             onClick={onSubmit}
           >
-            {isSaving ? "Enviando..." : "Enviar para validacao"}
+            {isSaving ? "Salvando..." : "Cadastrar cliente ativo"}
           </button>
         </div>
       </div>

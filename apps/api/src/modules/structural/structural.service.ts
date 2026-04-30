@@ -479,6 +479,30 @@ function pickRowValue(row: Record<string, string>, keys: string[]): string | und
   return undefined;
 }
 
+function importIssueFromError(error: unknown): { field?: string; message: string } {
+  const message = error instanceof Error ? error.message : "Erro desconhecido na linha";
+  const requiredMatch = message.match(/Campo obrigatorio invalido: ([\w-]+)/i);
+  const invalidMatch = message.match(/Campo invalido: ([\w-]+)/i);
+
+  if (requiredMatch?.[1] !== undefined) {
+    return { field: requiredMatch[1], message };
+  }
+
+  if (invalidMatch?.[1] !== undefined) {
+    return { field: invalidMatch[1], message };
+  }
+
+  if (/CPF/i.test(message)) {
+    return { field: "cpf", message };
+  }
+
+  if (/CNPJ|companyId|Empresa/i.test(message)) {
+    return { field: "cnpj", message };
+  }
+
+  return { message };
+}
+
 function valueOrEmpty(value: string | undefined): string {
   return value?.trim() ?? "";
 }
@@ -837,7 +861,7 @@ const employees: StructuralEmployee[] = [
     inclusionDate: "2026-01-05",
     department: "Manutencao",
     jobPosition: "Tecnico de Seguranca",
-    registrationStatus: "pending_validation",
+    registrationStatus: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
   },
@@ -2109,6 +2133,7 @@ export class StructuralService {
           )
         ) {
           skipped.push({
+            field: "cpf",
             rowNumber,
             row,
             message: "Colaborador ja cadastrado para esta empresa",
@@ -2133,10 +2158,13 @@ export class StructuralService {
           createdEmployees.push(employee);
         }
       } catch (error) {
+        const issue = importIssueFromError(error);
+
         errors.push({
+          field: issue.field,
           rowNumber,
           row,
-          message: error instanceof Error ? error.message : "Erro desconhecido na linha",
+          message: issue.message,
         });
       }
     }

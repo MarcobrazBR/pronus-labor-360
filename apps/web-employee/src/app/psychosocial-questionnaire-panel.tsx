@@ -1,7 +1,6 @@
 "use client";
 
 import type { RiskLevel } from "@pronus/types";
-import { riskLevelColorClasses, riskLevelLabels } from "@pronus/ui";
 import { useEffect, useMemo, useState } from "react";
 
 type CampaignStatus =
@@ -521,16 +520,6 @@ export function PsychosocialQuestionnairePanel({
                   <p className="mt-3 text-sm text-slate-600">
                     {answeredQuestions}/{questions.length} respostas salvas automaticamente.
                   </p>
-                  {receipt !== null && (
-                    <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                      Protocolo {receipt.id.slice(0, 8)} / indice {receipt.averageScore} /{" "}
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${riskLevelColorClasses[receipt.riskLevel]}`}
-                      >
-                        {riskLevelLabels[receipt.riskLevel]}
-                      </span>
-                    </div>
-                  )}
                 </aside>
 
                 <div>

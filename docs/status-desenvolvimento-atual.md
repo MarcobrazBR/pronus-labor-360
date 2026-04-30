@@ -1,6 +1,6 @@
 # Pronus Labor 360 - Status de Desenvolvimento
 
-Data: 2026-04-29
+Data: 2026-04-30
 
 ## Ponto de Retomada
 
@@ -141,17 +141,17 @@ Estado encontrado:
   - `/psicossocial` para campanhas e sinais agregados.
 - Portal RH Cliente agora consome dados da API com fallback local e filtra a experiencia por empresa demonstrativa.
 - Portal RH Cliente agora possui consulta de clientes sem listagem por padrao, exibindo resultados somente apos busca por nome, CPF, setor, cargo ou status.
-- Portal RH Cliente agora possui movimentacoes cadastrais em Clientes para inclusao, alteracao e desligamento.
-- Inclusao de cliente pelo Portal RH Cliente ja envia dados para `POST /structural/employees`, entrando como validacao pendente no fluxo operacional.
-- Alteracao e desligamento de cliente foram preparados como registros locais de MVP ate a criacao da fila persistente de aprovacao PRONUS.
+- Portal RH Cliente agora possui manutencao cadastral em Clientes para inclusao, alteracao e desligamento.
+- Inclusao de cliente pelo Portal RH Cliente envia dados para `POST /structural/employees`, entrando como ativo quando o RH autorizado realiza o cadastro.
+- Alteracao e desligamento de cliente pelo Portal RH Cliente atualizam o cadastro estrutural diretamente, mantendo a necessidade futura de auditoria persistente.
 - Fila de divergencias do Portal RH Cliente foi preparada para aprovar/recusar ajustes cadastrais via API.
 - Portal RH Cliente recebeu refinamento de UX na navegacao responsiva e no modal de movimentacao cadastral, com menu em grade no mobile, estado ativo acessivel e controle segmentado para tipo de movimentacao.
 - Portal RH Cliente agora exibe o nome da empresa ativa no shell, substituindo o marcador generico de cliente.
 - Inclusao manual de clientes foi padronizada entre Portal RH Cliente e Portal PRONUS, com os mesmos campos base e diferenca apenas de permissao: RH usa empresa travada e PRONUS escolhe a empresa.
 - Empresas > Clientes no Portal PRONUS agora permite incluir cliente manualmente via fila de movimentacoes, alem da importacao CSV.
-- API estrutural agora possui fila de movimentacoes cadastrais em `/structural/employee-movements`, com inclusao, alteracao, desligamento, status, origem, SLA e aprovacao/recusa.
-- Portal RH Cliente agora envia movimentacoes cadastrais para a fila PRONUS, deixando de depender de registro local para alteracao e desligamento.
-- Empresas > Clientes no Portal PRONUS agora exibe fila operacional de movimentacoes com contador de pendencias, SLA, origem, status e acoes de aprovar/recusar.
+- API estrutural preserva a base de movimentacoes cadastrais em `/structural/employee-movements`, disponivel para historico e evolucoes futuras de auditoria.
+- Portal RH Cliente deixou de enviar inclusao, alteracao e desligamento para aprovacao PRONUS quando a regra de negocio atribui essa responsabilidade ao RH cliente.
+- Empresas > Clientes no Portal PRONUS prioriza consulta, importacao e inclusao ativa de clientes, sem contador de aprovacao PRONUS para esse fluxo.
 - Inclusao manual de clientes no Portal PRONUS e no Portal RH Cliente agora usa catalogos cadastrados de setores e cargos, com CBO visivel/editavel para preparar a base futura do eSocial.
 - Importacao de clientes por planilha foi redesenhada nos dois portais com modelo CSV baixavel, etapa de simulacao, importacao real, metricas de retorno e campos padrao: CNPJ, nome, CPF, setor, cargo, CBO, e-mail, telefone, data de nascimento e data de inclusao.
 - Portal RH Cliente agora possui o mesmo modelo de importacao por planilha do Portal PRONUS, mantendo a empresa travada conforme permissao do usuario RH.
@@ -181,7 +181,7 @@ Estado encontrado:
 - Persistir divergencias cadastrais no banco e vincular aprovacao formal a usuario RH autenticado.
 - Implementar autenticacao real do Portal RH Cliente, isolamento por empresa e selecao multiempresa para grupos economicos.
 - Evoluir permissoes do Portal RH Cliente para limitar documentos, riscos e dados sensiveis conforme perfil do usuario.
-- Criar API persistente para movimentacoes cadastrais do Portal RH Cliente, com status, historico, aprovador e SLA operacional.
+- Criar auditoria persistente para movimentacoes cadastrais do Portal RH Cliente, com historico, usuario responsavel, notificacoes e SLA quando houver etapa operacional aplicavel.
 - Persistir formularios, documentos e evidencias de risco ocupacional em banco real e anexos.
 - Importar a tabela oficial completa CNAE/Grau de Risco da NR-04, manter historico de vigencia normativa e revisar as regras com responsavel tecnico/juridico.
 - Implementar dimensionamento exato de CIPA e SESMT conforme quadros oficiais, numero de empregados e excecoes aplicaveis.
@@ -307,3 +307,18 @@ Estado encontrado:
 - Botao de salvar nova senha deixou de ficar bloqueado silenciosamente por validacao invisivel, mantendo bloqueio apenas durante salvamento.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-troca-senha-2026-04-29.md`.
 - Teste HTTP confirmou fluxo master PRONUS: reset para senha padrao, login, troca para `Aa1@bc`, login com nova senha e novo reset para `111222`.
+- Typecheck completo do monorepo apos ajustes do documento de testes do colaborador.
+- Build completo do monorepo apos ajustes de clientes, importacao, privacidade da pesquisa e permissoes.
+- Teste HTTP confirmou `http://localhost:3001/clientes` e `http://localhost:3000/empresas/clientes` respondendo 200.
+- Teste HTTP de importacao `dryRun` confirmou erro detalhado com linha 2 e campo `cpf`.
+- Screenshots desktop atualizados para portais e novos fluxos `portal-rh-clientes.png` e `portal-pronus-clientes.png`.
+- Pesquisa de Clima Organizacional no Portal Colaborador nao exibe mais protocolo, indice ou classificacao de risco individual para o proprio cliente.
+- Portal RH Cliente e Portal PRONUS agora cadastram clientes diretamente como ativos quando a acao parte do RH/operacao autorizada, sem fila de aprovacao PRONUS para esse caso.
+- Empresas > Clientes no Portal PRONUS deixou de exibir fila de movimentacoes como pendencia operacional quando a regra vigente nao exige aprovacao PRONUS.
+- Portal RH Cliente agora consolida cadastro e historico em uma unica tabela de resultado, com colunas Nome, Situacao, CPF, Setor, Cargo, Data do status e Acoes.
+- Acoes Alterar e Desligar no Portal RH Cliente foram movidas para cada linha da lista, reduzindo erro de contexto.
+- Importacao de clientes por planilha foi simplificada nos dois portais: sem previa bruta do conteudo, sem seletor de separador e sem cards repetitivos de etapa.
+- Retorno da importacao agora aponta linha e campo/coluna com erro, alem de abrir confirmacao visual com a quantidade importada apos importacao real.
+- Modulo Colaboradores > Permissoes do sistema recebeu permissao propria para governanca de permissoes, incluida no perfil Master.
+- README recebeu nova galeria de Fluxos de Clientes, com capturas do Portal RH Cliente e do Portal PRONUS em `docs/assets/screenshots/`.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-ajustes-testes-colaborador-2026-04-30.md`.

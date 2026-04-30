@@ -319,6 +319,7 @@ export interface ImportStructuralEmployeesInput {
 
 export interface StructuralEmployeeImportIssue {
   rowNumber: number;
+  field?: string;
   message: string;
   row: Record<string, string>;
 }
