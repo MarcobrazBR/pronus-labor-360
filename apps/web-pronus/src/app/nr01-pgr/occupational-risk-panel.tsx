@@ -20,13 +20,24 @@ import {
 } from "../pronus-data";
 import { PsychosocialRiskPanel } from "../psicossocial/psychosocial-risk-panel";
 
-type TabId = "inventory" | "actions" | "evidences" | "documents" | "psychosocial";
+type RiskFamilyTabId =
+  | "risk_physical"
+  | "risk_chemical"
+  | "risk_biological"
+  | "risk_ergonomic"
+  | "risk_accident";
+type TabId = "inventory" | RiskFamilyTabId | "actions" | "evidences" | "documents" | "psychosocial";
 type OperationalTabId = Exclude<TabId, "psychosocial">;
 type ModalKind = "risk" | "action" | "evidence" | "document" | null;
 type RiskType = NonNullable<Nr01Risk["type"]>;
 
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: "inventory", label: "Inventario" },
+  { id: "risk_ergonomic", label: "Riscos Ergonomicos" },
+  { id: "risk_physical", label: "Riscos Fisicos" },
+  { id: "risk_chemical", label: "Riscos Quimicos" },
+  { id: "risk_biological", label: "Riscos Biologicos" },
+  { id: "risk_accident", label: "Riscos de Acidentes/Mecanicos" },
   { id: "actions", label: "Plano de acao" },
   { id: "evidences", label: "Evidencias" },
   { id: "documents", label: "Documentos" },
@@ -39,6 +50,14 @@ const riskTypeLabels: Record<RiskType, string> = {
   biological: "Biologico",
   ergonomic: "Ergonomico",
   accident: "Acidente",
+};
+
+const riskFamilyTypes: Record<RiskFamilyTabId, RiskType> = {
+  risk_accident: "accident",
+  risk_biological: "biological",
+  risk_chemical: "chemical",
+  risk_ergonomic: "ergonomic",
+  risk_physical: "physical",
 };
 
 const riskStatusLabels: Record<Nr01Risk["status"], string> = {
@@ -185,6 +204,7 @@ export function OccupationalRiskPanel({
     { label: "Evidencias", value: computedSummary.evidences, detail: "anexos vinculados" },
   ];
 
+  const riskTypeFilter = riskTypeForTab(activeTab);
   const filteredRisks = risks.filter((risk) => {
     const searchable = [
       risk.companyTradeName,
@@ -199,7 +219,11 @@ export function OccupationalRiskPanel({
       .join(" ")
       .toLowerCase();
 
-    return matches(searchable, query) && (statusFilter === "all" || risk.status === statusFilter);
+    return (
+      matches(searchable, query) &&
+      (statusFilter === "all" || risk.status === statusFilter) &&
+      (riskTypeFilter === null || risk.type === riskTypeFilter)
+    );
   });
 
   const filteredActions = actions.filter((action) => {
@@ -252,7 +276,7 @@ export function OccupationalRiskPanel({
 
   const currentCount = !isOperationalTab(activeTab)
     ? 0
-    : activeTab === "inventory"
+    : activeTab === "inventory" || isRiskFamilyTab(activeTab)
       ? filteredRisks.length
       : activeTab === "actions"
         ? filteredActions.length
@@ -270,6 +294,11 @@ export function OccupationalRiskPanel({
   function openModal(kind: Exclude<ModalKind, null>) {
     setModal(kind);
     setMessage(undefined);
+
+    if (kind === "risk") {
+      const tabRiskType = riskTypeForTab(activeTab);
+      setRiskForm((current) => ({ ...current, type: tabRiskType ?? current.type }));
+    }
 
     if (kind === "action") {
       setActionForm((current) => ({ ...current, riskId: current.riskId || risks[0]?.id || "" }));
@@ -526,7 +555,7 @@ export function OccupationalRiskPanel({
               </div>
             )}
 
-            {activeTab === "inventory" && (
+            {(activeTab === "inventory" || isRiskFamilyTab(activeTab)) && (
               <RiskList risks={filteredRisks} onChangeStatus={setRiskStatus} />
             )}
             {activeTab === "actions" && (
@@ -1162,6 +1191,11 @@ function matches(searchable: string, query: string) {
 function parseTab(value: string | null): TabId | null {
   if (
     value === "inventory" ||
+    value === "risk_physical" ||
+    value === "risk_chemical" ||
+    value === "risk_biological" ||
+    value === "risk_ergonomic" ||
+    value === "risk_accident" ||
     value === "actions" ||
     value === "evidences" ||
     value === "documents" ||
@@ -1177,6 +1211,14 @@ function parseTab(value: string | null): TabId | null {
   return null;
 }
 
+function isRiskFamilyTab(tabId: TabId): tabId is RiskFamilyTabId {
+  return tabId in riskFamilyTypes;
+}
+
+function riskTypeForTab(tabId: TabId): RiskType | null {
+  return isRiskFamilyTab(tabId) ? riskFamilyTypes[tabId] : null;
+}
+
 function isOperationalTab(tabId: TabId): tabId is OperationalTabId {
   return tabId !== "psychosocial";
 }
@@ -1184,6 +1226,10 @@ function isOperationalTab(tabId: TabId): tabId is OperationalTabId {
 function currentTitle(tabId: OperationalTabId) {
   if (tabId === "inventory") {
     return "Inventario de riscos";
+  }
+
+  if (isRiskFamilyTab(tabId)) {
+    return tabs.find((tab) => tab.id === tabId)?.label ?? "Riscos ocupacionais";
   }
 
   if (tabId === "actions") {
@@ -1198,7 +1244,7 @@ function currentTitle(tabId: OperationalTabId) {
 }
 
 function currentCreateLabel(tabId: OperationalTabId) {
-  if (tabId === "inventory") {
+  if (tabId === "inventory" || isRiskFamilyTab(tabId)) {
     return "Cadastrar risco";
   }
 
@@ -1214,7 +1260,7 @@ function currentCreateLabel(tabId: OperationalTabId) {
 }
 
 function currentModal(tabId: OperationalTabId): Exclude<ModalKind, null> {
-  if (tabId === "inventory") {
+  if (tabId === "inventory" || isRiskFamilyTab(tabId)) {
     return "risk";
   }
 
@@ -1234,6 +1280,10 @@ function currentPlaceholder(tabId: OperationalTabId) {
     return "Empresa, setor, cargo, perigo ou risco";
   }
 
+  if (isRiskFamilyTab(tabId)) {
+    return "Empresa, setor, cargo ou agente";
+  }
+
   if (tabId === "actions") {
     return "Empresa, acao, responsavel ou prazo";
   }
@@ -1248,7 +1298,7 @@ function currentPlaceholder(tabId: OperationalTabId) {
 function statusOptions(tabId: OperationalTabId) {
   const all = [{ label: "Todos", value: "all" }];
 
-  if (tabId === "inventory") {
+  if (tabId === "inventory" || isRiskFamilyTab(tabId)) {
     return [...all, ...toOptions(riskStatusLabels)];
   }
 

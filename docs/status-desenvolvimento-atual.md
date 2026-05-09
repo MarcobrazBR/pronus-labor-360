@@ -336,3 +336,13 @@ Estado encontrado:
 - Modulo Colaboradores > Permissoes do sistema recebeu permissao propria para governanca de permissoes, incluida no perfil Master.
 - README recebeu nova galeria de Fluxos de Clientes, com capturas do Portal RH Cliente e do Portal PRONUS em `docs/assets/screenshots/`.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-ajustes-testes-colaborador-2026-04-30.md`.
+- Empresas deixou de expor Cargos e Setores; as rotas antigas agora redirecionam para Configuracoes.
+- Configuracoes removeu o painel numerico geral e a aba Operacional, mantendo CNAE, Grau de risco, Checklist tecnico, Cargos, Setores, Pessoas e acesso e Documentos.
+- CNAE evoluiu para uma tela de parametrizacao regulatoria com riscos vinculados, exames/avaliacoes e acoes administrativas por codigo.
+- Pessoas e acesso agora filtra usuarios por CPF valido, nome, cargo cadastrado e status em campos separados.
+- Risco Ocupacional recebeu abas por familia: Riscos Ergonomicos, Fisicos, Quimicos, Biologicos e Acidentes/Mecanicos.
+- Painel executivo do Portal PRONUS foi redesenhado com KPIs, grafico diario de consultas, pendencias e rosca financeira com inadimplencia.
+- Menu lateral e titulos principais do PRONUS receberam icones de modulo.
+- Layout dos quatro portais passou a usar melhor a largura disponivel em telas grandes.
+- Screenshots desktop atualizados apos a reorganizacao visual em `docs/assets/screenshots/`.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-organizacao-regulatoria-painel-2026-05-09.md`.

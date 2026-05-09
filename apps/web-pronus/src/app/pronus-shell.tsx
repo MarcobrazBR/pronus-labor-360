@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { ModuleIcon, type ModuleIconName } from "./module-icons";
 import { PronusPasswordGuard } from "./pronus-password-guard";
 
 const navigationItems = [
-  { label: "PAINEL", href: "/" },
-  { label: "EMPRESAS", href: "/empresas" },
-  { label: "CONFIGURAÇÕES", href: "/configuracoes" },
-  { label: "RISCO OCUPACIONAL", href: "/nr01-pgr" },
+  { label: "PAINEL", href: "/", icon: "dashboard" },
+  { label: "EMPRESAS", href: "/empresas", icon: "companies" },
+  { label: "CONFIGURAÇÕES", href: "/configuracoes", icon: "settings" },
+  { label: "RISCO OCUPACIONAL", href: "/nr01-pgr", icon: "risk" },
 ];
 
 interface PronusOperatorSession {
@@ -104,7 +105,7 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
 
   return (
     <div className="min-h-screen bg-pronus-background text-pronus-text">
-      <div className="mx-auto flex min-h-screen max-w-[1500px] gap-7 px-5 py-5 lg:px-8">
+      <div className="flex min-h-screen w-full gap-5 px-4 py-4 lg:px-5 2xl:px-7">
         <aside className="hidden w-72 shrink-0 xl:block">
           <div className="sticky top-5 rounded-lg border border-white/70 bg-white/95 p-4 shadow-sm">
             <div className="mb-7">
@@ -133,7 +134,10 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
                     }`}
                     href={item.href}
                   >
-                    {item.label}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <ModuleIcon name={item.icon as ModuleIconName} />
+                      <span className="truncate">{item.label}</span>
+                    </span>
                     <span
                       className={`h-2 w-2 rounded-full transition ${
                         active ? "bg-white" : "bg-slate-200 group-hover:bg-pronus-primary/50"
@@ -182,13 +186,14 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
                 return (
                   <Link
                     key={item.href}
-                    className={`whitespace-nowrap rounded-md px-3 py-2 ${
+                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 ${
                       active
                         ? "bg-pronus-primary text-white"
                         : "border border-slate-200 bg-white text-slate-700"
                     }`}
                     href={item.href}
                   >
+                    <ModuleIcon name={item.icon as ModuleIconName} />
                     {item.label}
                   </Link>
                 );

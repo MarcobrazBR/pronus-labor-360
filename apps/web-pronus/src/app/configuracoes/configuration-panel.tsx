@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   analysisDepthLabels,
   legalObligationLabels,
   riskTypeLabels,
-  structuralAudienceLabels,
   type CompanyRegulatoryAssessment,
   type LegalObligationDefinition,
   type LegalObligationKey,
@@ -21,6 +19,8 @@ import {
 } from "../pronus-data";
 import { CollaboratorsWorkforcePanel } from "../colaboradores/collaborators-workforce-panel";
 import { DocumentManagementPanel } from "../documentos/document-management-panel";
+import { DepartmentManagementPanel } from "../empresas/department-management-panel";
+import { JobPositionManagementPanel } from "../empresas/job-position-management-panel";
 import type {
   DocumentPublication,
   DocumentSignatureRequest,
@@ -33,8 +33,8 @@ type ConfigurationTab =
   | "cnaes"
   | "riskDegrees"
   | "checklist"
-  | "structures"
-  | "operations"
+  | "jobPositions"
+  | "departments"
   | "collaborators"
   | "documents";
 
@@ -62,8 +62,8 @@ const tabs: Array<{ id: ConfigurationTab; label: string }> = [
   { id: "cnaes", label: "CNAE" },
   { id: "riskDegrees", label: "Grau de risco" },
   { id: "checklist", label: "Checklist técnico" },
-  { id: "structures", label: "Estruturas" },
-  { id: "operations", label: "Operacional" },
+  { id: "jobPositions", label: "Cargos" },
+  { id: "departments", label: "Setores" },
   { id: "collaborators", label: "Pessoas e acesso" },
   { id: "documents", label: "Documentos" },
 ];
@@ -74,24 +74,6 @@ const initialCnaeForm: CnaeForm = {
   description: "",
   riskDegree: "1",
 };
-
-const operationGroups = [
-  {
-    label: "Feriados",
-    value: "Calendario bloqueado",
-    detail: "Natal, feriados nacionais e datas locais que removem vagas da agenda.",
-  },
-  {
-    label: "Agenda",
-    value: "Corpo clinico",
-    detail: "Disponibilidade por profissional, dia util, tempo de consulta e bloqueios.",
-  },
-  {
-    label: "Tabelas auxiliares",
-    value: "Pagamentos e parametros",
-    detail: "Valores por tempo de consulta, vigencias e tabelas de apoio ao motor SST.",
-  },
-];
 
 const timelineStatusLabels: Record<
   CompanyRegulatoryAssessment["timeline"][number]["status"],
@@ -127,8 +109,8 @@ function parseConfigurationTab(value: string | null): ConfigurationTab | null {
     value === "cnaes" ||
     value === "riskDegrees" ||
     value === "checklist" ||
-    value === "structures" ||
-    value === "operations" ||
+    value === "jobPositions" ||
+    value === "departments" ||
     value === "collaborators" ||
     value === "documents"
   ) {
@@ -141,6 +123,14 @@ function parseConfigurationTab(value: string | null): ConfigurationTab | null {
 
   if (value === "documentos") {
     return "documents";
+  }
+
+  if (value === "cargos") {
+    return "jobPositions";
+  }
+
+  if (value === "setores") {
+    return "departments";
   }
 
   return null;
@@ -440,18 +430,6 @@ export function ConfigurationPanel({
     );
   }, [cnaeQuery, cnaes]);
 
-  const summaryCards = [
-    { label: "CNAEs parametrizados", value: String(cnaes.length) },
-    { label: "Graus de risco", value: String(initialRiskDegrees.length) },
-    { label: "Obrigações legais", value: String(initialObligations.length) },
-    {
-      label: "Estruturas",
-      value: String(structural.departments.length + structural.jobPositions.length),
-    },
-    { label: "Usuarios", value: "5" },
-    { label: "Documentos", value: String(documentsData.summary.documents) },
-  ];
-
   function saveCnae() {
     const code = onlyDigits(cnaeForm.code);
     const riskDegree = Number(cnaeForm.riskDegree) as RegulatoryCnae["riskDegree"];
@@ -510,18 +488,7 @@ export function ConfigurationPanel({
 
   return (
     <>
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map((card) => (
-          <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-sm font-medium text-slate-500">{card.label}</p>
-            <strong className="mt-2 block text-3xl font-semibold tracking-normal">
-              {card.value}
-            </strong>
-          </article>
-        ))}
-      </section>
-
-      <section className="mt-6 rounded-lg border border-slate-200 bg-white">
+      <section className="rounded-lg border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-4 py-3">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {tabs.map((tab) => (
@@ -554,7 +521,9 @@ export function ConfigurationPanel({
           {activeTab === "cnaes" && (
             <CnaeCatalog
               cnaes={filteredCnaes}
+              obligations={initialObligations}
               query={cnaeQuery}
+              riskDegrees={initialRiskDegrees}
               onAdd={() => setIsCnaeModalOpen(true)}
               onQuery={setCnaeQuery}
               onSelectForAssessment={(code) => {
@@ -575,13 +544,12 @@ export function ConfigurationPanel({
               onEmployeeCount={setAssessmentEmployees}
             />
           )}
-          {activeTab === "structures" && (
-            <StructuresPanel
-              departments={structural.departments}
-              jobPositions={structural.jobPositions}
-            />
+          {activeTab === "jobPositions" && (
+            <JobPositionManagementPanel initialJobPositions={structural.jobPositions} />
           )}
-          {activeTab === "operations" && <OperationsPanel />}
+          {activeTab === "departments" && (
+            <DepartmentManagementPanel initialDepartments={structural.departments} />
+          )}
           {activeTab === "collaborators" && (
             <CollaboratorsWorkforcePanel jobPositions={structural.jobPositions} />
           )}
@@ -609,21 +577,86 @@ export function ConfigurationPanel({
   );
 }
 
+function cnaeRiskRoutes(cnae: RegulatoryCnae, riskDegree?: RegulatoryRiskDegree) {
+  const base = riskDegree?.requiredRiskTypes ?? [];
+  const risks = base.map((risk) => riskTypeLabels[risk]);
+
+  if (cnae.conditionalObligations.includes("aet") && !risks.includes(riskTypeLabels.ergonomic)) {
+    risks.push(riskTypeLabels.ergonomic);
+  }
+
+  return risks.length > 0 ? risks : ["Triagem tecnica em campo"];
+}
+
+function cnaeExamRoutes(cnae: RegulatoryCnae, riskDegree?: RegulatoryRiskDegree) {
+  const exams = ["ASO admissional/periodico", "Clinico ocupacional"];
+
+  if (riskDegree?.requiredRiskTypes.includes("physical")) {
+    exams.push("Audiometria quando houver ruido");
+  }
+
+  if (riskDegree?.requiredRiskTypes.includes("chemical")) {
+    exams.push("Exames toxicos por agente");
+  }
+
+  if (riskDegree?.requiredRiskTypes.includes("biological")) {
+    exams.push("Triagem biologica/vacinal");
+  }
+
+  if (cnae.conditionalObligations.includes("aet")) {
+    exams.push("Avaliacao ergonomica preliminar");
+  }
+
+  return exams;
+}
+
+function cnaeAdminRoutes(
+  cnae: RegulatoryCnae,
+  obligations: LegalObligationDefinition[],
+  riskDegree?: RegulatoryRiskDegree,
+) {
+  const obligationLabels = [...cnae.obligations, ...cnae.conditionalObligations].map(
+    (key) => obligationDefinition(key, obligations).label,
+  );
+
+  return [
+    ...obligationLabels,
+    `Inventario de riscos ${riskDegree?.inventoryRequired ? "obrigatorio" : "em triagem"}`,
+    `Plano de acao ${riskDegree?.actionPlanRequired ? "obrigatorio" : "sob demanda"}`,
+    "Base eSocial S-2210/S-2220/S-2240",
+  ];
+}
+
 function CnaeCatalog({
   cnaes,
+  obligations,
   onAdd,
   onQuery,
   onSelectForAssessment,
   query,
+  riskDegrees,
 }: Readonly<{
   cnaes: RegulatoryCnae[];
+  obligations: LegalObligationDefinition[];
   onAdd: () => void;
   onQuery: (value: string) => void;
   onSelectForAssessment: (code: string) => void;
   query: string;
+  riskDegrees: RegulatoryRiskDegree[];
 }>) {
   return (
     <div>
+      <article className="mb-4 rounded-lg border border-sky-100 bg-sky-50 p-4">
+        <p className="text-xs font-semibold uppercase text-pronus-primary">Motor de leitura CNAE</p>
+        <h3 className="mt-2 text-base font-semibold text-slate-950">
+          O CNAE direciona grau de risco, riscos por familia, exames, documentos e trilha eSocial.
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          A parametrizacao abaixo foi desenhada para o tecnico sair do cadastro da empresa com
+          checklist inicial, inventario de riscos, plano de acao e alertas legais ja orientados.
+        </p>
+      </article>
+
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <label className="block md:min-w-[24rem]">
           <span className="text-xs font-semibold uppercase text-slate-500">Buscar CNAE</span>
@@ -645,35 +678,45 @@ function CnaeCatalog({
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 xl:grid-cols-2">
-        {cnaes.map((cnae) => (
-          <article key={cnae.code} className="rounded-lg border border-slate-200 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase text-pronus-primary">
-                  CNAE {cnae.code}
-                </p>
-                <h3 className="mt-1 text-base font-semibold">{cnae.description}</h3>
-                <p className="mt-1 text-sm text-slate-600">{cnae.activityClassification}</p>
+      <div className="mt-4 grid gap-3 2xl:grid-cols-2">
+        {cnaes.map((cnae) => {
+          const riskDegree = riskDegrees.find((item) => item.degree === cnae.riskDegree);
+          const risks = cnaeRiskRoutes(cnae, riskDegree);
+          const exams = cnaeExamRoutes(cnae, riskDegree);
+          const administrativeRoutes = cnaeAdminRoutes(cnae, obligations, riskDegree);
+
+          return (
+            <article key={cnae.code} className="rounded-lg border border-slate-200 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-pronus-primary">
+                    CNAE {cnae.code}
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold">{cnae.description}</h3>
+                  <p className="mt-1 text-sm text-slate-600">{cnae.activityClassification}</p>
+                </div>
+                <span className="h-fit rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  Grau {cnae.riskDegree}
+                </span>
               </div>
-              <span className="h-fit rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                Grau {cnae.riskDegree}
-              </span>
-            </div>
-            <TagList
-              items={[...cnae.obligations, ...cnae.conditionalObligations].map(
-                (item) => legalObligationLabels[item],
-              )}
-            />
-            <button
-              className="mt-4 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-              type="button"
-              onClick={() => onSelectForAssessment(cnae.code)}
-            >
-              Analisar
-            </button>
-          </article>
-        ))}
+              <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                <RouteColumn title="Riscos vinculados" items={risks} />
+                <RouteColumn title="Exames e avaliacoes" items={exams} />
+                <RouteColumn title="Acoes administrativas" items={administrativeRoutes} />
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs leading-5 text-slate-500">{cnae.sourceNote}</p>
+                <button
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-pronus-primary hover:text-pronus-primary"
+                  type="button"
+                  onClick={() => onSelectForAssessment(cnae.code)}
+                >
+                  Simular checklist
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       {cnaes.length === 0 && (
@@ -681,6 +724,22 @@ function CnaeCatalog({
           Nenhum CNAE encontrado.
         </div>
       )}
+    </div>
+  );
+}
+
+function RouteColumn({ items, title }: Readonly<{ items: string[]; title: string }>) {
+  return (
+    <div className="rounded-md bg-slate-50 p-3">
+      <h4 className="text-xs font-semibold uppercase text-slate-500">{title}</h4>
+      <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
+        {items.slice(0, 5).map((item) => (
+          <li key={item} className="flex gap-2">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-pronus-primary" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -891,105 +950,6 @@ function ChecklistSimulator({
           </section>
         </div>
       )}
-    </div>
-  );
-}
-
-function StructuresPanel({
-  departments,
-  jobPositions,
-}: Readonly<{
-  departments: StructuralDepartment[];
-  jobPositions: StructuralJobPosition[];
-}>) {
-  const groupedDepartments = departments.reduce<Record<string, number>>((accumulator, item) => {
-    accumulator[item.audience] = (accumulator[item.audience] ?? 0) + 1;
-    return accumulator;
-  }, {});
-  const groupedJobs = jobPositions.reduce<Record<string, number>>((accumulator, item) => {
-    accumulator[item.audience] = (accumulator[item.audience] ?? 0) + 1;
-    return accumulator;
-  }, {});
-
-  return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <StructureList
-        actionHref="/empresas/cargos"
-        grouped={groupedJobs}
-        items={jobPositions.map((item) => ({
-          detail: `${structuralAudienceLabels[item.audience]} / ${item.eSocialCode ?? "sem eSocial"}`,
-          id: item.id,
-          label: item.title,
-        }))}
-        title="Cargos"
-      />
-      <StructureList
-        actionHref="/empresas/setores"
-        grouped={groupedDepartments}
-        items={departments.map((item) => ({
-          detail: `${structuralAudienceLabels[item.audience]} / ${item.code ?? "sem codigo"}`,
-          id: item.id,
-          label: item.name,
-        }))}
-        title="Setores"
-      />
-    </div>
-  );
-}
-
-function StructureList({
-  actionHref,
-  grouped,
-  items,
-  title,
-}: Readonly<{
-  actionHref: string;
-  grouped: Record<string, number>;
-  items: Array<{ id: string; label: string; detail: string }>;
-  title: string;
-}>) {
-  return (
-    <section className="rounded-lg border border-slate-200">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-        <h3 className="text-base font-semibold">{title}</h3>
-        <Link
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-          href={actionHref}
-        >
-          Abrir
-        </Link>
-      </div>
-      <div className="grid gap-2 border-b border-slate-100 p-4 sm:grid-cols-2">
-        {Object.entries(grouped).map(([audience, total]) => (
-          <MiniInfo
-            key={audience}
-            label={structuralAudienceLabels[audience as keyof typeof structuralAudienceLabels]}
-            value={String(total)}
-          />
-        ))}
-      </div>
-      <div className="divide-y divide-slate-100">
-        {items.slice(0, 6).map((item) => (
-          <article key={item.id} className="px-4 py-3">
-            <h4 className="text-sm font-semibold">{item.label}</h4>
-            <p className="mt-1 text-sm text-slate-600">{item.detail}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function OperationsPanel() {
-  return (
-    <div className="grid gap-4 xl:grid-cols-3">
-      {operationGroups.map((group) => (
-        <article key={group.label} className="rounded-lg border border-slate-200 p-4">
-          <p className="text-xs font-semibold uppercase text-pronus-primary">{group.label}</p>
-          <h3 className="mt-2 text-base font-semibold">{group.value}</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-600">{group.detail}</p>
-        </article>
-      ))}
     </div>
   );
 }

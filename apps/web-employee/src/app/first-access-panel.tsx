@@ -561,7 +561,7 @@ export function FirstAccessPanel() {
   }
 
   return (
-    <section className="w-full max-w-7xl rounded-lg border border-slate-200 bg-white shadow-sm">
+    <section className="w-full rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 px-5 py-5 lg:px-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>

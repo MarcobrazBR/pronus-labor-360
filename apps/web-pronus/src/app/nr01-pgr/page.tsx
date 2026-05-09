@@ -1,4 +1,5 @@
 import { loadNr01Data, loadPsychosocialData } from "../pronus-data";
+import { ModuleIcon } from "../module-icons";
 import { OccupationalRiskPanel } from "./occupational-risk-panel";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +13,16 @@ export default async function Nr01PgrPage() {
   return (
     <>
       <header className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-pronus-primary">
-            SST e conformidade
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-normal">Risco Ocupacional</h2>
+        <div className="flex items-start gap-3">
+          <span className="mt-1 flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-white">
+            <ModuleIcon name="risk" className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-pronus-primary">
+              SST e conformidade
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal">Risco Ocupacional</h2>
+          </div>
         </div>
       </header>
 

@@ -83,7 +83,7 @@ export function ClientShell({
 
   return (
     <div className="min-h-screen bg-pronus-background text-pronus-text">
-      <div className="mx-auto flex min-h-screen max-w-[1500px] gap-7 px-5 py-5 lg:px-8">
+      <div className="flex min-h-screen w-full gap-5 px-4 py-4 lg:px-5 2xl:px-7">
         <aside className="hidden w-72 shrink-0 xl:block">
           <div className="sticky top-5 rounded-lg border border-white/70 bg-white/95 p-4 shadow-sm">
             <div className="mb-7">

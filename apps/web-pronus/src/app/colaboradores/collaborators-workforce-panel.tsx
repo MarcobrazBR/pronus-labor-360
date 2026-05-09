@@ -102,6 +102,38 @@ function standardPassword(cpf: string) {
   return cpf.replace(/\D/g, "").slice(0, 6);
 }
 
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function formatCpf(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  return digits
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
+function isValidCpf(value: string) {
+  const digits = onlyDigits(value);
+
+  if (digits.length !== 11 || /^(\d)\1+$/.test(digits)) {
+    return false;
+  }
+
+  const numbers = digits.split("").map(Number);
+  const firstSum = numbers
+    .slice(0, 9)
+    .reduce((sum, number, index) => sum + number * (10 - index), 0);
+  const firstDigit = firstSum % 11 < 2 ? 0 : 11 - (firstSum % 11);
+  const secondSum = numbers
+    .slice(0, 10)
+    .reduce((sum, number, index) => sum + number * (11 - index), 0);
+  const secondDigit = secondSum % 11 < 2 ? 0 : 11 - (secondSum % 11);
+
+  return numbers[9] === firstDigit && numbers[10] === secondDigit;
+}
+
 function readOperatorSession(): PronusOperatorSession | null {
   if (typeof window === "undefined") {
     return null;
@@ -710,6 +742,7 @@ export function CollaboratorsWorkforcePanel({
 
       {activeTab === "users" && (
         <UsersTab
+          jobPositions={roleOptions}
           users={users}
           onAddUser={addUser}
           onResetPassword={(person) => void resetPassword(person)}
@@ -770,66 +803,99 @@ export function CollaboratorsWorkforcePanel({
 }
 
 function UsersTab({
+  jobPositions,
   onAddUser,
   onResetPassword,
   onUpdateStatus,
   users,
 }: Readonly<{
+  jobPositions: StructuralJobPosition[];
   onAddUser: (form: UserForm) => void;
   onResetPassword: (person: Person) => void;
   onUpdateStatus: (id: string, status: PersonStatus) => void;
   users: Person[];
 }>) {
-  const [query, setQuery] = useState("");
+  const [cpfQuery, setCpfQuery] = useState("");
+  const [nameQuery, setNameQuery] = useState("");
+  const [jobPosition, setJobPosition] = useState("all");
   const [status, setStatus] = useState<PersonStatus | "all">("all");
   const [hasSearched, setHasSearched] = useState(false);
-  const [submittedSearch, setSubmittedSearch] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState({
+    cpf: "",
+    jobPosition: "all",
+    name: "",
+    status: "all" as PersonStatus | "all",
+  });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState<UserForm>(() => createEmptyUserForm());
   const [localMessage, setLocalMessage] = useState<string | null>(null);
+
+  const jobPositionOptions = useMemo(() => {
+    const names = new Set([
+      ...jobPositions.map((position) => position.title),
+      ...users.map((person) => person.jobPosition),
+    ]);
+
+    return Array.from(names)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [jobPositions, users]);
 
   const filteredUsers = useMemo(() => {
     if (!hasSearched) {
       return [];
     }
 
-    const normalizedQuery = submittedSearch.trim().toLowerCase();
+    const normalizedCpf = onlyDigits(submittedSearch.cpf);
+    const normalizedName = submittedSearch.name.trim().toLowerCase();
 
     return users.filter((person) => {
-      const text = [
-        person.name,
-        person.cpf,
-        person.jobPosition,
-        person.email,
-        statusLabels[person.status],
-        person.status,
-      ]
-        .join(" ")
-        .toLowerCase();
+      const matchesCpf = normalizedCpf.length === 0 || onlyDigits(person.cpf) === normalizedCpf;
+      const matchesName =
+        normalizedName.length === 0 || person.name.toLowerCase().includes(normalizedName);
+      const matchesJobPosition =
+        submittedSearch.jobPosition === "all" || person.jobPosition === submittedSearch.jobPosition;
+      const matchesStatus =
+        submittedSearch.status === "all" || person.status === submittedSearch.status;
 
-      const matchesQuery = normalizedQuery.length === 0 || text.includes(normalizedQuery);
-      const matchesStatus = status === "all" || person.status === status;
-
-      return matchesQuery && matchesStatus;
+      return matchesCpf && matchesName && matchesJobPosition && matchesStatus;
     });
-  }, [hasSearched, status, submittedSearch, users]);
+  }, [hasSearched, submittedSearch, users]);
 
   function searchUsers() {
-    if (query.trim().length === 0 && status === "all") {
-      setLocalMessage("Informe CPF, nome, cargo ou status para buscar usuarios.");
+    if (
+      cpfQuery.trim().length === 0 &&
+      nameQuery.trim().length === 0 &&
+      jobPosition === "all" &&
+      status === "all"
+    ) {
+      setLocalMessage("Informe ao menos um filtro para buscar usuarios.");
+      setHasSearched(false);
+      return;
+    }
+
+    if (cpfQuery.trim().length > 0 && !isValidCpf(cpfQuery)) {
+      setLocalMessage("Informe um CPF valido para pesquisar.");
       setHasSearched(false);
       return;
     }
 
     setLocalMessage(null);
-    setSubmittedSearch(query);
+    setSubmittedSearch({
+      cpf: cpfQuery,
+      jobPosition,
+      name: nameQuery,
+      status,
+    });
     setHasSearched(true);
   }
 
   function clearSearch() {
-    setQuery("");
+    setCpfQuery("");
+    setNameQuery("");
+    setJobPosition("all");
     setStatus("all");
-    setSubmittedSearch("");
+    setSubmittedSearch({ cpf: "", jobPosition: "all", name: "", status: "all" });
     setHasSearched(false);
     setLocalMessage(null);
   }
@@ -859,7 +925,7 @@ function UsersTab({
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-            {hasSearched ? filteredUsers.length : users.length} registros
+            {hasSearched ? filteredUsers.length : 0} registros
           </span>
           <button
             aria-label="Incluir usuario"
@@ -874,16 +940,35 @@ function UsersTab({
       </div>
 
       <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
+        <div className="grid gap-3 xl:grid-cols-[170px_minmax(220px,1fr)_220px_190px_auto]">
           <label className="block">
-            <span className="text-xs font-semibold uppercase text-slate-500">Pesquisar</span>
+            <span className="text-xs font-semibold uppercase text-slate-500">CPF</span>
             <input
               className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
-              placeholder="CPF, nome ou cargo"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+              value={cpfQuery}
+              onChange={(event) => setCpfQuery(formatCpf(event.target.value))}
             />
           </label>
+          <label className="block">
+            <span className="text-xs font-semibold uppercase text-slate-500">Nome</span>
+            <input
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+              placeholder="Nome completo ou parcial"
+              value={nameQuery}
+              onChange={(event) => setNameQuery(event.target.value)}
+            />
+          </label>
+          <SelectField
+            label="Cargo"
+            value={jobPosition}
+            onChange={setJobPosition}
+            options={[
+              { label: "Todos", value: "all" },
+              ...jobPositionOptions.map((option) => ({ label: option, value: option })),
+            ]}
+          />
           <SelectField
             label="Status"
             value={status}

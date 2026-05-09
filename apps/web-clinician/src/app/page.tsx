@@ -216,7 +216,7 @@ export default function ClinicianPortalPage() {
 
   return (
     <main className="min-h-screen bg-pronus-background text-pronus-text">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-5 px-5 py-5 lg:px-8">
+      <div className="flex min-h-screen w-full flex-col gap-5 px-4 py-4 lg:px-5 2xl:px-7">
         <header className="flex flex-col gap-3 rounded-lg border border-white/70 bg-white px-5 py-4 shadow-sm md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <img alt="Pronus Labor" className="h-16 w-auto" src="/brand/pronus-logo.png" />
