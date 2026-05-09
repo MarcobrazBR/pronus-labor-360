@@ -346,3 +346,4 @@ Estado encontrado:
 - Layout dos quatro portais passou a usar melhor a largura disponivel em telas grandes.
 - Screenshots desktop atualizados apos a reorganizacao visual em `docs/assets/screenshots/`.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-organizacao-regulatoria-painel-2026-05-09.md`.
+- Portal Profissional de Saude passou a autenticar pela mesma API de acesso PRONUS, liberando somente usuarios de corpo clinico e sincronizando reset/troca de senha com o Administrador Geral.

@@ -1,55 +1,20 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-
-type ClinicianSession = {
-  cpf: string;
-  email: string;
-  fullName: string;
-  id: string;
-  license: string;
-  mustChangePassword: boolean;
-  specialty: string;
-};
-
-const demoClinician: Omit<ClinicianSession, "mustChangePassword"> = {
-  cpf: "654.987.321-11",
-  email: "carlos.nunes@pronus.com.br",
-  fullName: "Carlos Henrique Nunes",
-  id: "pronus-dr-carlos",
-  license: "CRM-SP 123456",
-  specialty: "Medico do Trabalho",
-};
-
-const passwordStorageKey = "pronus:clinician-passwords";
-const sessionStorageKey = "pronus:clinician-session";
-
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
-}
-
-function standardPassword(cpf: string) {
-  return onlyDigits(cpf).slice(0, 6);
-}
-
-function readPasswords(): Record<string, string> {
-  const raw = window.localStorage.getItem(passwordStorageKey);
-
-  if (raw === null) {
-    return {};
-  }
-
-  try {
-    return JSON.parse(raw) as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
+import {
+  getApiUrl,
+  isClinicalProfile,
+  responseMessage,
+  sessionStorageKey,
+  toClinicianSession,
+  type PronusAccessProfile,
+} from "../clinician-access";
 
 export default function ClinicianLoginPage() {
   const [cpf, setCpf] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const rawSession = window.localStorage.getItem(sessionStorageKey);
@@ -59,33 +24,44 @@ export default function ClinicianLoginPage() {
     }
   }, []);
 
-  function submitLogin(event: FormEvent<HTMLFormElement>) {
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const normalizedCpf = onlyDigits(cpf);
-    const expectedCpf = onlyDigits(demoClinician.cpf);
-
-    if (normalizedCpf !== expectedCpf) {
-      setMessage("CPF nao encontrado para o portal profissional.");
+    if (cpf.trim().length === 0 || password.length === 0) {
+      setMessage("Informe CPF e senha para acessar.");
       return;
     }
 
-    const savedPassword = readPasswords()[expectedCpf] ?? standardPassword(expectedCpf);
+    setIsLoading(true);
+    setMessage(null);
 
-    if (password !== savedPassword) {
-      setMessage("CPF ou senha invalidos.");
-      return;
+    try {
+      const response = await fetch(`${getApiUrl()}/pronus-access/login`, {
+        body: JSON.stringify({ cpf, password }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      const payload = (await response.json()) as PronusAccessProfile | { message?: string };
+
+      if (!response.ok) {
+        setMessage(responseMessage(payload, "CPF ou senha invalidos."));
+        return;
+      }
+
+      const profile = payload as PronusAccessProfile;
+
+      if (!isClinicalProfile(profile)) {
+        setMessage("Acesso exclusivo para profissionais de saude da PRONUS.");
+        return;
+      }
+
+      window.localStorage.setItem(sessionStorageKey, JSON.stringify(toClinicianSession(profile)));
+      window.location.href = "/";
+    } catch {
+      setMessage("Nao foi possivel conectar a API local.");
+    } finally {
+      setIsLoading(false);
     }
-
-    const mustChangePassword = password === standardPassword(expectedCpf);
-    const session: ClinicianSession = {
-      ...demoClinician,
-      cpf: demoClinician.cpf,
-      mustChangePassword,
-    };
-
-    window.localStorage.setItem(sessionStorageKey, JSON.stringify(session));
-    window.location.href = "/";
   }
 
   return (
@@ -97,7 +73,7 @@ export default function ClinicianLoginPage() {
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-normal">Acesso clinico</h1>
 
-        <form className="mt-6 grid gap-4" onSubmit={submitLogin}>
+        <form className="mt-6 grid gap-4" onSubmit={(event) => void submitLogin(event)}>
           <label className="text-xs font-semibold uppercase text-slate-500">
             CPF
             <input
@@ -126,10 +102,11 @@ export default function ClinicianLoginPage() {
           )}
 
           <button
-            className="rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-pronus-primary/90"
+            className="rounded-md bg-pronus-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-pronus-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isLoading}
             type="submit"
           >
-            Entrar
+            {isLoading ? "Acessando..." : "Entrar"}
           </button>
         </form>
       </section>

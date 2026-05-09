@@ -25,6 +25,7 @@ Este documento concentra os acessos demonstrativos usados no ambiente local de d
 | Portal RH Cliente       | Industria Horizonte        | `12.345.678/0001-90` | `123456`     |
 | Portal Colaborador      | Rafael Moreira Lima        | `987.654.321-00`     | `987654`     |
 | Portal Profissional     | Carlos Henrique Nunes      | `654.987.321-11`     | `654987`     |
+| Portal Profissional     | Larissa Moreira            | `789.123.456-22`     | `789123`     |
 
 ## Regra de primeiro acesso
 
@@ -47,3 +48,4 @@ Este documento concentra os acessos demonstrativos usados no ambiente local de d
 - As telas de login nao devem exibir CPF, CNPJ ou senha de teste.
 - Sempre usar este documento para consultar credenciais demonstrativas.
 - Se um acesso nao aceitar a senha padrao, execute o reset pelo fluxo correspondente ou use a senha trocada no teste anterior.
+- O Portal Profissional usa a mesma base de acesso PRONUS; apenas usuarios com perfil de corpo clinico conseguem entrar nele.

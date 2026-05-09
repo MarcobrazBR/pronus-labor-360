@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-
-type ClinicianSession = {
-  cpf: string;
-  email: string;
-  fullName: string;
-  id: string;
-  license: string;
-  mustChangePassword: boolean;
-  specialty: string;
-};
+import {
+  getApiUrl,
+  isStrongPassword,
+  responseMessage,
+  sessionStorageKey,
+  standardPassword,
+  toClinicianSession,
+  type ClinicianSession,
+  type PronusAccessProfile,
+} from "./clinician-access";
 
 type Appointment = {
   clientName: string;
@@ -21,8 +21,6 @@ type Appointment = {
   status: "waiting" | "ready" | "done";
 };
 
-const sessionStorageKey = "pronus:clinician-session";
-const passwordStorageKey = "pronus:clinician-passwords";
 const notesStorageKey = "pronus:clinical-notes";
 
 const appointments: Appointment[] = [
@@ -75,20 +73,6 @@ const appointments: Appointment[] = [
     status: "waiting",
   },
 ];
-
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
-}
-
-function standardPassword(cpf: string) {
-  return onlyDigits(cpf).slice(0, 6);
-}
-
-function isStrongPassword(value: string) {
-  return (
-    value.length === 6 && /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value)
-  );
-}
 
 function timeLabel(value: string) {
   return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -167,7 +151,7 @@ export default function ClinicianPortalPage() {
     setNoteMessage("Anamnese salva no prontuario demonstrativo.");
   }
 
-  function changePassword(event: FormEvent<HTMLFormElement>) {
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (session === null) {
@@ -184,17 +168,27 @@ export default function ClinicianPortalPage() {
       return;
     }
 
-    const rawPasswords = window.localStorage.getItem(passwordStorageKey);
-    const passwords =
-      rawPasswords === null ? {} : (JSON.parse(rawPasswords) as Record<string, string>);
-    passwords[onlyDigits(session.cpf)] = newPassword;
-    window.localStorage.setItem(passwordStorageKey, JSON.stringify(passwords));
+    try {
+      const response = await fetch(`${getApiUrl()}/pronus-access/password`, {
+        body: JSON.stringify({ userId: session.id, newPassword }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      });
+      const payload = (await response.json()) as PronusAccessProfile | { message?: string };
 
-    const updatedSession = { ...session, mustChangePassword: false };
-    window.localStorage.setItem(sessionStorageKey, JSON.stringify(updatedSession));
-    setSession(updatedSession);
-    setNewPassword("");
-    setPasswordMessage(null);
+      if (!response.ok) {
+        setPasswordMessage(responseMessage(payload, "Nao foi possivel atualizar a senha."));
+        return;
+      }
+
+      const updatedSession = toClinicianSession(payload as PronusAccessProfile);
+      window.localStorage.setItem(sessionStorageKey, JSON.stringify(updatedSession));
+      setSession(updatedSession);
+      setNewPassword("");
+      setPasswordMessage(null);
+    } catch {
+      setPasswordMessage("Nao foi possivel conectar a API local.");
+    }
   }
 
   if (session === null) {
