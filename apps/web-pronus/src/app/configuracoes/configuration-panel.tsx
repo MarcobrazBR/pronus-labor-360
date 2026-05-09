@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   analysisDepthLabels,
   legalObligationLabels,
@@ -18,12 +19,36 @@ import {
   type StructuralJobPosition,
   type TechnicalChecklistItem,
 } from "../pronus-data";
+import { CollaboratorsWorkforcePanel } from "../colaboradores/collaborators-workforce-panel";
+import { DocumentManagementPanel } from "../documentos/document-management-panel";
+import type {
+  DocumentPublication,
+  DocumentSignatureRequest,
+  DocumentTemplate,
+  DocumentsSummary,
+  PronusDocument,
+} from "../pronus-data";
 
-type ConfigurationTab = "cnaes" | "riskDegrees" | "checklist" | "structures" | "operations";
+type ConfigurationTab =
+  | "cnaes"
+  | "riskDegrees"
+  | "checklist"
+  | "structures"
+  | "operations"
+  | "collaborators"
+  | "documents";
 
 type StructuralData = {
   departments: StructuralDepartment[];
   jobPositions: StructuralJobPosition[];
+};
+
+type DocumentsData = {
+  documents: PronusDocument[];
+  publications: DocumentPublication[];
+  signatures: DocumentSignatureRequest[];
+  summary: DocumentsSummary;
+  templates: DocumentTemplate[];
 };
 
 type CnaeForm = {
@@ -39,6 +64,8 @@ const tabs: Array<{ id: ConfigurationTab; label: string }> = [
   { id: "checklist", label: "Checklist técnico" },
   { id: "structures", label: "Estruturas" },
   { id: "operations", label: "Operacional" },
+  { id: "collaborators", label: "Pessoas e acesso" },
+  { id: "documents", label: "Documentos" },
 ];
 
 const initialCnaeForm: CnaeForm = {
@@ -93,6 +120,30 @@ function scoreClasses(classification: RiskScoreClass) {
   }
 
   return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+}
+
+function parseConfigurationTab(value: string | null): ConfigurationTab | null {
+  if (
+    value === "cnaes" ||
+    value === "riskDegrees" ||
+    value === "checklist" ||
+    value === "structures" ||
+    value === "operations" ||
+    value === "collaborators" ||
+    value === "documents"
+  ) {
+    return value;
+  }
+
+  if (value === "colaboradores") {
+    return "collaborators";
+  }
+
+  if (value === "documentos") {
+    return "documents";
+  }
+
+  return null;
 }
 
 function obligationDefinition(
@@ -343,17 +394,21 @@ function buildAssessment(
 }
 
 export function ConfigurationPanel({
+  documentsData,
   initialCnaes,
   initialObligations,
   initialRiskDegrees,
   structural,
 }: Readonly<{
+  documentsData: DocumentsData;
   initialCnaes: RegulatoryCnae[];
   initialObligations: LegalObligationDefinition[];
   initialRiskDegrees: RegulatoryRiskDegree[];
   structural: StructuralData;
 }>) {
-  const [activeTab, setActiveTab] = useState<ConfigurationTab>("cnaes");
+  const searchParams = useSearchParams();
+  const requestedTab = parseConfigurationTab(searchParams.get("tab"));
+  const [activeTab, setActiveTab] = useState<ConfigurationTab>(requestedTab ?? "cnaes");
   const [cnaes, setCnaes] = useState(initialCnaes);
   const [cnaeQuery, setCnaeQuery] = useState("");
   const [isCnaeModalOpen, setIsCnaeModalOpen] = useState(false);
@@ -362,6 +417,13 @@ export function ConfigurationPanel({
   const [assessmentEmployees, setAssessmentEmployees] = useState("148");
   const [assessment, setAssessment] = useState<CompanyRegulatoryAssessment | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (requestedTab !== null) {
+      setActiveTab(requestedTab);
+      setMessage(null);
+    }
+  }, [requestedTab]);
 
   const filteredCnaes = useMemo(() => {
     const normalized = cnaeQuery.trim().toLowerCase();
@@ -386,6 +448,8 @@ export function ConfigurationPanel({
       label: "Estruturas",
       value: String(structural.departments.length + structural.jobPositions.length),
     },
+    { label: "Usuarios", value: "5" },
+    { label: "Documentos", value: String(documentsData.summary.documents) },
   ];
 
   function saveCnae() {
@@ -518,6 +582,18 @@ export function ConfigurationPanel({
             />
           )}
           {activeTab === "operations" && <OperationsPanel />}
+          {activeTab === "collaborators" && (
+            <CollaboratorsWorkforcePanel jobPositions={structural.jobPositions} />
+          )}
+          {activeTab === "documents" && (
+            <DocumentManagementPanel
+              initialDocuments={documentsData.documents}
+              initialPublications={documentsData.publications}
+              initialSignatures={documentsData.signatures}
+              initialTemplates={documentsData.templates}
+              summary={documentsData.summary}
+            />
+          )}
         </div>
       </section>
 

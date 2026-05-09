@@ -1,10 +1,13 @@
-import { loadNr01Data } from "../pronus-data";
+import { loadNr01Data, loadPsychosocialData } from "../pronus-data";
 import { OccupationalRiskPanel } from "./occupational-risk-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function Nr01PgrPage() {
-  const { risks, actions, evidences, documents } = await loadNr01Data();
+  const [{ risks, actions, evidences, documents }, psychosocial] = await Promise.all([
+    loadNr01Data(),
+    loadPsychosocialData(),
+  ]);
 
   return (
     <>
@@ -22,6 +25,7 @@ export default async function Nr01PgrPage() {
         initialDocuments={documents}
         initialEvidences={evidences}
         initialRisks={risks}
+        psychosocial={psychosocial}
       />
     </>
   );

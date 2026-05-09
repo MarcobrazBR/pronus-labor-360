@@ -1,12 +1,17 @@
-import { loadRegulatoryIntelligenceData, loadStructuralData } from "../pronus-data";
+import {
+  loadDocumentsData,
+  loadRegulatoryIntelligenceData,
+  loadStructuralData,
+} from "../pronus-data";
 import { ConfigurationPanel } from "./configuration-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConfigurationPage() {
-  const [structural, regulatory] = await Promise.all([
+  const [structural, regulatory, documentsData] = await Promise.all([
     loadStructuralData(),
     loadRegulatoryIntelligenceData(),
+    loadDocumentsData(),
   ]);
 
   return (
@@ -27,6 +32,7 @@ export default async function ConfigurationPage() {
       </header>
 
       <ConfigurationPanel
+        documentsData={documentsData}
         initialCnaes={regulatory.cnaes}
         initialObligations={regulatory.obligations}
         initialRiskDegrees={regulatory.riskDegrees}

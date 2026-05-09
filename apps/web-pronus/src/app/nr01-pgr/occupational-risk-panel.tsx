@@ -1,16 +1,27 @@
 "use client";
 
 import { riskLevelColorClasses, riskLevelLabels } from "@pronus/ui";
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import type { Nr01ActionPlanItem, Nr01Document, Nr01Evidence, Nr01Risk } from "../pronus-data";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import type {
+  Nr01ActionPlanItem,
+  Nr01Document,
+  Nr01Evidence,
+  Nr01Risk,
+  PsychosocialCampaign,
+  PsychosocialSectorSignal,
+  PsychosocialSummary,
+} from "../pronus-data";
 import {
   actionStatusClasses,
   documentStatusClasses,
   evidenceStatusClasses,
   nr01ActionStatusLabels,
 } from "../pronus-data";
+import { PsychosocialRiskPanel } from "../psicossocial/psychosocial-risk-panel";
 
-type TabId = "inventory" | "actions" | "evidences" | "documents";
+type TabId = "inventory" | "actions" | "evidences" | "documents" | "psychosocial";
+type OperationalTabId = Exclude<TabId, "psychosocial">;
 type ModalKind = "risk" | "action" | "evidence" | "document" | null;
 type RiskType = NonNullable<Nr01Risk["type"]>;
 
@@ -19,6 +30,7 @@ const tabs: Array<{ id: TabId; label: string }> = [
   { id: "actions", label: "Plano de acao" },
   { id: "evidences", label: "Evidencias" },
   { id: "documents", label: "Documentos" },
+  { id: "psychosocial", label: "Psicossocial" },
 ];
 
 const riskTypeLabels: Record<RiskType, string> = {
@@ -106,13 +118,21 @@ export function OccupationalRiskPanel({
   initialActions,
   initialEvidences,
   initialDocuments,
+  psychosocial,
 }: Readonly<{
   initialRisks: Nr01Risk[];
   initialActions: Nr01ActionPlanItem[];
   initialEvidences: Nr01Evidence[];
   initialDocuments: Nr01Document[];
+  psychosocial: {
+    campaigns: PsychosocialCampaign[];
+    signals: PsychosocialSectorSignal[];
+    summary: PsychosocialSummary;
+  };
 }>) {
-  const [activeTab, setActiveTab] = useState<TabId>("inventory");
+  const searchParams = useSearchParams();
+  const requestedTab = parseTab(searchParams.get("tab"));
+  const [activeTab, setActiveTab] = useState<TabId>(requestedTab ?? "inventory");
   const [risks, setRisks] = useState(initialRisks);
   const [actions, setActions] = useState(initialActions);
   const [evidences, setEvidences] = useState(initialEvidences);
@@ -131,6 +151,12 @@ export function OccupationalRiskPanel({
     actionId: initialActions[0]?.id ?? "",
   });
   const [documentForm, setDocumentForm] = useState(initialDocumentForm);
+
+  useEffect(() => {
+    if (requestedTab !== null) {
+      setActiveTab(requestedTab);
+    }
+  }, [requestedTab]);
 
   const computedSummary = useMemo(() => {
     const visibleRisks = risks.filter((risk) => risk.status !== "archived");
@@ -224,8 +250,9 @@ export function OccupationalRiskPanel({
     );
   });
 
-  const currentCount =
-    activeTab === "inventory"
+  const currentCount = !isOperationalTab(activeTab)
+    ? 0
+    : activeTab === "inventory"
       ? filteredRisks.length
       : activeTab === "actions"
         ? filteredActions.length
@@ -418,92 +445,102 @@ export function OccupationalRiskPanel({
         ))}
       </nav>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map((card) => (
-          <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-sm font-medium text-slate-500">{card.label}</p>
-            <strong className="mt-2 block text-3xl font-semibold tracking-normal">
-              {card.value}
-            </strong>
-            <span className="mt-2 block text-sm text-slate-600">{card.detail}</span>
-          </article>
-        ))}
-      </section>
+      {activeTab === "psychosocial" ? (
+        <PsychosocialRiskPanel
+          campaigns={psychosocial.campaigns}
+          signals={psychosocial.signals}
+          summary={psychosocial.summary}
+        />
+      ) : (
+        <>
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {summaryCards.map((card) => (
+              <article key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
+                <p className="text-sm font-medium text-slate-500">{card.label}</p>
+                <strong className="mt-2 block text-3xl font-semibold tracking-normal">
+                  {card.value}
+                </strong>
+                <span className="mt-2 block text-sm text-slate-600">{card.detail}</span>
+              </article>
+            ))}
+          </section>
 
-      <section className="mt-4 rounded-lg border border-slate-200 bg-white">
-        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-base font-semibold">{currentTitle(activeTab)}</h3>
-            <span className="mt-1 inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-              {currentCount} registros
-            </span>
-          </div>
-          <button
-            aria-label={currentCreateLabel(activeTab)}
-            className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-lg font-semibold text-white shadow-sm hover:bg-pronus-primary/90"
-            type="button"
-            onClick={() => openModal(currentModal(activeTab))}
-          >
-            +
-          </button>
-        </div>
+          <section className="mt-4 rounded-lg border border-slate-200 bg-white">
+            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="text-base font-semibold">{currentTitle(activeTab)}</h3>
+                <span className="mt-1 inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                  {currentCount} registros
+                </span>
+              </div>
+              <button
+                aria-label={currentCreateLabel(activeTab)}
+                className="flex h-10 w-10 items-center justify-center rounded-md bg-pronus-primary text-lg font-semibold text-white shadow-sm hover:bg-pronus-primary/90"
+                type="button"
+                onClick={() => openModal(currentModal(activeTab))}
+              >
+                +
+              </button>
+            </div>
 
-        <div className="grid gap-3 border-b border-slate-100 p-4 md:grid-cols-[minmax(220px,1fr)_190px_auto]">
-          <label className="text-xs font-semibold uppercase text-slate-500">
-            Pesquisar
-            <input
-              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal normal-case text-pronus-text outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
-              placeholder={currentPlaceholder(activeTab)}
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <label className="text-xs font-semibold uppercase text-slate-500">
-            Status
-            <select
-              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case text-pronus-text outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              {statusOptions(activeTab).map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="h-10 self-end rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:border-pronus-primary/40"
-            type="button"
-            onClick={() => {
-              setQuery("");
-              setStatusFilter("all");
-            }}
-          >
-            Limpar
-          </button>
-        </div>
+            <div className="grid gap-3 border-b border-slate-100 p-4 md:grid-cols-[minmax(220px,1fr)_190px_auto]">
+              <label className="text-xs font-semibold uppercase text-slate-500">
+                Pesquisar
+                <input
+                  className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal normal-case text-pronus-text outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+                  placeholder={currentPlaceholder(activeTab)}
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+              <label className="text-xs font-semibold uppercase text-slate-500">
+                Status
+                <select
+                  className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case text-pronus-text outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                >
+                  {statusOptions(activeTab).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="h-10 self-end rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:border-pronus-primary/40"
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setStatusFilter("all");
+                }}
+              >
+                Limpar
+              </button>
+            </div>
 
-        {message !== undefined && (
-          <div className="border-b border-slate-100 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-800">
-            {message}
-          </div>
-        )}
+            {message !== undefined && (
+              <div className="border-b border-slate-100 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-800">
+                {message}
+              </div>
+            )}
 
-        {activeTab === "inventory" && (
-          <RiskList risks={filteredRisks} onChangeStatus={setRiskStatus} />
-        )}
-        {activeTab === "actions" && (
-          <ActionList actions={filteredActions} onChangeStatus={setActionStatus} />
-        )}
-        {activeTab === "evidences" && (
-          <EvidenceList evidences={filteredEvidences} onChangeStatus={setEvidenceStatus} />
-        )}
-        {activeTab === "documents" && (
-          <DocumentList documents={filteredDocuments} onChangeStatus={setDocumentStatus} />
-        )}
-      </section>
+            {activeTab === "inventory" && (
+              <RiskList risks={filteredRisks} onChangeStatus={setRiskStatus} />
+            )}
+            {activeTab === "actions" && (
+              <ActionList actions={filteredActions} onChangeStatus={setActionStatus} />
+            )}
+            {activeTab === "evidences" && (
+              <EvidenceList evidences={filteredEvidences} onChangeStatus={setEvidenceStatus} />
+            )}
+            {activeTab === "documents" && (
+              <DocumentList documents={filteredDocuments} onChangeStatus={setDocumentStatus} />
+            )}
+          </section>
+        </>
+      )}
 
       {modal === "risk" && (
         <Modal title="Cadastrar risco" onClose={closeModal}>
@@ -1122,7 +1159,29 @@ function matches(searchable: string, query: string) {
   return query.trim().length === 0 || searchable.includes(query.trim().toLowerCase());
 }
 
-function currentTitle(tabId: TabId) {
+function parseTab(value: string | null): TabId | null {
+  if (
+    value === "inventory" ||
+    value === "actions" ||
+    value === "evidences" ||
+    value === "documents" ||
+    value === "psychosocial"
+  ) {
+    return value;
+  }
+
+  if (value === "psicossocial") {
+    return "psychosocial";
+  }
+
+  return null;
+}
+
+function isOperationalTab(tabId: TabId): tabId is OperationalTabId {
+  return tabId !== "psychosocial";
+}
+
+function currentTitle(tabId: OperationalTabId) {
   if (tabId === "inventory") {
     return "Inventario de riscos";
   }
@@ -1138,7 +1197,7 @@ function currentTitle(tabId: TabId) {
   return "Documentos";
 }
 
-function currentCreateLabel(tabId: TabId) {
+function currentCreateLabel(tabId: OperationalTabId) {
   if (tabId === "inventory") {
     return "Cadastrar risco";
   }
@@ -1154,7 +1213,7 @@ function currentCreateLabel(tabId: TabId) {
   return "Gerar documento";
 }
 
-function currentModal(tabId: TabId): Exclude<ModalKind, null> {
+function currentModal(tabId: OperationalTabId): Exclude<ModalKind, null> {
   if (tabId === "inventory") {
     return "risk";
   }
@@ -1170,7 +1229,7 @@ function currentModal(tabId: TabId): Exclude<ModalKind, null> {
   return "document";
 }
 
-function currentPlaceholder(tabId: TabId) {
+function currentPlaceholder(tabId: OperationalTabId) {
   if (tabId === "inventory") {
     return "Empresa, setor, cargo, perigo ou risco";
   }
@@ -1186,7 +1245,7 @@ function currentPlaceholder(tabId: TabId) {
   return "Empresa, documento, tipo ou periodo";
 }
 
-function statusOptions(tabId: TabId) {
+function statusOptions(tabId: OperationalTabId) {
   const all = [{ label: "Todos", value: "all" }];
 
   if (tabId === "inventory") {

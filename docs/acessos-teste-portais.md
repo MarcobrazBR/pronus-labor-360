@@ -1,6 +1,6 @@
 # Acessos de Teste dos Portais
 
-Data de atualizacao: 2026-04-29
+Data de atualizacao: 2026-05-09
 
 Este documento concentra os acessos demonstrativos usados no ambiente local de desenvolvimento. Eles existem apenas para testes do produto e apresentacoes controladas. Nao devem ser usados como credenciais reais em producao.
 
@@ -11,6 +11,7 @@ Este documento concentra os acessos demonstrativos usados no ambiente local de d
 | Portal PRONUS Operacoes | `http://localhost:3000/login` |
 | Portal RH Cliente       | `http://localhost:3001/login` |
 | Portal Colaborador      | `http://localhost:3002/login` |
+| Portal Profissional     | `http://localhost:3003/login` |
 | API local               | `http://localhost:3333`       |
 
 ## Credenciais demonstrativas
@@ -23,6 +24,7 @@ Este documento concentra os acessos demonstrativos usados no ambiente local de d
 | Portal PRONUS Operacoes | Corpo Clinico PRONUS       | `789.123.456-22`     | `789123`     |
 | Portal RH Cliente       | Industria Horizonte        | `12.345.678/0001-90` | `123456`     |
 | Portal Colaborador      | Rafael Moreira Lima        | `987.654.321-00`     | `987654`     |
+| Portal Profissional     | Carlos Henrique Nunes      | `654.987.321-11`     | `654987`     |
 
 ## Regra de primeiro acesso
 
@@ -38,6 +40,7 @@ Este documento concentra os acessos demonstrativos usados no ambiente local de d
 | Colaborador da empresa cliente                 | RH Cliente                 | Card de reset no Painel do Portal RH                 |
 | Empresa/RH Cliente                             | Operacao PRONUS            | Card de reset no Painel PRONUS e cadastro da empresa |
 | Usuario administrativo ou corpo clinico PRONUS | Administrador Geral PRONUS | Modulo Colaboradores > Usuarios                      |
+| Profissional de saude                          | Administrador Geral PRONUS | Configuracoes > Pessoas e acesso > Usuarios          |
 
 ## Observacoes para demonstracao
 

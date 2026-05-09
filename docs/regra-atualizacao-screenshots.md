@@ -1,7 +1,7 @@
 # Regra de Atualizacao de Screenshots
 
 Data de criacao: 2026-04-29
-Ultima atualizacao: 2026-04-30
+Ultima atualizacao: 2026-05-09
 
 ## Objetivo
 
@@ -36,9 +36,11 @@ Capturas atuais:
 - `portal-rh-cliente.png`
 - `portal-rh-clientes.png`
 - `portal-colaborador.png`
+- `portal-profissional-saude.png`
 - `login-pronus.png`
 - `login-rh-cliente.png`
 - `login-colaborador.png`
+- `login-profissional-saude.png`
 
 ## Cuidados Obrigatorios
 

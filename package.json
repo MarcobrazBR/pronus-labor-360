@@ -9,10 +9,11 @@
     "pnpm": ">=10.33.2"
   },
   "scripts": {
-    "dev": "pnpm --parallel --filter @pronus/web-pronus --filter @pronus/web-client --filter @pronus/web-employee --filter @pronus/api dev",
+    "dev": "pnpm --parallel --filter @pronus/web-pronus --filter @pronus/web-client --filter @pronus/web-employee --filter @pronus/web-clinician --filter @pronus/api dev",
     "dev:pronus": "pnpm --filter @pronus/web-pronus dev",
     "dev:client": "pnpm --filter @pronus/web-client dev",
     "dev:employee": "pnpm --filter @pronus/web-employee dev",
+    "dev:clinician": "pnpm --filter @pronus/web-clinician dev",
     "dev:api": "pnpm --filter @pronus/api dev",
     "build": "cross-env NEXT_TELEMETRY_DISABLED=1 pnpm -r --workspace-concurrency=1 build",
     "lint": "pnpm -r lint",

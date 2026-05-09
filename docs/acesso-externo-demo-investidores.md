@@ -1,6 +1,6 @@
 # Acesso Externo Para Demo Com Investidores
 
-Data: 2026-04-29
+Data: 2026-05-09
 
 ## Objetivo
 
@@ -13,12 +13,13 @@ Portas locais usadas hoje:
 - Portal PRONUS: `http://localhost:3000`
 - Portal RH Cliente: `http://localhost:3001`
 - Portal Colaborador: `http://localhost:3002`
+- Portal Profissional de Saude: `http://localhost:3003`
 - API: `http://localhost:3333`
 
 A API agora aceita origens externas por variavel de ambiente:
 
 ```env
-ALLOWED_ORIGINS=https://portal-pronus-demo.example.com,https://portal-rh-demo.example.com,https://portal-colaborador-demo.example.com
+ALLOWED_ORIGINS=https://portal-pronus-demo.example.com,https://portal-rh-demo.example.com,https://portal-colaborador-demo.example.com,https://portal-profissional-demo.example.com
 NEXT_PUBLIC_API_URL=https://api-pronus-demo.example.com
 ```
 
@@ -52,7 +53,7 @@ Observacoes:
 - gera um subdominio aleatorio `trycloudflare.com`;
 - e publico enquanto o processo estiver rodando;
 - a propria documentacao da Cloudflare posiciona Quick Tunnel para testes e desenvolvimento, nao producao;
-- para os tres portais e a API, o ideal e usar hostnames/tuneis separados ou um tunel configurado com ingress.
+- para os quatro portais e a API, o ideal e usar hostnames/tuneis separados ou um tunel configurado com ingress.
 
 ### ngrok
 
@@ -115,4 +116,4 @@ Para uma demo externa robusta, o proximo ciclo deve criar um perfil `demo` com:
 - URLs configuraveis por ambiente;
 - banco Supabase separado de desenvolvimento;
 - usuario/senha de demo documentados;
-- pipeline simples para atualizar os tres portais e a API antes das reunioes.
+- pipeline simples para atualizar os quatro portais e a API antes das reunioes.

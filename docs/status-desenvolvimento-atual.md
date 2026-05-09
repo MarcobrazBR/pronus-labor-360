@@ -1,6 +1,6 @@
 # Pronus Labor 360 - Status de Desenvolvimento
 
-Data: 2026-04-30
+Data: 2026-05-09
 
 ## Ponto de Retomada
 
@@ -312,6 +312,20 @@ Estado encontrado:
 - Teste HTTP confirmou `http://localhost:3001/clientes` e `http://localhost:3000/empresas/clientes` respondendo 200.
 - Teste HTTP de importacao `dryRun` confirmou erro detalhado com linha 2 e campo `cpf`.
 - Screenshots desktop atualizados para portais e novos fluxos `portal-rh-clientes.png` e `portal-pronus-clientes.png`.
+- Portal PRONUS Operacoes foi reorganizado para a lateral exibir apenas Painel, Empresas, Configuracoes e Risco Ocupacional.
+- Funcoes de Colaboradores foram remanejadas para Configuracoes > Pessoas e acesso, preservando Usuarios, Permissoes do sistema, Agenda, Feriados e Tabela.
+- Funcoes de Documentos foram remanejadas para Configuracoes > Documentos, preservando documentos, modelos, publicacoes e assinaturas.
+- Funcoes de Psicossocial foram remanejadas para Risco Ocupacional > Psicossocial, preservando campanhas, adesao e sinais por setor.
+- Rotas antigas `/colaboradores`, `/documentos` e `/psicossocial` agora redirecionam para as novas abas internas.
+- Criado o quarto portal `apps/web-clinician`, Portal Profissional de Saude, na porta local `3003`.
+- Portal Profissional de Saude recebeu login por CPF, troca obrigatoria de senha, agenda do dia, proximos atendimentos, tela de videochamada com controles rapidos e area de anamnese salva no prontuario demonstrativo.
+- `pnpm dev` agora sobe tambem o Portal Profissional de Saude e foi criado o comando `pnpm dev:clinician`.
+- Acessos demonstrativos, README, regra de screenshots e avaliacao UX Nielsen foram atualizados para incluir o quarto portal e a nova organizacao do MVP.
+- Typecheck completo do monorepo passou apos criacao do quarto portal e reorganizacao do Portal PRONUS.
+- Build completo do monorepo passou com os quatro portais e API.
+- Teste HTTP confirmou `200` para PRONUS, RH Cliente, Colaborador, Profissional de Saude e API local.
+- Teste HTTP confirmou `200` para as novas abas `configuracoes?tab=collaborators`, `configuracoes?tab=documents` e `nr01-pgr?tab=psychosocial`.
+- Screenshots desktop atualizados para incluir `login-profissional-saude.png` e `portal-profissional-saude.png`.
 - Pesquisa de Clima Organizacional no Portal Colaborador nao exibe mais protocolo, indice ou classificacao de risco individual para o proprio cliente.
 - Portal RH Cliente e Portal PRONUS agora cadastram clientes diretamente como ativos quando a acao parte do RH/operacao autorizada, sem fila de aprovacao PRONUS para esse caso.
 - Empresas > Clientes no Portal PRONUS deixou de exibir fila de movimentacoes como pendencia operacional quando a regra vigente nao exige aprovacao PRONUS.

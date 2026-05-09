@@ -6,13 +6,13 @@ A proposta vai alem de um ERP tradicional. O produto nasce para conectar, em uma
 
 ## Galeria Visual Do Produto
 
-Capturas demonstrativas atualizadas em 2026-04-30 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
+Capturas demonstrativas atualizadas em 2026-05-09 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
 
 ### Portais
 
-| Portal PRONUS                                                           | Portal RH Cliente                                                   | Portal Colaborador                                                    |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| ![Portal operacional PRONUS](docs/assets/screenshots/portal-pronus.png) | ![Portal RH Cliente](docs/assets/screenshots/portal-rh-cliente.png) | ![Portal Colaborador](docs/assets/screenshots/portal-colaborador.png) |
+| Portal PRONUS                                                           | Portal RH Cliente                                                   | Portal Colaborador                                                    | Portal Profissional                                                           |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| ![Portal operacional PRONUS](docs/assets/screenshots/portal-pronus.png) | ![Portal RH Cliente](docs/assets/screenshots/portal-rh-cliente.png) | ![Portal Colaborador](docs/assets/screenshots/portal-colaborador.png) | ![Portal Profissional](docs/assets/screenshots/portal-profissional-saude.png) |
 
 ### Fluxos De Clientes
 
@@ -22,9 +22,9 @@ Capturas demonstrativas atualizadas em 2026-04-30 para apresentacao do produto, 
 
 ### Login Dos Portais
 
-| Login PRONUS                                                             | Login RH Cliente                                                         | Login Colaborador                                                          |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| ![Login administrativo PRONUS](docs/assets/screenshots/login-pronus.png) | ![Login Portal RH Cliente](docs/assets/screenshots/login-rh-cliente.png) | ![Login Portal Colaborador](docs/assets/screenshots/login-colaborador.png) |
+| Login PRONUS                                                             | Login RH Cliente                                                         | Login Colaborador                                                          | Login Profissional                                                                 |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| ![Login administrativo PRONUS](docs/assets/screenshots/login-pronus.png) | ![Login Portal RH Cliente](docs/assets/screenshots/login-rh-cliente.png) | ![Login Portal Colaborador](docs/assets/screenshots/login-colaborador.png) | ![Login Portal Profissional](docs/assets/screenshots/login-profissional-saude.png) |
 
 ### Fluxo Operacional De Reset
 
@@ -74,7 +74,7 @@ Principais pilares:
 - **Risco ocupacional / NR-01/GRO/PGR:** base preparada para inventario de riscos, matriz, planos de acao, evidencias e documentos.
 - **Risco psicossocial:** campanhas, questionarios, indicadores agregados, regras de privacidade e suporte a analise tecnica.
 - **Gestao documental:** estrutura para controlar documentos, modelos, publicacoes, assinaturas, evidencias e rastreabilidade.
-- **Operacao escalavel:** portais separados para PRONUS, RH Cliente e Colaborador.
+- **Operacao escalavel:** portais separados para PRONUS, RH Cliente, Colaborador e Profissional de Saude.
 - **Preparacao futura:** arquitetura pensada para eSocial SST, BI avancado, teleatendimento e automacoes inteligentes.
 
 ## Portais
@@ -84,6 +84,7 @@ apps/
   web-pronus/      Portal operacional PRONUS
   web-client/      Portal RH Cliente
   web-employee/    Portal Colaborador
+  web-clinician/   Portal Profissional de Saude
   api/             API Node.js/NestJS
 packages/
   ui/              Componentes compartilhados
@@ -101,21 +102,21 @@ A versao atual ja demonstra os fluxos centrais do produto e serve como base oper
 Ja existe:
 
 - monorepo com pnpm workspaces;
-- tres portais Next.js;
+- quatro portais Next.js;
 - API NestJS;
 - schema inicial Prisma;
 - cadastro estrutural inicial na API;
 - endpoints para empresas, unidades, setores, cargos e colaboradores;
 - importacao inicial de colaboradores via CSV com modelo baixavel, modo de simulacao, erro por linha/campo e confirmacao clara ao importar;
-- painel operacional inicial no Portal PRONUS com navegacao por paginas;
+- painel operacional inicial no Portal PRONUS com navegacao enxuta por Painel, Empresas, Configuracoes e Risco Ocupacional;
 - modulo Empresas do Portal PRONUS organizado em resumo, busca, cargos e setores;
-- modulo Configuracoes com CNAE, grau de risco, checklist tecnico, estruturas e parametros operacionais;
+- modulo Configuracoes com CNAE, grau de risco, checklist tecnico, estruturas, parametros operacionais, pessoas/acessos e documentos;
 - API inicial de inteligencia regulatoria com CNAEs parametrizados, graus de risco, obrigacoes legais, score, alertas e checklist de campo;
 - cadastro de empresa com leitura visual do CNAE parametrizado, grau de risco e obrigacoes vinculadas;
 - aba Clientes dentro do modulo Empresas para funcionarios das contratantes, com importacao e consulta sob busca;
 - busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, clientes e financeiro;
 - cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
-- modulo Colaboradores com Usuarios, permissoes do sistema, agenda do corpo clinico, feriados e tabela de pagamento profissional;
+- funcoes de colaboradores dentro de Configuracoes > Pessoas e acesso, com Usuarios, permissoes do sistema, agenda do corpo clinico, feriados e tabela de pagamento profissional;
 - telas de login para Portal PRONUS, Portal RH Cliente e Portal Colaborador, com troca obrigatoria quando o usuario acessa pela senha padrao;
 - login administrativo do Portal PRONUS por CPF, com perfil Administrador Geral, acesso full e acesso administrativo demonstrativo;
 - reset de senha de usuarios administrativos e corpo clinico PRONUS pelo modulo Colaboradores;
@@ -129,10 +130,12 @@ Ja existe:
 - area Clientes do Portal RH com inclusao, alteracao e desligamento direto de clientes ativos, mantendo acoes por linha e busca sem listagem inicial;
 - area Divergencias do Portal RH preparada para aprovar ou recusar divergencias cadastrais via API;
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
+- funcoes psicossociais operacionais dentro de Risco Ocupacional > Psicossocial, preservando campanhas, adesao e sinais por setor;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
 - Pesquisa de Clima Organizacional no Portal Colaborador, com 46 perguntas importadas da planilha-base, salvamento progressivo local, blocos por tema e termometro de progresso;
 - configuracao local de acesso para testes em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
-- modulo Documentos com fila documental, modelos, publicacoes e solicitacoes de assinatura;
+- funcoes de Documentos dentro de Configuracoes, com fila documental, modelos, publicacoes e solicitacoes de assinatura;
+- Portal Profissional de Saude com login por CPF, troca obrigatoria de senha, agenda do dia, videochamada demonstrativa, controles rapidos e anamnese salva no prontuario demonstrativo;
 - documentacao funcional e tecnica em `docs/`.
 
 Ainda esta em andamento:
@@ -161,7 +164,7 @@ Essa combinacao torna o Pronus Labor 360 mais que um sistema interno. Ele aponta
 
 ## Stack Definida
 
-- Next.js + React + TypeScript + Tailwind nos tres portais.
+- Next.js + React + TypeScript + Tailwind nos quatro portais.
 - NestJS no backend.
 - PostgreSQL via Supabase.
 - Prisma como ORM.
@@ -182,6 +185,7 @@ Comandos uteis:
 pnpm build
 pnpm typecheck
 pnpm dev:pronus
+pnpm dev:clinician
 pnpm dev:api
 ```
 
