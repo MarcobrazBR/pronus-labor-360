@@ -368,3 +368,7 @@ Estado encontrado:
 - Build do Portal Profissional de Saude e do Portal PRONUS passou apos criacao da barra de modulos e plano de deploy.
 - Screenshots desktop atualizados para refletir a nova barra de modulos no Portal Profissional.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-profissional-prontuario-deploy-2026-05-10.md`.
+- Prontuario Integrado no Portal Profissional passou a buscar por campos separados de CPF, nome e empresa; risco psicossocial deixou de ser criterio de busca e permanece apenas como informacao exibida no resultado autorizado.
+- Portal PRONUS ganhou o modulo Relatorios, com gerador ad hoc para demandas pontuais de clientes e catalogo de dimensoes, hierarquias, atributos, membros e medidas do MVP.
+- Relatorios ad hoc incluem campos de empresa, contrato, trabalhador, CNAE, SST, psicossocial, agenda, prontuario, financeiro, documentos e auditoria, com destaque para dados sensiveis, clinicos e financeiros.
+- Screenshots desktop atualizados para incluir `portal-profissional-prontuario.png` e `portal-pronus-relatorios.png`.

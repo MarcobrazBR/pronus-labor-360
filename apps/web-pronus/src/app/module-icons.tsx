@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export type ModuleIconName = "dashboard" | "companies" | "finance" | "settings" | "risk";
+export type ModuleIconName = "dashboard" | "companies" | "finance" | "reports" | "settings" | "risk";
 
 export function ModuleIcon({
   name,
@@ -60,6 +60,18 @@ export function ModuleIcon({
         <path d="M12 3 2.8 19a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L12 3Z" />
         <path d="M12 9v5" />
         <path d="M12 18h.01" />
+      </svg>
+    );
+  }
+
+  if (name === "reports") {
+    return (
+      <svg {...props}>
+        <path d="M8 3h8l3 3v15H5V3h3Z" />
+        <path d="M15 3v4h4" />
+        <path d="M8 12h8" />
+        <path d="M8 16h5" />
+        <path d="M8 8h3" />
       </svg>
     );
   }

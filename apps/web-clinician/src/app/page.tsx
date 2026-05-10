@@ -369,6 +369,18 @@ function timeLabel(value: string) {
   return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 function readJsonStorage<T>(key: string, fallback: T): T {
   const raw = window.localStorage.getItem(key);
 
@@ -436,7 +448,9 @@ export default function ClinicianPortalPage() {
   const [newPassword, setNewPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [activeModule, setActiveModule] = useState<ActiveModule>("care");
-  const [recordQuery, setRecordQuery] = useState("");
+  const [recordCpfQuery, setRecordCpfQuery] = useState("");
+  const [recordNameQuery, setRecordNameQuery] = useState("");
+  const [recordCompanyQuery, setRecordCompanyQuery] = useState("");
   const [hasSearchedRecords, setHasSearchedRecords] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<WorkerHealthRecord | null>(null);
 
@@ -448,24 +462,34 @@ export default function ClinicianPortalPage() {
   const selectedIndex = appointments.findIndex((appointment) => appointment.id === selectedAppointment.id);
   const currentInCallId = appointments.find((appointment) => consultationStatus[appointment.id] === "in_call")?.id;
   const recordSummary = buildRecordSummary(selectedAppointment);
+  const hasAnyRecordFilter =
+    recordCpfQuery.trim().length > 0 ||
+    recordNameQuery.trim().length > 0 ||
+    recordCompanyQuery.trim().length > 0;
   const recordResults = useMemo(() => {
     if (!hasSearchedRecords) {
       return [];
     }
 
-    const normalizedQuery = recordQuery.trim().toLowerCase();
+    const cpfDigits = onlyDigits(recordCpfQuery);
+    const normalizedName = normalizeSearchText(recordNameQuery);
+    const normalizedCompany = normalizeSearchText(recordCompanyQuery);
 
-    if (normalizedQuery.length === 0) {
-      return workerHealthRecords;
+    if (cpfDigits.length === 0 && normalizedName.length === 0 && normalizedCompany.length === 0) {
+      return [];
     }
 
-    return workerHealthRecords.filter((record) =>
-      [record.name, record.cpf, record.company, record.sector, record.jobPosition, record.psychosocialRisk]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery),
-    );
-  }, [hasSearchedRecords, recordQuery]);
+    return workerHealthRecords.filter((record) => {
+      const matchesCpf = cpfDigits.length === 0 || onlyDigits(record.cpf).includes(cpfDigits);
+      const matchesName =
+        normalizedName.length === 0 || normalizeSearchText(record.name).includes(normalizedName);
+      const matchesCompany =
+        normalizedCompany.length === 0 ||
+        normalizeSearchText(record.company).includes(normalizedCompany);
+
+      return matchesCpf && matchesName && matchesCompany;
+    });
+  }, [hasSearchedRecords, recordCompanyQuery, recordCpfQuery, recordNameQuery]);
 
   const financeRows = useMemo(
     () =>
@@ -919,10 +943,15 @@ export default function ClinicianPortalPage() {
         {activeModule === "records" && (
           <IntegratedRecordsPanel
             hasSearched={hasSearchedRecords}
-            query={recordQuery}
+            hasFilters={hasAnyRecordFilter}
+            companyQuery={recordCompanyQuery}
+            cpfQuery={recordCpfQuery}
+            nameQuery={recordNameQuery}
             results={recordResults}
+            onCompanyChange={setRecordCompanyQuery}
+            onCpfChange={setRecordCpfQuery}
+            onNameChange={setRecordNameQuery}
             onOpenRecord={setSelectedRecord}
-            onQueryChange={setRecordQuery}
             onSearch={searchRecords}
           />
         )}
@@ -1136,18 +1165,28 @@ function ProfessionalFinancePanel({
 }
 
 function IntegratedRecordsPanel({
+  companyQuery,
+  cpfQuery,
   hasSearched,
+  hasFilters,
+  nameQuery,
+  onCompanyChange,
+  onCpfChange,
+  onNameChange,
   onOpenRecord,
-  onQueryChange,
   onSearch,
-  query,
   results,
 }: Readonly<{
+  companyQuery: string;
+  cpfQuery: string;
   hasSearched: boolean;
+  hasFilters: boolean;
+  nameQuery: string;
+  onCompanyChange: (value: string) => void;
+  onCpfChange: (value: string) => void;
+  onNameChange: (value: string) => void;
   onOpenRecord: (record: WorkerHealthRecord) => void;
-  onQueryChange: (value: string) => void;
   onSearch: (event: FormEvent<HTMLFormElement>) => void;
-  query: string;
   results: WorkerHealthRecord[];
 }>) {
   return (
@@ -1157,15 +1196,36 @@ function IntegratedRecordsPanel({
           detail="A busca nao carrega dados por padrao para proteger o sigilo"
           title="Prontuario Integrado de Saude do Trabalhador"
         />
-        <form className="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_auto]" onSubmit={onSearch}>
+        <form className="grid gap-3 p-4 lg:grid-cols-[0.7fr_1fr_1fr_auto]" onSubmit={onSearch}>
           <label className="text-xs font-semibold uppercase text-slate-500">
-            Buscar trabalhador
+            CPF
             <input
               className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm font-normal normal-case text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
-              placeholder="Digite nome, CPF, empresa, setor, cargo ou risco"
+              inputMode="numeric"
+              placeholder="Somente numeros ou CPF completo"
               type="search"
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
+              value={cpfQuery}
+              onChange={(event) => onCpfChange(event.target.value)}
+            />
+          </label>
+          <label className="text-xs font-semibold uppercase text-slate-500">
+            Nome
+            <input
+              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm font-normal normal-case text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+              placeholder="Nome ou parte do nome"
+              type="search"
+              value={nameQuery}
+              onChange={(event) => onNameChange(event.target.value)}
+            />
+          </label>
+          <label className="text-xs font-semibold uppercase text-slate-500">
+            Empresa
+            <input
+              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm font-normal normal-case text-slate-900 outline-none focus:border-pronus-primary focus:ring-2 focus:ring-pronus-primary/20"
+              placeholder="Empresa contratante"
+              type="search"
+              value={companyQuery}
+              onChange={(event) => onCompanyChange(event.target.value)}
             />
           </label>
           <button
@@ -1186,8 +1246,12 @@ function IntegratedRecordsPanel({
 
       {hasSearched && results.length === 0 && (
         <EmptyState
-          title="Nenhum resultado encontrado"
-          text="Revise o termo pesquisado ou busque por parte do nome, CPF, empresa, setor ou cargo."
+          title={hasFilters ? "Nenhum resultado encontrado" : "Informe um filtro para buscar"}
+          text={
+            hasFilters
+              ? "Revise CPF, nome ou empresa. O risco psicossocial aparece no resultado, mas nao e usado como filtro de busca."
+              : "Para proteger o sigilo do prontuario, a busca so exibe dados quando CPF, nome ou empresa sao informados."
+          }
         />
       )}
 

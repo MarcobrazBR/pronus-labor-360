@@ -13,6 +13,7 @@ const navigationItems: Array<{ href: string; icon: ModuleIconName; label: string
   { label: "CONFIGURAÇÕES", href: "/configuracoes", icon: "settings" },
   { label: "RISCO OCUPACIONAL", href: "/nr01-pgr", icon: "risk" },
   { label: "FINANCEIRO", href: "/financeiro", icon: "finance" },
+  { label: "RELATORIOS", href: "/relatorios", icon: "reports" },
 ];
 
 interface PronusOperatorSession {

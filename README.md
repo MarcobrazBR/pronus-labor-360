@@ -6,7 +6,7 @@ A proposta vai alem de um ERP tradicional. O produto nasce para conectar, em uma
 
 ## Galeria Visual Do Produto
 
-Capturas demonstrativas atualizadas em 2026-05-09 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
+Capturas demonstrativas atualizadas em 2026-05-10 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
 
 ### Portais
 
@@ -37,6 +37,18 @@ Capturas demonstrativas atualizadas em 2026-05-09 para apresentacao do produto, 
 | Pagamento dos profissionais no Portal PRONUS                                      |
 | -------------------------------------------------------------------------------- |
 | ![Financeiro PRONUS](docs/assets/screenshots/portal-pronus-financeiro.png) |
+
+### Prontuario Profissional
+
+| Busca segura do Prontuario Integrado no Portal Profissional                                  |
+| -------------------------------------------------------------------------------------------- |
+| ![Prontuario no Portal Profissional](docs/assets/screenshots/portal-profissional-prontuario.png) |
+
+### Relatorios Ad Hoc
+
+| Gerador de relatorios sob demanda no Portal PRONUS                                |
+| -------------------------------------------------------------------------------- |
+| ![Relatorios PRONUS](docs/assets/screenshots/portal-pronus-relatorios.png) |
 
 ## Regra De Atualizacao Visual
 
@@ -138,13 +150,14 @@ Ja existe:
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - funcoes psicossociais operacionais dentro de Risco Ocupacional > Psicossocial, preservando campanhas, adesao e sinais por setor;
 - modulo Financeiro do Portal PRONUS com pagamento dos profissionais por consultas finalizadas, pendencias de finalizacao e valor a pagar por tabela;
+- modulo Relatorios do Portal PRONUS como gerador ad hoc para demandas pontuais de clientes, com selecao de dimensoes, hierarquias, atributos, membros e medidas;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
 - Pesquisa de Clima Organizacional no Portal Colaborador, com 46 perguntas importadas da planilha-base, salvamento progressivo local, blocos por tema e termometro de progresso;
 - configuracao local de acesso para testes em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
 - funcoes de Documentos dentro de Configuracoes, com fila documental, modelos, publicacoes e solicitacoes de assinatura;
 - Portal Profissional de Saude com login por CPF, troca obrigatoria de senha, agenda do dia, videochamada demonstrativa, controles por icones, resumo GPT demonstrativo do prontuario, leitura em audio, transcricao para anamnese e finalizacao que alimenta o pagamento profissional;
 - Portal Profissional de Saude com barra superior de modulos para Atendimento, Meu financeiro e Prontuario Integrado;
-- Prontuario Integrado demonstrativo com busca sob demanda, risco psicossocial, camadas ocupacional/assistencial/gestao, timeline unica, filtros, sigilo, anexos, conduta, proximo passo e status;
+- Prontuario Integrado demonstrativo com busca sob demanda por CPF, nome e empresa, risco psicossocial apenas como dado exibido, camadas ocupacional/assistencial/gestao, timeline unica, filtros, sigilo, anexos, conduta, proximo passo e status;
 - plano de deploy AWS + Supabase documentado para organizar publicacao externa dos quatro portais, Supabase PostgreSQL/Auth/Storage e API de negocio;
 - documentacao funcional e tecnica em `docs/`.
 
