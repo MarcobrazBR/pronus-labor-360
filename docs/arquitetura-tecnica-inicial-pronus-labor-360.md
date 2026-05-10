@@ -117,7 +117,7 @@ Cuidados:
 
 ## 4. Portais do Sistema
 
-O Pronus Labor 360 tera tres portais principais.
+O Pronus Labor 360 tera quatro portais principais.
 
 ### 4.1 Portal PRONUS
 
@@ -196,6 +196,33 @@ Restricoes:
 - Se houver divergencia cadastral pendente, o colaborador fica bloqueado ate validacao do RH.
 - Nao acessa prontuario completo.
 
+### 4.4 Portal Profissional de Saude
+
+Publico:
+
+- Medicos.
+- Psicologos.
+- Nutricionistas.
+- Outros profissionais autorizados pela PRONUS.
+
+Caracteristica visual:
+Ambiente clinico objetivo, seguro e focado no atendimento.
+
+Funcionalidades iniciais:
+
+- Agenda do dia.
+- Videochamada demonstrativa.
+- Anamnese e finalizacao da consulta.
+- Financeiro do profissional.
+- Busca de prontuario integrado do trabalhador.
+- Resumo demonstrativo de prontuario para preparacao do atendimento.
+
+Restricoes:
+
+- Acesso deve respeitar sigilo profissional.
+- Dados psicologicos e clinicos sensiveis nao podem ser expostos para perfis administrativos.
+- Toda consulta a prontuario deve gerar log de acesso.
+
 ## 5. Organizacao Recomendada do Monorepo
 
 Estrutura proposta:
@@ -205,6 +232,7 @@ apps/
   web-pronus/
   web-client/
   web-employee/
+  web-clinician/
   api/
 packages/
   ui/
@@ -240,7 +268,19 @@ Responsavel por:
 - Preparacao futura para eSocial.
 - Preparacao futura para transcricao e IA.
 
-### 5.5 packages/ui
+### 5.5 apps/web-clinician
+
+Aplicacao frontend do Portal Profissional de Saude.
+
+Responsavel por:
+
+- atendimento por video;
+- anamnese;
+- resumo do prontuario;
+- busca de prontuario integrado;
+- financeiro individual do profissional.
+
+### 5.6 packages/ui
 
 Biblioteca compartilhada de componentes visuais.
 
@@ -254,11 +294,11 @@ Exemplos:
 - Indicador de risco.
 - Farol de status.
 
-### 5.6 packages/types
+### 5.7 packages/types
 
 Tipos TypeScript compartilhados entre frontend e backend.
 
-### 5.7 packages/validations
+### 5.8 packages/validations
 
 Validacoes compartilhadas.
 
@@ -269,7 +309,7 @@ Exemplos:
 - Campos obrigatorios.
 - Regras de formulario.
 
-### 5.8 packages/database
+### 5.9 packages/database
 
 Schema, migrations, seed inicial e configuracoes de banco, caso usemos uma ferramenta como Prisma ou Drizzle.
 
@@ -412,18 +452,17 @@ Cuidados:
 
 ### 9.3 Deploy futuro
 
-Opcoes:
+Decisao atual para homologacao externa:
 
-- Vercel para frontends Next.js.
-- AWS para backend/API e servicos adicionais.
-- Supabase para banco/auth/storage.
+- AWS para publicar os quatro frontends Next.js.
+- Supabase para PostgreSQL, Auth, Storage, Row Level Security e auditoria.
+- API NestJS como camada de negocio para permissoes, regras reguladoras, logs e integracoes.
 
-Recomendacao inicial:
+Observacao tecnica:
+O Supabase nao substitui automaticamente a hospedagem da API NestJS. Se a API continuar em NestJS, ela deve ser publicada em um runtime proprio, como AWS App Runner, ECS/Fargate ou Lambda. O Supabase fica como backend gerenciado de dados, autenticacao e arquivos.
 
-- Nao contratar AWS ainda.
-- Comprar dominio se a marca/nome ja estiver definido.
-- Comecar com ambiente local + Supabase.
-- Definir deploy depois do primeiro prototipo funcional.
+Documento operacional:
+Ver `docs/plano-deploy-aws-supabase.md`.
 
 ## 10. Dominio
 
@@ -449,12 +488,13 @@ flowchart LR
   D --> H["Audit Logs"]
   D -. futuro .-> I["eSocial"]
   D -. futuro .-> J["Servico de IA/Transcricao"]
+  K["Portal Profissional"] --> D
 ```
 
 ## 12. Decisoes Confirmadas
 
 - O projeto sera monorepo.
-- Havera tres portais: PRONUS, RH Cliente e Colaborador.
+- Havera quatro portais: PRONUS, RH Cliente, Colaborador e Profissional de Saude.
 - Frontend sera Next.js + React.js + TypeScript + Tailwind.
 - Backend sera Node.js + TypeScript.
 - Backend sera NestJS.

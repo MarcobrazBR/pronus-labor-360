@@ -143,6 +143,9 @@ Ja existe:
 - configuracao local de acesso para testes em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
 - funcoes de Documentos dentro de Configuracoes, com fila documental, modelos, publicacoes e solicitacoes de assinatura;
 - Portal Profissional de Saude com login por CPF, troca obrigatoria de senha, agenda do dia, videochamada demonstrativa, controles por icones, resumo GPT demonstrativo do prontuario, leitura em audio, transcricao para anamnese e finalizacao que alimenta o pagamento profissional;
+- Portal Profissional de Saude com barra superior de modulos para Atendimento, Meu financeiro e Prontuario Integrado;
+- Prontuario Integrado demonstrativo com busca sob demanda, risco psicossocial, camadas ocupacional/assistencial/gestao, timeline unica, filtros, sigilo, anexos, conduta, proximo passo e status;
+- plano de deploy AWS + Supabase documentado para organizar publicacao externa dos quatro portais, Supabase PostgreSQL/Auth/Storage e API de negocio;
 - documentacao funcional e tecnica em `docs/`.
 
 Ainda esta em andamento:
@@ -222,3 +225,4 @@ Em um mercado pressionado por conformidade, privacidade, produtividade e cuidado
 ## Documentacao
 
 A documentacao de produto, arquitetura, dados e fluxos esta em `docs/`.
+O plano de hospedagem externa esta em [`docs/plano-deploy-aws-supabase.md`](docs/plano-deploy-aws-supabase.md).

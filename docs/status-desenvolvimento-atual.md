@@ -358,3 +358,13 @@ Estado encontrado:
 - Build do Portal PRONUS passou apos inclusao do modulo Financeiro.
 - Screenshots desktop atualizados para Portal Profissional de Saude, Portal PRONUS e novo Financeiro operacional.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-profissional-financeiro-2026-05-09.md`.
+- Portal Profissional de Saude recebeu barra superior de modulos com Atendimento, Meu financeiro e Prontuario.
+- Meu financeiro do Portal Profissional exibe consultas finalizadas, pendentes de finalizacao, valor previsto e acao para abrir atendimento pendente e ajustar anamnese.
+- Prontuario Integrado demonstrativo no Portal Profissional possui busca sob demanda, resultado com dados do trabalhador e risco psicossocial, alem de modal com camadas ocupacional, assistencial e gerencial.
+- Modal de Prontuario Integrado apresenta timeline unica do trabalhador com filtros por area, profissional, status e eventos criticos, incluindo sigilo, anexos, conduta e proximo passo.
+- Criado `docs/plano-deploy-aws-supabase.md` para orientar a publicacao externa com AWS nos frontends, Supabase para dados/auth/storage e API NestJS como camada de negocio.
+- Arquitetura tecnica atualizada para reconhecer os quatro portais e a decisao atual de deploy AWS + Supabase.
+- Typecheck do Portal Profissional de Saude e do Portal PRONUS passou apos criacao da barra de modulos e plano de deploy.
+- Build do Portal Profissional de Saude e do Portal PRONUS passou apos criacao da barra de modulos e plano de deploy.
+- Screenshots desktop atualizados para refletir a nova barra de modulos no Portal Profissional.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-profissional-prontuario-deploy-2026-05-10.md`.
