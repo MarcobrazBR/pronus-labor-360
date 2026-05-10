@@ -7,11 +7,12 @@ import { useEffect, useState } from "react";
 import { ModuleIcon, type ModuleIconName } from "./module-icons";
 import { PronusPasswordGuard } from "./pronus-password-guard";
 
-const navigationItems = [
+const navigationItems: Array<{ href: string; icon: ModuleIconName; label: string }> = [
   { label: "PAINEL", href: "/", icon: "dashboard" },
   { label: "EMPRESAS", href: "/empresas", icon: "companies" },
   { label: "CONFIGURAÇÕES", href: "/configuracoes", icon: "settings" },
   { label: "RISCO OCUPACIONAL", href: "/nr01-pgr", icon: "risk" },
+  { label: "FINANCEIRO", href: "/financeiro", icon: "finance" },
 ];
 
 interface PronusOperatorSession {
@@ -135,7 +136,7 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
                     href={item.href}
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      <ModuleIcon name={item.icon as ModuleIconName} />
+                      <ModuleIcon name={item.icon} />
                       <span className="truncate">{item.label}</span>
                     </span>
                     <span
@@ -193,7 +194,7 @@ export function PronusShell({ children }: Readonly<{ children: ReactNode }>) {
                     }`}
                     href={item.href}
                   >
-                    <ModuleIcon name={item.icon as ModuleIconName} />
+                    <ModuleIcon name={item.icon} />
                     {item.label}
                   </Link>
                 );

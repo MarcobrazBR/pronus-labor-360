@@ -32,6 +32,12 @@ Capturas demonstrativas atualizadas em 2026-05-09 para apresentacao do produto, 
 | -------------------------------------------------------------------------------------------------- |
 | ![Reset Portal RH no cadastro da empresa](docs/assets/screenshots/portal-pronus-empresa-reset.png) |
 
+### Financeiro Operacional
+
+| Pagamento dos profissionais no Portal PRONUS                                      |
+| -------------------------------------------------------------------------------- |
+| ![Financeiro PRONUS](docs/assets/screenshots/portal-pronus-financeiro.png) |
+
 ## Regra De Atualizacao Visual
 
 Toda alteracao visual relevante no sistema deve atualizar tambem as capturas em `docs/assets/screenshots/` e a galeria acima no README. Essa regra faz parte do Definition of Done de qualquer mudanca em layout, identidade visual, navegacao, dashboards, telas de login ou fluxos apresentados a clientes e investidores.
@@ -131,11 +137,12 @@ Ja existe:
 - area Divergencias do Portal RH preparada para aprovar ou recusar divergencias cadastrais via API;
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - funcoes psicossociais operacionais dentro de Risco Ocupacional > Psicossocial, preservando campanhas, adesao e sinais por setor;
+- modulo Financeiro do Portal PRONUS com pagamento dos profissionais por consultas finalizadas, pendencias de finalizacao e valor a pagar por tabela;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;
 - Pesquisa de Clima Organizacional no Portal Colaborador, com 46 perguntas importadas da planilha-base, salvamento progressivo local, blocos por tema e termometro de progresso;
 - configuracao local de acesso para testes em `.data/access-state.json`, mantendo credenciais e pedidos de reset entre reinicios do servidor;
 - funcoes de Documentos dentro de Configuracoes, com fila documental, modelos, publicacoes e solicitacoes de assinatura;
-- Portal Profissional de Saude com login por CPF, troca obrigatoria de senha, agenda do dia, videochamada demonstrativa, controles rapidos e anamnese salva no prontuario demonstrativo;
+- Portal Profissional de Saude com login por CPF, troca obrigatoria de senha, agenda do dia, videochamada demonstrativa, controles por icones, resumo GPT demonstrativo do prontuario, leitura em audio, transcricao para anamnese e finalizacao que alimenta o pagamento profissional;
 - documentacao funcional e tecnica em `docs/`.
 
 Ainda esta em andamento:
@@ -149,6 +156,7 @@ Ainda esta em andamento:
 - carga oficial completa de CNAE/Grau de Risco, dimensionamento exato de CIPA/SESMT e revisao juridico-tecnica das regras reguladoras;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;
 - anexos reais, auditoria documental e dashboards avancados.
+- job real de IA para resumo do prontuario 5 horas antes da consulta, gravacao/transcricao real de audio e integracao segura com prontuario clinico definitivo.
 
 ## Sinais De Tracao Do Produto
 

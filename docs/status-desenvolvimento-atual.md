@@ -347,3 +347,14 @@ Estado encontrado:
 - Screenshots desktop atualizados apos a reorganizacao visual em `docs/assets/screenshots/`.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-organizacao-regulatoria-painel-2026-05-09.md`.
 - Portal Profissional de Saude passou a autenticar pela mesma API de acesso PRONUS, liberando somente usuarios de corpo clinico e sincronizando reset/troca de senha com o Administrador Geral.
+- Portal Profissional de Saude agora mostra resumo do prontuario no painel lateral direito, com resumo GPT demonstrativo gerado 5 horas antes do atendimento e leitura em audio pelo navegador.
+- Portal Profissional de Saude agora controla estados da agenda: atendimento em verde, chamada encerrada em vermelho e consulta finalizada em azul.
+- Controles de video do Portal Profissional foram substituidos por icones fora da area de video, com botao separado para encerrar a consulta.
+- Ao encerrar a chamada, o MVP gera uma transcricao demonstrativa do audio e preenche a anamnese para revisao; ao finalizar, a consulta entra no calculo de pagamento profissional.
+- Portal PRONUS ganhou o modulo Financeiro, com aba Pagamento dos profissionais, listando consultas finalizadas, pendentes de finalizacao, valor de tabela e valor a pagar por profissional no mes atual.
+- Typecheck do Portal Profissional de Saude passou apos evolucao do fluxo clinico.
+- Typecheck do Portal PRONUS passou apos inclusao do modulo Financeiro.
+- Build do Portal Profissional de Saude passou apos evolucao do fluxo clinico.
+- Build do Portal PRONUS passou apos inclusao do modulo Financeiro.
+- Screenshots desktop atualizados para Portal Profissional de Saude, Portal PRONUS e novo Financeiro operacional.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-portal-profissional-financeiro-2026-05-09.md`.
