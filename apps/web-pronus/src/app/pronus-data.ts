@@ -286,6 +286,46 @@ export interface PsychosocialSectorSignal {
   recommendation: string;
 }
 
+export type CopsoqAxisId =
+  | "work_demands"
+  | "work_organization"
+  | "relationships_leadership"
+  | "company_worker_relation"
+  | "health_wellbeing";
+
+export interface CopsoqAxisRisk {
+  axisId: CopsoqAxisId;
+  axisLabel: string;
+  riskPercent: number;
+  riskLevel: RiskLevel;
+}
+
+export interface CopsoqSectorAxisRisk {
+  companyTradeName: string;
+  sectorName: string;
+  responses: number;
+  axes: CopsoqAxisRisk[];
+  accumulatedRiskPercent: number;
+  accumulatedRiskLevel: RiskLevel;
+  priorityAxisId: CopsoqAxisId;
+  priorityAxisLabel: string;
+  recommendation: string;
+}
+
+export interface CopsoqCompanyAnalysis {
+  companyTradeName: string;
+  campaignId: string;
+  generatedAt: string;
+  responses: number;
+  overallRiskPercent: number;
+  overallRiskLevel: RiskLevel;
+  priorityAxisId: CopsoqAxisId;
+  priorityAxisLabel: string;
+  companyWideRecommendation: string;
+  axes: CopsoqAxisRisk[];
+  sectors: CopsoqSectorAxisRisk[];
+}
+
 export type PronusDocumentType =
   | "pgr"
   | "aso"
@@ -1051,6 +1091,123 @@ const fallbackPsychosocialSignals: PsychosocialSectorSignal[] = [
   },
 ];
 
+const fallbackCopsoqAnalysis: CopsoqCompanyAnalysis[] = [
+  {
+    companyTradeName: "Industria Horizonte",
+    campaignId: "campaign-horizonte-2026-01",
+    generatedAt: "2026-05-11T00:00:00.000Z",
+    responses: 134,
+    overallRiskPercent: 59.4,
+    overallRiskLevel: "moderate",
+    priorityAxisId: "health_wellbeing",
+    priorityAxisLabel: "Efeitos na Saude e Bem-estar",
+    companyWideRecommendation:
+      "Priorizar plano transversal para efeitos na saude e bem-estar e complementar com acoes por setor.",
+    axes: [
+      {
+        axisId: "work_demands",
+        axisLabel: "Exigencias do Trabalho",
+        riskPercent: 64.5,
+        riskLevel: "high",
+      },
+      {
+        axisId: "work_organization",
+        axisLabel: "Organizacao e Conteudo do Trabalho",
+        riskPercent: 58.7,
+        riskLevel: "moderate",
+      },
+      {
+        axisId: "relationships_leadership",
+        axisLabel: "Relacoes Interpessoais e Lideranca",
+        riskPercent: 54.9,
+        riskLevel: "moderate",
+      },
+      {
+        axisId: "company_worker_relation",
+        axisLabel: "Relacao Empresa-Colaborador",
+        riskPercent: 50.4,
+        riskLevel: "moderate",
+      },
+      {
+        axisId: "health_wellbeing",
+        axisLabel: "Efeitos na Saude e Bem-estar",
+        riskPercent: 68.3,
+        riskLevel: "high",
+      },
+    ],
+    sectors: [
+      {
+        companyTradeName: "Industria Horizonte",
+        sectorName: "Comercial",
+        responses: 30,
+        accumulatedRiskPercent: 72,
+        accumulatedRiskLevel: "high",
+        priorityAxisId: "health_wellbeing",
+        priorityAxisLabel: "Efeitos na Saude e Bem-estar",
+        recommendation: "Tratar efeitos em saude e bem-estar como prioridade setorial imediata.",
+        axes: [
+          { axisId: "work_demands", axisLabel: "Exigencias do Trabalho", riskPercent: 71, riskLevel: "high" },
+          { axisId: "work_organization", axisLabel: "Organizacao e Conteudo do Trabalho", riskPercent: 74, riskLevel: "high" },
+          { axisId: "relationships_leadership", axisLabel: "Relacoes Interpessoais e Lideranca", riskPercent: 63, riskLevel: "high" },
+          { axisId: "company_worker_relation", axisLabel: "Relacao Empresa-Colaborador", riskPercent: 66, riskLevel: "high" },
+          { axisId: "health_wellbeing", axisLabel: "Efeitos na Saude e Bem-estar", riskPercent: 84, riskLevel: "critical" },
+        ],
+      },
+      {
+        companyTradeName: "Industria Horizonte",
+        sectorName: "Manutencao",
+        responses: 5,
+        accumulatedRiskPercent: 68,
+        accumulatedRiskLevel: "high",
+        priorityAxisId: "work_demands",
+        priorityAxisLabel: "Exigencias do Trabalho",
+        recommendation: "Priorizar escuta tecnica e revisar escala, prontidao e suporte da lideranca.",
+        axes: [
+          { axisId: "work_demands", axisLabel: "Exigencias do Trabalho", riskPercent: 78, riskLevel: "critical" },
+          { axisId: "work_organization", axisLabel: "Organizacao e Conteudo do Trabalho", riskPercent: 56, riskLevel: "moderate" },
+          { axisId: "relationships_leadership", axisLabel: "Relacoes Interpessoais e Lideranca", riskPercent: 71, riskLevel: "high" },
+          { axisId: "company_worker_relation", axisLabel: "Relacao Empresa-Colaborador", riskPercent: 63, riskLevel: "high" },
+          { axisId: "health_wellbeing", axisLabel: "Efeitos na Saude e Bem-estar", riskPercent: 74, riskLevel: "high" },
+        ],
+      },
+      {
+        companyTradeName: "Industria Horizonte",
+        sectorName: "Administrativo",
+        responses: 24,
+        accumulatedRiskPercent: 61,
+        accumulatedRiskLevel: "high",
+        priorityAxisId: "health_wellbeing",
+        priorityAxisLabel: "Efeitos na Saude e Bem-estar",
+        recommendation: "Atacar efeitos de saude e bem-estar com acolhimento e revisao de demandas.",
+        axes: [
+          { axisId: "work_demands", axisLabel: "Exigencias do Trabalho", riskPercent: 61, riskLevel: "high" },
+          { axisId: "work_organization", axisLabel: "Organizacao e Conteudo do Trabalho", riskPercent: 58, riskLevel: "moderate" },
+          { axisId: "relationships_leadership", axisLabel: "Relacoes Interpessoais e Lideranca", riskPercent: 55, riskLevel: "moderate" },
+          { axisId: "company_worker_relation", axisLabel: "Relacao Empresa-Colaborador", riskPercent: 54, riskLevel: "moderate" },
+          { axisId: "health_wellbeing", axisLabel: "Efeitos na Saude e Bem-estar", riskPercent: 76, riskLevel: "critical" },
+        ],
+      },
+      {
+        companyTradeName: "Industria Horizonte",
+        sectorName: "Producao",
+        responses: 75,
+        accumulatedRiskPercent: 49,
+        accumulatedRiskLevel: "moderate",
+        priorityAxisId: "work_demands",
+        priorityAxisLabel: "Exigencias do Trabalho",
+        recommendation: "Atuar em carga de trabalho e clareza de prioridades sem expor respostas individuais.",
+        axes: [
+          { axisId: "work_demands", axisLabel: "Exigencias do Trabalho", riskPercent: 62, riskLevel: "high" },
+          { axisId: "work_organization", axisLabel: "Organizacao e Conteudo do Trabalho", riskPercent: 51, riskLevel: "moderate" },
+          { axisId: "relationships_leadership", axisLabel: "Relacoes Interpessoais e Lideranca", riskPercent: 45, riskLevel: "moderate" },
+          { axisId: "company_worker_relation", axisLabel: "Relacao Empresa-Colaborador", riskPercent: 42, riskLevel: "moderate" },
+          { axisId: "health_wellbeing", axisLabel: "Efeitos na Saude e Bem-estar", riskPercent: 53, riskLevel: "moderate" },
+        ],
+      },
+    ],
+  },
+];
+
 const fallbackDocumentsSummary: DocumentsSummary = {
   generatedAt: "2026-04-28T00:00:00.000Z",
   documents: 3,
@@ -1319,16 +1476,17 @@ export async function loadNr01Data() {
 }
 
 export async function loadPsychosocialData() {
-  const [summary, campaigns, signals] = await Promise.all([
+  const [summary, campaigns, signals, copsoqAnalysis] = await Promise.all([
     fetchApi<PsychosocialSummary>("/psychosocial/summary", fallbackPsychosocialSummary),
     fetchApi<PsychosocialCampaign[]>("/psychosocial/campaigns", fallbackPsychosocialCampaigns),
     fetchApi<PsychosocialSectorSignal[]>(
       "/psychosocial/sector-signals",
       fallbackPsychosocialSignals,
     ),
+    fetchApi<CopsoqCompanyAnalysis[]>("/psychosocial/copsoq-analysis", fallbackCopsoqAnalysis),
   ]);
 
-  return { summary, campaigns, signals };
+  return { summary, campaigns, signals, copsoqAnalysis };
 }
 
 export async function loadDocumentsData() {

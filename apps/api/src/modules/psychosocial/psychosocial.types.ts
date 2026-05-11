@@ -1,4 +1,10 @@
 export type PsychosocialRiskLevel = "low" | "moderate" | "high" | "critical";
+export type CopsoqAxisId =
+  | "work_demands"
+  | "work_organization"
+  | "relationships_leadership"
+  | "company_worker_relation"
+  | "health_wellbeing";
 export type PsychosocialCampaignStatus =
   | "draft"
   | "active"
@@ -57,6 +63,39 @@ export interface PsychosocialSummary {
   averageResponseRate: number;
   highOrCriticalSectors: number;
   pendingInterviews: number;
+}
+
+export interface CopsoqAxisRisk {
+  axisId: CopsoqAxisId;
+  axisLabel: string;
+  riskPercent: number;
+  riskLevel: PsychosocialRiskLevel;
+}
+
+export interface CopsoqSectorAxisRisk {
+  companyTradeName: string;
+  sectorName: string;
+  responses: number;
+  axes: CopsoqAxisRisk[];
+  accumulatedRiskPercent: number;
+  accumulatedRiskLevel: PsychosocialRiskLevel;
+  priorityAxisId: CopsoqAxisId;
+  priorityAxisLabel: string;
+  recommendation: string;
+}
+
+export interface CopsoqCompanyAnalysis {
+  companyTradeName: string;
+  campaignId: string;
+  generatedAt: string;
+  responses: number;
+  overallRiskPercent: number;
+  overallRiskLevel: PsychosocialRiskLevel;
+  priorityAxisId: CopsoqAxisId;
+  priorityAxisLabel: string;
+  companyWideRecommendation: string;
+  axes: CopsoqAxisRisk[];
+  sectors: CopsoqSectorAxisRisk[];
 }
 
 export interface CreatePsychosocialCampaignInput {

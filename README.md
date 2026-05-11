@@ -20,6 +20,12 @@ Capturas demonstrativas atualizadas em 2026-05-11 para apresentacao do produto, 
 | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | ![Clientes no Portal RH](docs/assets/screenshots/portal-rh-clientes.png) | ![Clientes no Portal PRONUS](docs/assets/screenshots/portal-pronus-clientes.png) |
 
+### Analise COPSOQ
+
+| Portal RH Cliente - COPSOQ por eixo                                                | Portal PRONUS - COPSOQ operacional                                                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| ![COPSOQ no Portal RH](docs/assets/screenshots/portal-rh-psicossocial-copsoq.png) | ![COPSOQ no Portal PRONUS](docs/assets/screenshots/portal-pronus-psicossocial-copsoq.png) |
+
 ### Login Dos Portais
 
 | Login PRONUS                                                             | Login RH Cliente                                                         | Login Colaborador                                                          | Login Profissional                                                                 |
@@ -150,6 +156,7 @@ Ja existe:
 - area Divergencias do Portal RH preparada para aprovar ou recusar divergencias cadastrais via API;
 - modulo Risco Ocupacional com abas de inventario de riscos, plano de acao, evidencias e documentos;
 - funcoes psicossociais operacionais dentro de Risco Ocupacional > Psicossocial, preservando campanhas, adesao e sinais por setor;
+- analise COPSOQ por eixos tematicos com grafico de disco agregado e matriz setor x eixo para priorizar intervencoes por empresa ou por setor;
 - modulo Financeiro do Portal PRONUS com pagamento dos profissionais por consultas finalizadas, pendencias de finalizacao e valor a pagar por tabela;
 - modulo Relatorios do Portal PRONUS como gerador ad hoc para demandas pontuais de clientes, com selecao de dimensoes, hierarquias, atributos, membros e medidas;
 - base inicial de risco psicossocial com campanhas, questionario, adesao, sinais por setor e regras de privacidade;

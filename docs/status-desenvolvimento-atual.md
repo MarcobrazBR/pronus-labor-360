@@ -377,3 +377,10 @@ Estado encontrado:
 - Criacao, atualizacao e inativacao direta de clientes tambem registram eventos de auditoria demonstrativos, preparando a migracao para Prisma/Supabase.
 - Portal PRONUS > Empresas > Clientes passou a exibir Notificacoes operacionais, Movimentacoes em fila e Trilha de auditoria antes da consulta de clientes.
 - Prisma schema recebeu modelos `AuditEvent` e `OperationalNotification` para orientar a persistencia definitiva em Supabase PostgreSQL.
+- API psicossocial ganhou `GET /psychosocial/copsoq-analysis`, consolidando eixos tematicos COPSOQ, risco por setor, risco acumulado, eixo prioritario e recomendacao de intervencao.
+- Risco Ocupacional > Psicossocial no Portal PRONUS agora possui grafico de disco COPSOQ agregado e matriz setor x eixo para orientar se a acao deve ser setorial ou corporativa.
+- Portal RH Cliente > Psicossocial agora exibe a mesma leitura agregada de COPSOQ, sem expor dados individuais, com eixos nas colunas, setores nas linhas e acumulado final para priorizacao.
+- README passou a incluir capturas dedicadas da analise COPSOQ nos portais RH Cliente e PRONUS.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-copsoq-eixos-2026-05-11.md`.
+- Typecheck completo do monorepo passou apos a inclusao da matriz COPSOQ.
+- Build completo do monorepo passou apos a inclusao da matriz COPSOQ.

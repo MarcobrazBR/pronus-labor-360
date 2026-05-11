@@ -45,6 +45,11 @@ export class PsychosocialController {
     return this.psychosocialService.listSectorSignals();
   }
 
+  @Get("copsoq-analysis")
+  listCopsoqAnalysis() {
+    return this.psychosocialService.listCopsoqAnalysis();
+  }
+
   @Get("answers")
   listAnswers() {
     return this.psychosocialService.listAnswers();

@@ -4,6 +4,7 @@ import { riskLevelColorClasses, riskLevelLabels } from "@pronus/ui";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type {
+  CopsoqCompanyAnalysis,
   Nr01ActionPlanItem,
   Nr01Document,
   Nr01Evidence,
@@ -145,6 +146,7 @@ export function OccupationalRiskPanel({
   initialDocuments: Nr01Document[];
   psychosocial: {
     campaigns: PsychosocialCampaign[];
+    copsoqAnalysis: CopsoqCompanyAnalysis[];
     signals: PsychosocialSectorSignal[];
     summary: PsychosocialSummary;
   };
@@ -477,6 +479,7 @@ export function OccupationalRiskPanel({
       {activeTab === "psychosocial" ? (
         <PsychosocialRiskPanel
           campaigns={psychosocial.campaigns}
+          copsoqAnalysis={psychosocial.copsoqAnalysis}
           signals={psychosocial.signals}
           summary={psychosocial.summary}
         />

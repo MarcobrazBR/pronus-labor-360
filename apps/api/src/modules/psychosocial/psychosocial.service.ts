@@ -3,6 +3,10 @@ import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import type {
+  CopsoqCompanyAnalysis,
+  CopsoqAxisId,
+  CopsoqAxisRisk,
+  CopsoqSectorAxisRisk,
   CreatePsychosocialCampaignInput,
   PsychosocialEmployeeAnswer,
   PsychosocialAnswerReceipt,
@@ -123,6 +127,22 @@ function classifyScore(score: number): PsychosocialRiskLevel {
   return "low";
 }
 
+function classifyRiskPercent(percent: number): PsychosocialRiskLevel {
+  if (percent >= 75) {
+    return "critical";
+  }
+
+  if (percent >= 60) {
+    return "high";
+  }
+
+  if (percent >= 35) {
+    return "moderate";
+  }
+
+  return "low";
+}
+
 function normalizeScore(value: unknown): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 5) {
     throw new BadRequestException("Resposta deve ser um numero inteiro entre 1 e 5");
@@ -138,6 +158,135 @@ function riskScoreForQuestion(question: PsychosocialQuestion, score: number): nu
 const startedAt = now();
 
 const questions: PsychosocialQuestion[] = copsoqQuestions;
+
+const copsoqAxes: Array<{ id: CopsoqAxisId; label: string }> = [
+  {
+    id: "work_demands",
+    label: "Exigencias do Trabalho",
+  },
+  {
+    id: "work_organization",
+    label: "Organizacao e Conteudo do Trabalho",
+  },
+  {
+    id: "relationships_leadership",
+    label: "Relacoes Interpessoais e Lideranca",
+  },
+  {
+    id: "company_worker_relation",
+    label: "Relacao Empresa-Colaborador",
+  },
+  {
+    id: "health_wellbeing",
+    label: "Efeitos na Saude e Bem-estar",
+  },
+];
+
+const seededCopsoqSectorRisk: Array<
+  Omit<CopsoqSectorAxisRisk, "axes" | "accumulatedRiskLevel" | "priorityAxisId" | "priorityAxisLabel">
+> = [
+  {
+    companyTradeName: "Industria Horizonte",
+    sectorName: "Producao",
+    responses: 75,
+    accumulatedRiskPercent: 49,
+    recommendation: "Atuar em carga de trabalho e clareza de prioridades sem expor respostas individuais.",
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    sectorName: "Manutencao",
+    responses: 5,
+    accumulatedRiskPercent: 68,
+    recommendation: "Priorizar escuta tecnica e revisar escala, prontidao e suporte da lideranca.",
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    sectorName: "Administrativo",
+    responses: 24,
+    accumulatedRiskPercent: 61,
+    recommendation: "Atacar efeitos de saude e bem-estar com acolhimento e revisao de demandas.",
+  },
+  {
+    companyTradeName: "Industria Horizonte",
+    sectorName: "Comercial",
+    responses: 30,
+    accumulatedRiskPercent: 72,
+    recommendation: "Tratar efeitos em saude e bem-estar como prioridade setorial imediata.",
+  },
+  {
+    companyTradeName: "Rede Norte",
+    sectorName: "Atendimento",
+    responses: 92,
+    accumulatedRiskPercent: 36,
+    recommendation: "Manter monitoramento, reforcar comunicacao e ampliar adesao da campanha.",
+  },
+  {
+    companyTradeName: "Rede Norte",
+    sectorName: "Logistica",
+    responses: 84,
+    accumulatedRiskPercent: 58,
+    recommendation: "Atuar em exigencias do trabalho e previsibilidade de escala.",
+  },
+  {
+    companyTradeName: "Rede Norte",
+    sectorName: "Setores agregados",
+    responses: 7,
+    accumulatedRiskPercent: 43,
+    recommendation: "Manter dados agregados por privacidade e observar tendencia na proxima campanha.",
+  },
+];
+
+const seededCopsoqAxisBySector: Record<string, Partial<Record<CopsoqAxisId, number>>> = {
+  Administrativo: {
+    company_worker_relation: 54,
+    health_wellbeing: 76,
+    relationships_leadership: 55,
+    work_demands: 61,
+    work_organization: 58,
+  },
+  Atendimento: {
+    company_worker_relation: 29,
+    health_wellbeing: 39,
+    relationships_leadership: 31,
+    work_demands: 42,
+    work_organization: 37,
+  },
+  Comercial: {
+    company_worker_relation: 66,
+    health_wellbeing: 84,
+    relationships_leadership: 63,
+    work_demands: 71,
+    work_organization: 74,
+  },
+  Logistica: {
+    company_worker_relation: 49,
+    health_wellbeing: 55,
+    relationships_leadership: 45,
+    work_demands: 67,
+    work_organization: 64,
+  },
+  Manutencao: {
+    company_worker_relation: 63,
+    health_wellbeing: 74,
+    relationships_leadership: 71,
+    work_demands: 78,
+    work_organization: 56,
+  },
+  Producao: {
+    company_worker_relation: 42,
+    health_wellbeing: 53,
+    relationships_leadership: 45,
+    work_demands: 62,
+    work_organization: 51,
+  },
+  "Setores agregados": {
+    company_worker_relation: 41,
+    health_wellbeing: 47,
+    relationships_leadership: 39,
+    work_demands: 48,
+    work_organization: 43,
+  },
+};
 
 interface PsychosocialStorageState {
   answers: PsychosocialEmployeeAnswer[];
@@ -426,6 +575,10 @@ export class PsychosocialService {
     return sectorSignals;
   }
 
+  listCopsoqAnalysis(): CopsoqCompanyAnalysis[] {
+    return campaigns.map((campaign) => this.buildCopsoqCompanyAnalysis(campaign));
+  }
+
   listAnswers(): PsychosocialEmployeeAnswer[] {
     return psychosocialState.answers;
   }
@@ -516,5 +669,83 @@ export class PsychosocialService {
     }
 
     return campaign;
+  }
+
+  private buildCopsoqCompanyAnalysis(campaign: PsychosocialCampaign): CopsoqCompanyAnalysis {
+    const sectors = seededCopsoqSectorRisk
+      .filter((sector) => sector.companyTradeName === campaign.companyTradeName)
+      .map((sector) => this.buildCopsoqSectorAxisRisk(sector));
+    const axes = copsoqAxes.map<CopsoqAxisRisk>((axis) => {
+      const weightedTotal = sectors.reduce(
+        (total, sector) =>
+          total +
+          (sector.axes.find((item) => item.axisId === axis.id)?.riskPercent ?? 0) *
+            Math.max(sector.responses, 1),
+        0,
+      );
+      const responseBase = sectors.reduce((total, sector) => total + Math.max(sector.responses, 1), 0);
+      const riskPercent =
+        responseBase === 0 ? 0 : Math.round((weightedTotal / responseBase) * 10) / 10;
+
+      return {
+        axisId: axis.id,
+        axisLabel: axis.label,
+        riskLevel: classifyRiskPercent(riskPercent),
+        riskPercent,
+      };
+    });
+    const priorityAxis = [...axes].sort((first, second) => second.riskPercent - first.riskPercent)[0]!;
+    const overallRiskPercent =
+      axes.length === 0
+        ? 0
+        : Math.round(
+            (axes.reduce((total, axis) => total + axis.riskPercent, 0) / axes.length) * 10,
+          ) / 10;
+
+    return {
+      companyTradeName: campaign.companyTradeName,
+      campaignId: campaign.id,
+      generatedAt: now(),
+      responses: campaign.responseCount,
+      overallRiskPercent,
+      overallRiskLevel: classifyRiskPercent(overallRiskPercent),
+      priorityAxisId: priorityAxis.axisId,
+      priorityAxisLabel: priorityAxis.axisLabel,
+      companyWideRecommendation:
+        priorityAxis.riskLevel === "high" || priorityAxis.riskLevel === "critical"
+          ? `Priorizar plano transversal para ${priorityAxis.axisLabel.toLowerCase()} e complementar com acoes por setor.`
+          : "Manter acompanhamento setorial e reforcar comunicacao preventiva.",
+      axes,
+      sectors,
+    };
+  }
+
+  private buildCopsoqSectorAxisRisk(
+    sector: Omit<
+      CopsoqSectorAxisRisk,
+      "axes" | "accumulatedRiskLevel" | "priorityAxisId" | "priorityAxisLabel"
+    >,
+  ): CopsoqSectorAxisRisk {
+    const axisRisk: Partial<Record<CopsoqAxisId, number>> =
+      seededCopsoqAxisBySector[sector.sectorName] ?? {};
+    const axes = copsoqAxes.map<CopsoqAxisRisk>((axis) => {
+      const riskPercent = axisRisk[axis.id] ?? sector.accumulatedRiskPercent;
+
+      return {
+        axisId: axis.id,
+        axisLabel: axis.label,
+        riskLevel: classifyRiskPercent(riskPercent),
+        riskPercent,
+      };
+    });
+    const priorityAxis = [...axes].sort((first, second) => second.riskPercent - first.riskPercent)[0]!;
+
+    return {
+      ...sector,
+      accumulatedRiskLevel: classifyRiskPercent(sector.accumulatedRiskPercent),
+      axes,
+      priorityAxisId: priorityAxis.axisId,
+      priorityAxisLabel: priorityAxis.axisLabel,
+    };
   }
 }

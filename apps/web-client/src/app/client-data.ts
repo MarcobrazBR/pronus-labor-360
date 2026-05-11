@@ -114,6 +114,47 @@ export interface EmployeeMovement {
   slaDueAt: string;
 }
 
+export type RiskLevel = "low" | "moderate" | "high" | "critical";
+export type CopsoqAxisId =
+  | "work_demands"
+  | "work_organization"
+  | "relationships_leadership"
+  | "company_worker_relation"
+  | "health_wellbeing";
+
+export interface CopsoqAxisRisk {
+  axisId: CopsoqAxisId;
+  axisLabel: string;
+  riskPercent: number;
+  riskLevel: RiskLevel;
+}
+
+export interface CopsoqSectorAxisRisk {
+  companyTradeName: string;
+  sectorName: string;
+  responses: number;
+  axes: CopsoqAxisRisk[];
+  accumulatedRiskPercent: number;
+  accumulatedRiskLevel: RiskLevel;
+  priorityAxisId: CopsoqAxisId;
+  priorityAxisLabel: string;
+  recommendation: string;
+}
+
+export interface CopsoqCompanyAnalysis {
+  companyTradeName: string;
+  campaignId: string;
+  generatedAt: string;
+  responses: number;
+  overallRiskPercent: number;
+  overallRiskLevel: RiskLevel;
+  priorityAxisId: CopsoqAxisId;
+  priorityAxisLabel: string;
+  companyWideRecommendation: string;
+  axes: CopsoqAxisRisk[];
+  sectors: CopsoqSectorAxisRisk[];
+}
+
 export interface Nr01Risk {
   id: string;
   companyTradeName: string;
@@ -123,7 +164,7 @@ export interface Nr01Risk {
   type?: "physical" | "chemical" | "biological" | "ergonomic" | "accident";
   danger: string;
   risk: string;
-  level: "low" | "moderate" | "high" | "critical";
+  level: RiskLevel;
   status: "draft" | "active" | "review" | "archived";
 }
 
@@ -190,7 +231,7 @@ export interface PsychosocialSectorSignal {
   participants: number;
   responses: number;
   responseRate: number;
-  riskLevel: "low" | "moderate" | "high" | "critical";
+  riskLevel: RiskLevel;
   privacyStatus: "visible" | "aggregated";
   recommendation: string;
 }
@@ -204,6 +245,7 @@ export interface ClientPortalData {
   employees: StructuralEmployee[];
   employeeMovements: EmployeeMovement[];
   jobPositions: StructuralJobPosition[];
+  copsoqAnalysis: CopsoqCompanyAnalysis[];
   psychosocialCampaigns: PsychosocialCampaign[];
   psychosocialSignals: PsychosocialSectorSignal[];
   risks: Nr01Risk[];
@@ -576,6 +618,64 @@ const fallbackSignals: PsychosocialSectorSignal[] = [
   },
 ];
 
+const fallbackCopsoqAnalysis: CopsoqCompanyAnalysis[] = [
+  {
+    companyTradeName: "Industria Horizonte",
+    campaignId: "campaign-horizonte-2026-01",
+    generatedAt: "2026-05-11T00:00:00.000Z",
+    responses: 134,
+    overallRiskPercent: 59.4,
+    overallRiskLevel: "moderate",
+    priorityAxisId: "health_wellbeing",
+    priorityAxisLabel: "Efeitos na Saude e Bem-estar",
+    companyWideRecommendation:
+      "Priorizar plano transversal para efeitos na saude e bem-estar e complementar com acoes por setor.",
+    axes: [
+      { axisId: "work_demands", axisLabel: "Exigencias do Trabalho", riskPercent: 64.5, riskLevel: "high" },
+      { axisId: "work_organization", axisLabel: "Organizacao e Conteudo do Trabalho", riskPercent: 58.7, riskLevel: "moderate" },
+      { axisId: "relationships_leadership", axisLabel: "Relacoes Interpessoais e Lideranca", riskPercent: 54.9, riskLevel: "moderate" },
+      { axisId: "company_worker_relation", axisLabel: "Relacao Empresa-Colaborador", riskPercent: 50.4, riskLevel: "moderate" },
+      { axisId: "health_wellbeing", axisLabel: "Efeitos na Saude e Bem-estar", riskPercent: 68.3, riskLevel: "high" },
+    ],
+    sectors: [
+      {
+        companyTradeName: "Industria Horizonte",
+        sectorName: "Comercial",
+        responses: 30,
+        accumulatedRiskPercent: 72,
+        accumulatedRiskLevel: "high",
+        priorityAxisId: "health_wellbeing",
+        priorityAxisLabel: "Efeitos na Saude e Bem-estar",
+        recommendation: "Tratar efeitos em saude e bem-estar como prioridade setorial imediata.",
+        axes: [
+          { axisId: "work_demands", axisLabel: "Exigencias do Trabalho", riskPercent: 71, riskLevel: "high" },
+          { axisId: "work_organization", axisLabel: "Organizacao e Conteudo do Trabalho", riskPercent: 74, riskLevel: "high" },
+          { axisId: "relationships_leadership", axisLabel: "Relacoes Interpessoais e Lideranca", riskPercent: 63, riskLevel: "high" },
+          { axisId: "company_worker_relation", axisLabel: "Relacao Empresa-Colaborador", riskPercent: 66, riskLevel: "high" },
+          { axisId: "health_wellbeing", axisLabel: "Efeitos na Saude e Bem-estar", riskPercent: 84, riskLevel: "critical" },
+        ],
+      },
+      {
+        companyTradeName: "Industria Horizonte",
+        sectorName: "Producao",
+        responses: 75,
+        accumulatedRiskPercent: 49,
+        accumulatedRiskLevel: "moderate",
+        priorityAxisId: "work_demands",
+        priorityAxisLabel: "Exigencias do Trabalho",
+        recommendation: "Atuar em carga de trabalho e clareza de prioridades sem expor respostas individuais.",
+        axes: [
+          { axisId: "work_demands", axisLabel: "Exigencias do Trabalho", riskPercent: 62, riskLevel: "high" },
+          { axisId: "work_organization", axisLabel: "Organizacao e Conteudo do Trabalho", riskPercent: 51, riskLevel: "moderate" },
+          { axisId: "relationships_leadership", axisLabel: "Relacoes Interpessoais e Lideranca", riskPercent: 45, riskLevel: "moderate" },
+          { axisId: "company_worker_relation", axisLabel: "Relacao Empresa-Colaborador", riskPercent: 42, riskLevel: "moderate" },
+          { axisId: "health_wellbeing", axisLabel: "Efeitos na Saude e Bem-estar", riskPercent: 53, riskLevel: "moderate" },
+        ],
+      },
+    ],
+  },
+];
+
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
@@ -610,6 +710,7 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
     signatures,
     campaigns,
     signals,
+    copsoqAnalysis,
   ] = await Promise.all([
     fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
     fetchApi<StructuralEmployee[]>("/structural/employees", fallbackEmployees),
@@ -623,6 +724,7 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
     fetchApi<DocumentSignatureRequest[]>("/documents/signatures", fallbackSignatures),
     fetchApi<PsychosocialCampaign[]>("/psychosocial/campaigns", fallbackCampaigns),
     fetchApi<PsychosocialSectorSignal[]>("/psychosocial/sector-signals", fallbackSignals),
+    fetchApi<CopsoqCompanyAnalysis[]>("/psychosocial/copsoq-analysis", fallbackCopsoqAnalysis),
   ]);
   const activeCompany =
     companies.find((company) => company.tradeName === companyTradeName) ??
@@ -640,6 +742,7 @@ export async function loadClientPortalData(companyTradeName = "Industria Horizon
     employees: byCompany(employees, activeName),
     employeeMovements: byCompany(employeeMovements, activeName),
     jobPositions: byCompany(jobPositions, activeName),
+    copsoqAnalysis: byCompany(copsoqAnalysis, activeName),
     psychosocialCampaigns: byCompany(campaigns, activeName),
     psychosocialSignals: byCompany(signals, activeName),
     risks: byCompany(risks, activeName),
