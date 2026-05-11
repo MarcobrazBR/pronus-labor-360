@@ -286,6 +286,52 @@ export interface EmployeeMovementRequest {
   slaDueAt: string;
 }
 
+export type StructuralAuditScope = "employee" | "employee_movement";
+export type StructuralAuditAction =
+  | "employee_created"
+  | "employee_inactivated"
+  | "employee_updated"
+  | "movement_approved"
+  | "movement_created"
+  | "movement_rejected";
+export type StructuralNotificationStatus = "open" | "resolved";
+export type StructuralNotificationSeverity = "info" | "warning" | "critical";
+
+export interface StructuralAuditEvent {
+  id: string;
+  scope: StructuralAuditScope;
+  action: StructuralAuditAction;
+  companyId?: string;
+  companyTradeName?: string;
+  employeeId?: string;
+  movementId?: string;
+  actorName: string;
+  actorRole: string;
+  summary: string;
+  metadata?: Record<string, string | undefined>;
+  createdAt: string;
+}
+
+export interface StructuralNotification {
+  id: string;
+  status: StructuralNotificationStatus;
+  severity: StructuralNotificationSeverity;
+  type: "employee_movement";
+  companyId: string;
+  companyTradeName: string;
+  employeeId?: string;
+  movementId: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  dueAt: string;
+  resolvedAt?: string;
+}
+
+export interface UpdateStructuralNotificationInput {
+  status: StructuralNotificationStatus;
+}
+
 export interface CreateEmployeeMovementInput {
   type: EmployeeMovementType;
   source?: EmployeeMovementSource;

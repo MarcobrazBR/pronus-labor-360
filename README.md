@@ -6,7 +6,7 @@ A proposta vai alem de um ERP tradicional. O produto nasce para conectar, em uma
 
 ## Galeria Visual Do Produto
 
-Capturas demonstrativas atualizadas em 2026-05-10 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
+Capturas demonstrativas atualizadas em 2026-05-11 para apresentacao do produto, validacao visual e apoio a conversas com investidores.
 
 ### Portais
 
@@ -132,6 +132,7 @@ Ja existe:
 - API inicial de inteligencia regulatoria com CNAEs parametrizados, graus de risco, obrigacoes legais, score, alertas e checklist de campo;
 - cadastro de empresa com leitura visual do CNAE parametrizado, grau de risco e obrigacoes vinculadas;
 - aba Clientes dentro do modulo Empresas para funcionarios das contratantes, com importacao e consulta sob busca;
+- governanca cadastral inicial com notificacoes operacionais, SLA e trilha de auditoria para inclusoes, alteracoes e desligamentos de clientes;
 - busca de empresas com lista, abertura por cadastro e abas de dados gerais, cobertura contratual, clientes e financeiro;
 - cargos e setores como catalogos transversais por perfil de uso, preparados para clientes, RH, gestores, administrativo PRONUS e corpo clinico PRONUS;
 - funcoes de colaboradores dentro de Configuracoes > Pessoas e acesso, com Usuarios, permissoes do sistema, agenda do corpo clinico, feriados e tabela de pagamento profissional;
@@ -167,7 +168,7 @@ Ainda esta em andamento:
 - autenticacao e permissoes completas com auditoria, expiracao de senha e isolamento multiempresa;
 - reconciliacao avancada de planilhas com unidades, setores e cargos;
 - visao multiempresa real no Portal RH Cliente, com selecao segura por usuario autenticado;
-- backend definitivo para auditoria, historico e notificacoes das movimentacoes cadastrais do RH cliente, sem aprovacao PRONUS obrigatoria quando a regra de negocio for responsabilidade do RH;
+- persistir auditoria, historico e notificacoes cadastrais em Prisma/Supabase, com usuario autenticado, regras de retencao e consultas avancadas;
 - persistencia real dos formularios de risco ocupacional, documentos e evidencias anexas;
 - carga oficial completa de CNAE/Grau de Risco, dimensionamento exato de CIPA/SESMT e revisao juridico-tecnica das regras reguladoras;
 - relatorios psicossociais, anonimato por regra minima e plano de intervencao;

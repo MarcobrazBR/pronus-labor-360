@@ -7,7 +7,15 @@ import { CompanyClientsPanel } from "./company-clients-panel";
 export const dynamic = "force-dynamic";
 
 export default async function CompanyClientsPage() {
-  const { companies, departments, employees, employeeMovements, jobPositions } =
+  const {
+    companies,
+    departments,
+    employees,
+    employeeMovements,
+    jobPositions,
+    structuralAuditEvents,
+    structuralNotifications,
+  } =
     await loadStructuralData();
 
   return (
@@ -43,6 +51,8 @@ export default async function CompanyClientsPage() {
         employees={employees}
         jobPositions={jobPositions}
         movements={employeeMovements}
+        auditEvents={structuralAuditEvents}
+        notifications={structuralNotifications}
       />
     </>
   );

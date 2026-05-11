@@ -70,6 +70,8 @@ model Company {
   departments         Department[]
   jobPositions        JobPosition[]
   employees           Employee[]
+  auditEvents         AuditEvent[]
+  notifications       OperationalNotification[]
 
   @@map("companies")
 }
@@ -152,7 +154,50 @@ model Employee {
   companyUnit          CompanyUnit? @relation(fields: [companyUnitId], references: [id])
   department           Department?  @relation(fields: [departmentId], references: [id])
   jobPosition          JobPosition? @relation(fields: [jobPositionId], references: [id])
+  auditEvents          AuditEvent[]
+  notifications        OperationalNotification[]
 
   @@unique([companyId, cpf])
   @@map("employees")
+}
+
+model AuditEvent {
+  id               String    @id @default(uuid()) @db.Uuid
+  scope            String
+  action           String
+  companyId        String?   @map("company_id") @db.Uuid
+  employeeId       String?   @map("employee_id") @db.Uuid
+  movementId       String?   @map("movement_id") @db.Uuid
+  actorUserId      String?   @map("actor_user_id") @db.Uuid
+  actorName        String    @map("actor_name")
+  actorRole        String    @map("actor_role")
+  summary          String
+  metadata         Json?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  company          Company?  @relation(fields: [companyId], references: [id])
+  employee         Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([employeeId, createdAt])
+  @@map("audit_events")
+}
+
+model OperationalNotification {
+  id           String    @id @default(uuid()) @db.Uuid
+  status       String
+  severity     String
+  type         String
+  companyId    String    @map("company_id") @db.Uuid
+  employeeId   String?   @map("employee_id") @db.Uuid
+  movementId   String?   @map("movement_id") @db.Uuid
+  title        String
+  message      String
+  createdAt    DateTime  @default(now()) @map("created_at")
+  dueAt        DateTime  @map("due_at")
+  resolvedAt   DateTime? @map("resolved_at")
+  company      Company   @relation(fields: [companyId], references: [id])
+  employee     Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([companyId, status, dueAt])
+  @@map("operational_notifications")
 }

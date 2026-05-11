@@ -13,6 +13,7 @@ import type {
   UpdateStructuralDepartmentInput,
   UpdateStructuralEmployeeInput,
   UpdateStructuralJobPositionInput,
+  UpdateStructuralNotificationInput,
   UpdateStructuralUnitInput,
 } from "./structural.types";
 
@@ -133,6 +134,24 @@ export class StructuralController {
   @Get("employee-movements")
   listEmployeeMovements() {
     return this.structuralService.listEmployeeMovements();
+  }
+
+  @Get("audit-events")
+  listStructuralAuditEvents() {
+    return this.structuralService.listStructuralAuditEvents();
+  }
+
+  @Get("notifications")
+  listStructuralNotifications() {
+    return this.structuralService.listStructuralNotifications();
+  }
+
+  @Patch("notifications/:id")
+  updateStructuralNotification(
+    @Param("id") id: string,
+    @Body() body: UpdateStructuralNotificationInput,
+  ) {
+    return this.structuralService.updateStructuralNotification(id, body);
   }
 
   @Post("employee-movements")

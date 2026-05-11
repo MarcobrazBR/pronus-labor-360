@@ -102,6 +102,46 @@ export interface EmployeeMovement {
   slaDueAt: string;
 }
 
+export type StructuralNotificationStatus = "open" | "resolved";
+export type StructuralNotificationSeverity = "info" | "warning" | "critical";
+
+export interface StructuralAuditEvent {
+  id: string;
+  scope: "employee" | "employee_movement";
+  action:
+    | "employee_created"
+    | "employee_inactivated"
+    | "employee_updated"
+    | "movement_approved"
+    | "movement_created"
+    | "movement_rejected";
+  companyId?: string;
+  companyTradeName?: string;
+  employeeId?: string;
+  movementId?: string;
+  actorName: string;
+  actorRole: string;
+  summary: string;
+  metadata?: Record<string, string | undefined>;
+  createdAt: string;
+}
+
+export interface StructuralNotification {
+  id: string;
+  status: StructuralNotificationStatus;
+  severity: StructuralNotificationSeverity;
+  type: "employee_movement";
+  companyId: string;
+  companyTradeName: string;
+  employeeId?: string;
+  movementId: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  dueAt: string;
+  resolvedAt?: string;
+}
+
 export interface StructuralUnit {
   id: string;
   companyTradeName: string;
@@ -790,6 +830,44 @@ const fallbackEmployeeMovements: EmployeeMovement[] = [
   },
 ];
 
+const fallbackStructuralAuditEvents: StructuralAuditEvent[] = [
+  {
+    id: "audit-movement-horizonte-update-001",
+    scope: "employee_movement",
+    action: "movement_created",
+    companyId: "company-pronus-demo",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-002",
+    movementId: "movement-horizonte-update-001",
+    actorName: "Mariana Costa",
+    actorRole: "RH Cliente",
+    summary: "RH solicitou alteracao cadastral de Rafael Moreira Lima.",
+    metadata: {
+      field: "phone",
+      movementType: "update",
+      source: "client_portal",
+    },
+    createdAt: "2026-04-28T00:00:00.000Z",
+  },
+];
+
+const fallbackStructuralNotifications: StructuralNotification[] = [
+  {
+    id: "notification-movement-horizonte-update-001",
+    status: "open",
+    severity: "warning",
+    type: "employee_movement",
+    companyId: "company-pronus-demo",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-002",
+    movementId: "movement-horizonte-update-001",
+    title: "Movimentacao cadastral pendente",
+    message: "Alteracao cadastral solicitada pelo RH da Industria Horizonte aguarda revisao.",
+    createdAt: "2026-04-28T00:00:00.000Z",
+    dueAt: "2026-04-30T00:00:00.000Z",
+  },
+];
+
 const fallbackNr01Summary: Nr01Summary = {
   risks: 4,
   criticalRisks: 0,
@@ -1189,18 +1267,43 @@ async function fetchApi<T>(path: string, fallback: T): Promise<T> {
 }
 
 export async function loadStructuralData() {
-  const [summary, companies, employees, employeeMovements, units, departments, jobPositions] =
+  const [
+    summary,
+    companies,
+    employees,
+    employeeMovements,
+    structuralAuditEvents,
+    structuralNotifications,
+    units,
+    departments,
+    jobPositions,
+  ] =
     await Promise.all([
       fetchApi<StructuralSummary>("/structural/summary", fallbackSummary),
       fetchApi<StructuralCompany[]>("/structural/companies", fallbackCompanies),
       fetchApi<StructuralEmployee[]>("/structural/employees", fallbackEmployees),
       fetchApi<EmployeeMovement[]>("/structural/employee-movements", fallbackEmployeeMovements),
+      fetchApi<StructuralAuditEvent[]>("/structural/audit-events", fallbackStructuralAuditEvents),
+      fetchApi<StructuralNotification[]>(
+        "/structural/notifications",
+        fallbackStructuralNotifications,
+      ),
       fetchApi<StructuralUnit[]>("/structural/units", fallbackUnits),
       fetchApi<StructuralDepartment[]>("/structural/departments", fallbackDepartments),
       fetchApi<StructuralJobPosition[]>("/structural/job-positions", fallbackJobPositions),
     ]);
 
-  return { summary, companies, employees, employeeMovements, units, departments, jobPositions };
+  return {
+    summary,
+    companies,
+    employees,
+    employeeMovements,
+    structuralAuditEvents,
+    structuralNotifications,
+    units,
+    departments,
+    jobPositions,
+  };
 }
 
 export async function loadNr01Data() {

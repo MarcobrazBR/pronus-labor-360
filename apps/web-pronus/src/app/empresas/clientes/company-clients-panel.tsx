@@ -3,13 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  employeeMovementStatusClasses,
+  employeeMovementStatusLabels,
+  employeeMovementTypeLabels,
   statusClasses,
   structuralStatusLabels,
   type EmployeeMovement,
+  type StructuralAuditEvent,
   type StructuralCompany,
   type StructuralDepartment,
   type StructuralEmployee,
   type StructuralJobPosition,
+  type StructuralNotification,
   type StructuralStatus,
 } from "../../pronus-data";
 
@@ -75,21 +80,51 @@ function dateLabel(value: string | undefined) {
   return date.toLocaleDateString("pt-BR");
 }
 
+function notificationSeverityClasses(severity: StructuralNotification["severity"]) {
+  if (severity === "critical") {
+    return "border-red-200 bg-red-50 text-red-800";
+  }
+
+  if (severity === "warning") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+
+  return "border-sky-200 bg-sky-50 text-sky-800";
+}
+
+function auditActionLabel(action: StructuralAuditEvent["action"]) {
+  const labels: Record<StructuralAuditEvent["action"], string> = {
+    employee_created: "Cliente criado",
+    employee_inactivated: "Cliente inativado",
+    employee_updated: "Cadastro atualizado",
+    movement_approved: "Movimentacao aprovada",
+    movement_created: "Movimentacao criada",
+    movement_rejected: "Movimentacao recusada",
+  };
+
+  return labels[action];
+}
+
 export function CompanyClientsPanel({
+  auditEvents,
   companies,
   departments,
   employees,
   jobPositions,
-  movements: _movements,
+  movements,
+  notifications,
 }: Readonly<{
+  auditEvents: StructuralAuditEvent[];
   companies: StructuralCompany[];
   departments: StructuralDepartment[];
   employees: StructuralEmployee[];
   jobPositions: StructuralJobPosition[];
   movements: EmployeeMovement[];
+  notifications: StructuralNotification[];
 }>) {
   const router = useRouter();
   const [currentEmployees, setCurrentEmployees] = useState(employees);
+  const [currentNotifications, setCurrentNotifications] = useState(notifications);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StructuralStatus | "all">("all");
   const [hasSearched, setHasSearched] = useState(false);
@@ -132,6 +167,27 @@ export function CompanyClientsPanel({
       )
       .sort((first, second) => first.title.localeCompare(second.title));
   }, [jobPositions, selectedCompany?.tradeName]);
+
+  const openNotifications = useMemo(
+    () =>
+      currentNotifications
+        .filter((notification) => notification.status === "open")
+        .sort((first, second) => first.dueAt.localeCompare(second.dueAt)),
+    [currentNotifications],
+  );
+
+  const recentAuditEvents = useMemo(
+    () =>
+      [...auditEvents]
+        .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
+        .slice(0, 5),
+    [auditEvents],
+  );
+
+  const pendingMovements = useMemo(
+    () => movements.filter((movement) => movement.status === "pending"),
+    [movements],
+  );
 
   const filteredEmployees = useMemo(() => {
     if (!hasSearched) {
@@ -310,8 +366,125 @@ export function CompanyClientsPanel({
     }
   }
 
+  async function resolveNotification(id: string) {
+    setCurrentNotifications((current) =>
+      current.map((notification) =>
+        notification.id === id
+          ? { ...notification, resolvedAt: new Date().toISOString(), status: "resolved" }
+          : notification,
+      ),
+    );
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      await fetch(`${apiUrl}/structural/notifications/${id}`, {
+        body: JSON.stringify({ status: "resolved" }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      });
+      router.refresh();
+    } catch {
+      setMessage("Notificacao marcada localmente. A API local nao respondeu para sincronizar.");
+    }
+  }
+
   return (
     <>
+      <section className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
+        <article className="rounded-lg border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-950">Notificacoes operacionais</h3>
+            <p className="mt-1 text-xs text-slate-500">SLA e pendencias vindas do Portal RH.</p>
+          </div>
+          <div className="space-y-3 p-4">
+            {openNotifications.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhuma notificacao aberta.</p>
+            ) : (
+              openNotifications.slice(0, 3).map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`rounded-md border p-3 text-sm ${notificationSeverityClasses(
+                    notification.severity,
+                  )}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">{notification.title}</p>
+                      <p className="mt-1">{notification.message}</p>
+                      <p className="mt-2 text-xs font-semibold">
+                        SLA {dateLabel(notification.dueAt)}
+                      </p>
+                    </div>
+                    <button
+                      className="rounded-md bg-white/80 px-2 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+                      type="button"
+                      onClick={() => void resolveNotification(notification.id)}
+                    >
+                      Resolver
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-lg border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-950">Movimentacoes em fila</h3>
+            <p className="mt-1 text-xs text-slate-500">Inclusoes, alteracoes e desligamentos.</p>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {pendingMovements.length === 0 ? (
+              <p className="p-4 text-sm text-slate-500">Nenhuma movimentacao pendente.</p>
+            ) : (
+              pendingMovements.slice(0, 3).map((movement) => (
+                <div key={movement.id} className="px-4 py-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-slate-950">{movement.fullName}</p>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${employeeMovementStatusClasses(
+                        movement.status,
+                      )}`}
+                    >
+                      {employeeMovementStatusLabels[movement.status]}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-slate-600">
+                    {employeeMovementTypeLabels[movement.type]} / {movement.companyTradeName}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">Criada em {dateLabel(movement.createdAt)}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-lg border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-950">Trilha de auditoria</h3>
+            <p className="mt-1 text-xs text-slate-500">Historico recente de cadastro de clientes.</p>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {recentAuditEvents.length === 0 ? (
+              <p className="p-4 text-sm text-slate-500">Nenhum evento registrado.</p>
+            ) : (
+              recentAuditEvents.map((event) => (
+                <div key={event.id} className="px-4 py-3 text-sm">
+                  <p className="text-xs font-semibold uppercase text-pronus-primary">
+                    {auditActionLabel(event.action)}
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-950">{event.summary}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {event.actorName} / {event.actorRole} / {dateLabel(event.createdAt)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+      </section>
+
       <section className="mt-4 rounded-lg border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">

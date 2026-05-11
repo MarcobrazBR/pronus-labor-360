@@ -372,3 +372,8 @@ Estado encontrado:
 - Portal PRONUS ganhou o modulo Relatorios, com gerador ad hoc para demandas pontuais de clientes e catalogo de dimensoes, hierarquias, atributos, membros e medidas do MVP.
 - Relatorios ad hoc incluem campos de empresa, contrato, trabalhador, CNAE, SST, psicossocial, agenda, prontuario, financeiro, documentos e auditoria, com destaque para dados sensiveis, clinicos e financeiros.
 - Screenshots desktop atualizados para incluir `portal-profissional-prontuario.png` e `portal-pronus-relatorios.png`.
+- API estrutural ganhou endpoints `GET /structural/audit-events`, `GET /structural/notifications` e `PATCH /structural/notifications/:id`, criando a primeira camada de auditoria e notificacoes operacionais para movimentacoes cadastrais.
+- Criacao, aprovacao e recusa de movimentacoes cadastrais agora registram eventos auditaveis; movimentacoes vindas do Portal RH geram notificacao com SLA para a operacao PRONUS.
+- Criacao, atualizacao e inativacao direta de clientes tambem registram eventos de auditoria demonstrativos, preparando a migracao para Prisma/Supabase.
+- Portal PRONUS > Empresas > Clientes passou a exibir Notificacoes operacionais, Movimentacoes em fila e Trilha de auditoria antes da consulta de clientes.
+- Prisma schema recebeu modelos `AuditEvent` e `OperationalNotification` para orientar a persistencia definitiva em Supabase PostgreSQL.

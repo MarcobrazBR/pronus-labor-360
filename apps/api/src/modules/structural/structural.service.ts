@@ -50,12 +50,17 @@ import type {
   StructuralStatus,
   StructuralSummary,
   SubmitEmployeeDivergenceInput,
+  StructuralAuditAction,
+  StructuralAuditEvent,
   UpdateEmployeeMovementInput,
   UpdateEmployeeDivergenceInput,
+  StructuralNotification,
+  StructuralNotificationStatus,
   UpdateStructuralCompanyInput,
   UpdateStructuralDepartmentInput,
   UpdateStructuralEmployeeInput,
   UpdateStructuralJobPositionInput,
+  UpdateStructuralNotificationInput,
   UpdateStructuralUnitInput,
   StructuralUnit,
 } from "./structural.types";
@@ -85,6 +90,7 @@ const divergenceStatuses = new Set<EmployeeDivergenceStatus>(["pending", "approv
 const movementStatuses = new Set<EmployeeMovementStatus>(["pending", "approved", "rejected"]);
 const movementSources = new Set<EmployeeMovementSource>(["client_portal", "pronus_portal"]);
 const movementTypes = new Set<EmployeeMovementType>(["inclusion", "update", "termination"]);
+const notificationStatuses = new Set<StructuralNotificationStatus>(["open", "resolved"]);
 const passwordResetStatuses = new Set(["pending", "completed"]);
 
 type AccessKind = "employee" | "client" | "pronus";
@@ -224,6 +230,14 @@ function normalizeMovementSource(value: unknown): EmployeeMovementSource {
   }
 
   return value as EmployeeMovementSource;
+}
+
+function normalizeNotificationStatus(value: unknown): StructuralNotificationStatus {
+  if (typeof value !== "string" || !notificationStatuses.has(value as StructuralNotificationStatus)) {
+    throw new BadRequestException("Status de notificacao invalido");
+  }
+
+  return value as StructuralNotificationStatus;
 }
 
 function normalizeCnpj(value: unknown): string {
@@ -377,6 +391,22 @@ function movementSlaDueAt(createdAt: string): string {
   const date = new Date(createdAt);
   date.setDate(date.getDate() + 2);
   return date.toISOString();
+}
+
+function movementLabel(type: EmployeeMovementType): string {
+  if (type === "inclusion") {
+    return "Inclusao";
+  }
+
+  if (type === "termination") {
+    return "Desligamento";
+  }
+
+  return "Alteracao cadastral";
+}
+
+function movementAuditAction(status: EmployeeMovementStatus): StructuralAuditAction {
+  return status === "approved" ? "movement_approved" : "movement_rejected";
 }
 
 function normalizeHeader(value: string): string {
@@ -920,6 +950,44 @@ const employeeMovements: EmployeeMovementRequest[] = [
     createdAt: startedAt,
     updatedAt: startedAt,
     slaDueAt: movementSlaDueAt(startedAt),
+  },
+];
+
+const structuralAuditEvents: StructuralAuditEvent[] = [
+  {
+    id: "audit-movement-horizonte-update-001",
+    scope: "employee_movement",
+    action: "movement_created",
+    companyId: "company-pronus-demo",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-002",
+    movementId: "movement-horizonte-update-001",
+    actorName: "Mariana Costa",
+    actorRole: "RH Cliente",
+    summary: "RH solicitou alteracao cadastral de Rafael Moreira Lima.",
+    metadata: {
+      field: "phone",
+      movementType: "update",
+      source: "client_portal",
+    },
+    createdAt: startedAt,
+  },
+];
+
+const structuralNotifications: StructuralNotification[] = [
+  {
+    id: "notification-movement-horizonte-update-001",
+    status: "open",
+    severity: "warning",
+    type: "employee_movement",
+    companyId: "company-pronus-demo",
+    companyTradeName: "Industria Horizonte",
+    employeeId: "employee-002",
+    movementId: "movement-horizonte-update-001",
+    title: "Movimentacao cadastral pendente",
+    message: "Alteracao cadastral solicitada pelo RH da Industria Horizonte aguarda revisao.",
+    createdAt: startedAt,
+    dueAt: movementSlaDueAt(startedAt),
   },
 ];
 
@@ -1716,6 +1784,26 @@ export class StructuralService {
     return employeeMovements;
   }
 
+  listStructuralAuditEvents(): StructuralAuditEvent[] {
+    return structuralAuditEvents;
+  }
+
+  listStructuralNotifications(): StructuralNotification[] {
+    return structuralNotifications;
+  }
+
+  updateStructuralNotification(
+    id: string,
+    input: UpdateStructuralNotificationInput,
+  ): StructuralNotification {
+    const notification = this.findStructuralNotification(id);
+    const status = normalizeNotificationStatus(input.status);
+    notification.status = status;
+    notification.resolvedAt = status === "resolved" ? now() : undefined;
+
+    return notification;
+  }
+
   createEmployeeMovement(input: CreateEmployeeMovementInput): EmployeeMovementRequest {
     const type = normalizeMovementType(input.type);
     const source = normalizeMovementSource(input.source);
@@ -1829,12 +1917,38 @@ export class StructuralService {
     };
 
     employeeMovements.unshift(movement);
+    this.recordStructuralAuditEvent({
+      scope: "employee_movement",
+      action: "movement_created",
+      companyId: movement.companyId,
+      companyTradeName: movement.companyTradeName,
+      employeeId: movement.employeeId,
+      movementId: movement.id,
+      actorName: movement.requestedBy ?? (source === "client_portal" ? "RH Cliente" : "PRONUS"),
+      actorRole: source === "client_portal" ? "RH Cliente" : "Operacao PRONUS",
+      summary: `Movimentacao de ${movementLabel(movement.type).toLowerCase()} criada para ${movement.fullName}.`,
+      metadata: {
+        movementType: movement.type,
+        source: movement.source,
+        status: movement.status,
+      },
+      createdAt,
+    });
+
+    if (source === "client_portal") {
+      this.createMovementNotification(movement);
+    }
+
     return movement;
   }
 
   updateEmployeeMovement(id: string, input: UpdateEmployeeMovementInput): EmployeeMovementRequest {
     const movement = this.findEmployeeMovement(id);
     const status = normalizeMovementStatus(input.status);
+
+    if (status === "pending") {
+      throw new BadRequestException("Informe aprovacao ou recusa da movimentacao");
+    }
 
     if (movement.status !== "pending") {
       throw new BadRequestException("Movimentacao ja finalizada");
@@ -1896,6 +2010,24 @@ export class StructuralService {
     movement.reviewerName = reviewerName ?? movement.reviewerName;
     movement.updatedAt = decidedAt;
     movement.decidedAt = decidedAt;
+    this.resolveMovementNotifications(movement.id, decidedAt);
+    this.recordStructuralAuditEvent({
+      scope: "employee_movement",
+      action: movementAuditAction(status),
+      companyId: movement.companyId,
+      companyTradeName: movement.companyTradeName,
+      employeeId: movement.employeeId,
+      movementId: movement.id,
+      actorName: movement.reviewerName ?? "Operacao PRONUS",
+      actorRole: "Operacao PRONUS",
+      summary: `Movimentacao de ${movementLabel(movement.type).toLowerCase()} ${status === "approved" ? "aprovada" : "recusada"} para ${movement.fullName}.`,
+      metadata: {
+        movementType: movement.type,
+        source: movement.source,
+        status,
+      },
+      createdAt: decidedAt,
+    });
 
     return movement;
   }
@@ -1936,6 +2068,22 @@ export class StructuralService {
     employees.unshift(employee);
     company.employees += 1;
     company.updatedAt = createdAt;
+    this.recordStructuralAuditEvent({
+      scope: "employee",
+      action: "employee_created",
+      companyId: company.id,
+      companyTradeName: company.tradeName,
+      employeeId: employee.id,
+      actorName: "Operacao/RH autorizado",
+      actorRole: "Cadastro de clientes",
+      summary: `Cliente ${employee.fullName} cadastrado como ativo em ${company.tradeName}.`,
+      metadata: {
+        department: employee.department,
+        jobPosition: employee.jobPosition,
+        registrationStatus: employee.registrationStatus,
+      },
+      createdAt,
+    });
 
     return employee;
   }
@@ -2005,6 +2153,26 @@ export class StructuralService {
     employee.registrationStatus = nextStatus;
     employee.updatedAt = now();
     company.updatedAt = employee.updatedAt;
+    this.recordStructuralAuditEvent({
+      scope: "employee",
+      action: nextStatus === "inactive" ? "employee_inactivated" : "employee_updated",
+      companyId: company.id,
+      companyTradeName: company.tradeName,
+      employeeId: employee.id,
+      actorName: "Operacao/RH autorizado",
+      actorRole: "Cadastro de clientes",
+      summary:
+        nextStatus === "inactive"
+          ? `Cliente ${employee.fullName} foi inativado em ${company.tradeName}.`
+          : `Cadastro de ${employee.fullName} atualizado em ${company.tradeName}.`,
+      metadata: {
+        department: employee.department,
+        jobPosition: employee.jobPosition,
+        previousStatus,
+        registrationStatus: employee.registrationStatus,
+      },
+      createdAt: employee.updatedAt,
+    });
 
     return employee;
   }
@@ -2323,6 +2491,50 @@ export class StructuralService {
     return employee;
   }
 
+  private recordStructuralAuditEvent(
+    input: Omit<StructuralAuditEvent, "id" | "createdAt"> & { createdAt?: string },
+  ): StructuralAuditEvent {
+    const event: StructuralAuditEvent = {
+      ...input,
+      id: randomUUID(),
+      createdAt: input.createdAt ?? now(),
+    };
+
+    structuralAuditEvents.unshift(event);
+    return event;
+  }
+
+  private createMovementNotification(movement: EmployeeMovementRequest): StructuralNotification {
+    const notification: StructuralNotification = {
+      id: randomUUID(),
+      status: "open",
+      severity: movement.type === "termination" ? "critical" : "warning",
+      type: "employee_movement",
+      companyId: movement.companyId,
+      companyTradeName: movement.companyTradeName,
+      employeeId: movement.employeeId,
+      movementId: movement.id,
+      title: "Movimentacao cadastral pendente",
+      message: `${movementLabel(movement.type)} solicitada pelo RH para ${movement.fullName}. SLA ate ${new Date(
+        movement.slaDueAt,
+      ).toLocaleDateString("pt-BR")}.`,
+      createdAt: movement.createdAt,
+      dueAt: movement.slaDueAt,
+    };
+
+    structuralNotifications.unshift(notification);
+    return notification;
+  }
+
+  private resolveMovementNotifications(movementId: string, resolvedAt: string): void {
+    for (const notification of structuralNotifications) {
+      if (notification.movementId === movementId && notification.status === "open") {
+        notification.status = "resolved";
+        notification.resolvedAt = resolvedAt;
+      }
+    }
+  }
+
   private findEmployeeMovement(id: string): EmployeeMovementRequest {
     const movement = employeeMovements.find((item) => item.id === id);
 
@@ -2331,6 +2543,16 @@ export class StructuralService {
     }
 
     return movement;
+  }
+
+  private findStructuralNotification(id: string): StructuralNotification {
+    const notification = structuralNotifications.find((item) => item.id === id);
+
+    if (notification === undefined) {
+      throw new NotFoundException("Notificacao operacional nao encontrada");
+    }
+
+    return notification;
   }
 
   private findEmployeeDivergence(id: string): EmployeeDivergenceRequest {
