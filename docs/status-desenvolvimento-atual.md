@@ -290,7 +290,7 @@ Estado encontrado:
 - Teste no navegador do Portal PRONUS confirmando card de reset do Portal RH e abertura direta da empresa.
 - Screenshots desktop atualizados para os tres portais e tres telas de login em `docs/assets/screenshots/`.
 - API de acesso agora usa caminho estavel do workspace para `.data/access-state.json`, evitando perda de senha ao reiniciar a API a partir de diretorios diferentes.
-- Portal PRONUS agora possui login administrativo por CPF via API, com acessos demonstrativos `111.222.333-00 / 111222` para Administrador Geral e `456.789.123-88 / 456789` para Administrativo PRONUS.
+- Portal PRONUS agora possui login administrativo por CPF via API, com acessos demonstrativos `111.222.333-96 / 111222` para Administrador Geral e `456.789.123-64 / 456789` para Administrativo PRONUS.
 - Portal PRONUS agora força troca de senha no primeiro acesso administrativo e persiste a nova senha antes de liberar a operacao.
 - Modulo Colaboradores agora permite resetar senha de usuarios administrativos e corpo clinico PRONUS para a senha padrao baseada nos seis primeiros digitos do CPF.
 - Textos visiveis que comunicavam "MVP", "fase" ou estado fragil foram removidos/ajustados nas interfaces e no README de apresentacao.

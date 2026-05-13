@@ -105,6 +105,7 @@ interface AccessCredential {
   passwordHash: string;
   mustChangePassword: boolean;
   updatedAt: string;
+  seedVersion?: string;
 }
 
 interface AccessStorageState {
@@ -178,7 +179,9 @@ function isValidCnpj(value: string): boolean {
 
   const calculateDigit = (length: number): number => {
     const factors =
-      length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+      length === 12
+        ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+        : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
     const sum = factors.reduce((total, factor, index) => total + Number(cnpj[index]) * factor, 0);
     const remainder = sum % 11;
     return remainder < 2 ? 0 : 11 - remainder;
@@ -292,7 +295,10 @@ function normalizeMovementSource(value: unknown): EmployeeMovementSource {
 }
 
 function normalizeNotificationStatus(value: unknown): StructuralNotificationStatus {
-  if (typeof value !== "string" || !notificationStatuses.has(value as StructuralNotificationStatus)) {
+  if (
+    typeof value !== "string" ||
+    !notificationStatuses.has(value as StructuralNotificationStatus)
+  ) {
     throw new BadRequestException("Status de notificacao invalido");
   }
 
@@ -965,6 +971,20 @@ const jobPositions: StructuralJobPosition[] = [
     createdAt: startedAt,
     updatedAt: startedAt,
   },
+  {
+    id: "job-pronus-psicologo-clinico",
+    departmentId: "department-pronus-corpo-clinico",
+    departmentName: "Corpo Clinico PRONUS",
+    title: "Psicologo Clinico",
+    audience: "pronus_clinical",
+    eSocialCode: "CARGO-007",
+    cboCode: "2515-10",
+    description:
+      "Atua em acolhimento psicologico, triagem e registros assistenciais do trabalhador.",
+    status: "active",
+    createdAt: startedAt,
+    updatedAt: startedAt,
+  },
 ];
 
 const employees: StructuralEmployee[] = [
@@ -1111,7 +1131,7 @@ const pronusAccessUsers: PronusAccessUser[] = [
   {
     id: "pronus-master-admin",
     fullName: "Administrador Geral PRONUS",
-    cpf: "111.222.333-00",
+    cpf: "111.222.333-96",
     email: "admin.master@pronus.com.br",
     department: "Operacao PRONUS",
     jobPosition: "Master",
@@ -1122,7 +1142,7 @@ const pronusAccessUsers: PronusAccessUser[] = [
   {
     id: "pronus-ana-admin",
     fullName: "Ana Paula Martins",
-    cpf: "456.789.123-88",
+    cpf: "456.789.123-64",
     email: "ana.martins@pronus.com.br",
     department: "Administrativo PRONUS",
     jobPosition: "Analista Administrativo PRONUS",
@@ -1133,7 +1153,7 @@ const pronusAccessUsers: PronusAccessUser[] = [
   {
     id: "pronus-dr-carlos",
     fullName: "Carlos Henrique Nunes",
-    cpf: "654.987.321-11",
+    cpf: "654.987.321-55",
     email: "carlos.nunes@pronus.com.br",
     department: "Corpo Clinico PRONUS",
     jobPosition: "Medico do Trabalho",
@@ -1144,7 +1164,7 @@ const pronusAccessUsers: PronusAccessUser[] = [
   {
     id: "pronus-psi-larissa",
     fullName: "Larissa Moreira",
-    cpf: "789.123.456-22",
+    cpf: "789.123.456-64",
     email: "larissa.moreira@pronus.com.br",
     department: "Corpo Clinico PRONUS",
     jobPosition: "Psicologa Ocupacional",
@@ -1152,9 +1172,22 @@ const pronusAccessUsers: PronusAccessUser[] = [
     role: "clinical",
     status: "active",
   },
+  {
+    id: "pronus-psi-adriano",
+    fullName: "ADRIANO CORREIA DA SILVA",
+    cpf: "072.631.794-23",
+    birthDate: "1988-10-20",
+    email: "adriano.correia@pronus.com.br",
+    department: "Corpo Clinico PRONUS",
+    jobPosition: "Psicologo Clinico",
+    audience: "pronus_clinical",
+    role: "clinical",
+    status: "active",
+  },
 ];
 
 const accessState = loadAccessState();
+const pronusCredentialSeedVersion = "2026-05-13-valid-cpf-professional-access";
 
 @Injectable()
 export class StructuralService {
@@ -1204,6 +1237,7 @@ export class StructuralService {
 
     credential.passwordHash = hashPassword("pronus", user.id, newPassword);
     credential.mustChangePassword = false;
+    credential.seedVersion = pronusCredentialSeedVersion;
     credential.updatedAt = updatedAt;
     saveAccessState(accessState);
 
@@ -1221,6 +1255,7 @@ export class StructuralService {
 
     credential.passwordHash = hashPassword("pronus", user.id, defaultPronusPassword(user.cpf));
     credential.mustChangePassword = true;
+    credential.seedVersion = pronusCredentialSeedVersion;
     credential.updatedAt = updatedAt;
     saveAccessState(accessState);
 
@@ -1361,9 +1396,7 @@ export class StructuralService {
   loginClientAccess(input: ClientAccessLoginInput): ClientAccessProfile {
     const cnpj = normalizeCnpj(input.cnpj);
     const normalizedCnpj = normalizeCnpj(cnpj);
-    const company = companies.find(
-      (item) => onlyDigits(item.cnpj) === onlyDigits(normalizedCnpj),
-    );
+    const company = companies.find((item) => onlyDigits(item.cnpj) === onlyDigits(normalizedCnpj));
 
     if (company === undefined || company.status === "inactive") {
       throw new NotFoundException("CNPJ nao encontrado na base de empresas");
@@ -2562,10 +2595,17 @@ export class StructuralService {
       credential = {
         mustChangePassword: true,
         passwordHash: hashPassword("pronus", user.id, defaultPronusPassword(user.cpf)),
+        seedVersion: pronusCredentialSeedVersion,
         subjectId: user.id,
         updatedAt: now(),
       };
       accessState.pronusCredentials.push(credential);
+      saveAccessState(accessState);
+    } else if (credential.seedVersion !== pronusCredentialSeedVersion) {
+      credential.mustChangePassword = true;
+      credential.passwordHash = hashPassword("pronus", user.id, defaultPronusPassword(user.cpf));
+      credential.seedVersion = pronusCredentialSeedVersion;
+      credential.updatedAt = now();
       saveAccessState(accessState);
     }
 

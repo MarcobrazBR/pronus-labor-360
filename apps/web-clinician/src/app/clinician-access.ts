@@ -34,6 +34,7 @@ export const sessionStorageKey = "pronus:clinician-session";
 const licenseByUserId: Record<string, string> = {
   "pronus-dr-carlos": "CRM-SP 123456",
   "pronus-psi-larissa": "CRP-SP 06/123456",
+  "pronus-psi-adriano": "CRP-SP 06/198823",
 };
 
 export function getApiUrl() {

@@ -18,14 +18,16 @@ Este documento concentra os acessos demonstrativos usados no ambiente local de d
 
 | Portal                  | Perfil                     | Documento            | Senha padrao |
 | ----------------------- | -------------------------- | -------------------- | ------------ |
-| Portal PRONUS Operacoes | Administrador Geral PRONUS | `111.222.333-00`     | `111222`     |
-| Portal PRONUS Operacoes | Administrativo PRONUS      | `456.789.123-88`     | `456789`     |
-| Portal PRONUS Operacoes | Corpo Clinico PRONUS       | `654.987.321-11`     | `654987`     |
-| Portal PRONUS Operacoes | Corpo Clinico PRONUS       | `789.123.456-22`     | `789123`     |
+| Portal PRONUS Operacoes | Administrador Geral PRONUS | `111.222.333-96`     | `111222`     |
+| Portal PRONUS Operacoes | Administrativo PRONUS      | `456.789.123-64`     | `456789`     |
+| Portal PRONUS Operacoes | Corpo Clinico PRONUS       | `654.987.321-55`     | `654987`     |
+| Portal PRONUS Operacoes | Corpo Clinico PRONUS       | `789.123.456-64`     | `789123`     |
+| Portal PRONUS Operacoes | ADRIANO CORREIA DA SILVA   | `072.631.794-23`     | `072631`     |
 | Portal RH Cliente       | Industria Horizonte        | `12.345.678/0001-95` | `123456`     |
 | Portal Colaborador      | Rafael Moreira Lima        | `987.654.321-00`     | `987654`     |
-| Portal Profissional     | Carlos Henrique Nunes      | `654.987.321-11`     | `654987`     |
-| Portal Profissional     | Larissa Moreira            | `789.123.456-22`     | `789123`     |
+| Portal Profissional     | Carlos Henrique Nunes      | `654.987.321-55`     | `654987`     |
+| Portal Profissional     | Larissa Moreira            | `789.123.456-64`     | `789123`     |
+| Portal Profissional     | ADRIANO CORREIA DA SILVA   | `072.631.794-23`     | `072631`     |
 
 ## Regra de primeiro acesso
 

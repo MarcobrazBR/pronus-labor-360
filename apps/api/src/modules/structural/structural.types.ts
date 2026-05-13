@@ -478,6 +478,7 @@ export interface PronusAccessUser {
   id: string;
   fullName: string;
   cpf: string;
+  birthDate?: string;
   email: string;
   department: string;
   jobPosition: string;
