@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 import { PsychosocialService } from "./psychosocial.service";
 import type {
   CreatePsychosocialCampaignInput,
+  SavePsychosocialProgressInput,
   SubmitPsychosocialAnswerInput,
   UpdatePsychosocialCampaignInput,
 } from "./psychosocial.types";
@@ -50,6 +51,11 @@ export class PsychosocialController {
     return this.psychosocialService.listCopsoqAnalysis();
   }
 
+  @Get("technical-reports")
+  listTechnicalReports() {
+    return this.psychosocialService.listTechnicalReports();
+  }
+
   @Get("answers")
   listAnswers() {
     return this.psychosocialService.listAnswers();
@@ -58,6 +64,16 @@ export class PsychosocialController {
   @Get("answers/employee/:employeeId")
   getEmployeeAnswer(@Param("employeeId") employeeId: string) {
     return this.psychosocialService.getEmployeeAnswer(employeeId);
+  }
+
+  @Get("progress/employee/:employeeId")
+  getEmployeeProgress(@Param("employeeId") employeeId: string) {
+    return this.psychosocialService.getEmployeeProgress(employeeId);
+  }
+
+  @Post("progress")
+  saveProgress(@Body() body: SavePsychosocialProgressInput) {
+    return this.psychosocialService.saveProgress(body);
   }
 
   @Post("answers")

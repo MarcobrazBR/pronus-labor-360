@@ -51,6 +51,12 @@ enum Nr01ActionStatus {
   CANCELED
 }
 
+enum PsychosocialQuestionnaireStatus {
+  IN_PROGRESS
+  FINALIZED
+  ABANDONED
+}
+
 model User {
   id        String       @id @default(uuid()) @db.Uuid
   name      String
@@ -78,28 +84,31 @@ model OrganizationGroup {
 }
 
 model Company {
-  id                  String                    @id @default(uuid()) @db.Uuid
-  organizationGroupId String                    @map("organization_group_id") @db.Uuid
-  tradeName           String                    @map("trade_name")
-  legalName           String                    @map("legal_name")
-  cnpj                String                    @unique
-  cnaeMain            String?                   @map("cnae_main")
-  regulatoryCnaeId    String?                   @map("regulatory_cnae_id") @db.Uuid
-  riskGrade           Int?                      @map("risk_grade")
-  status              RecordStatus              @default(ACTIVE)
-  createdAt           DateTime                  @default(now()) @map("created_at")
-  updatedAt           DateTime                  @updatedAt @map("updated_at")
-  organizationGroup   OrganizationGroup         @relation(fields: [organizationGroupId], references: [id])
-  units               CompanyUnit[]
-  departments         Department[]
-  jobPositions        JobPosition[]
-  employees           Employee[]
-  auditEvents         AuditEvent[]
-  notifications       OperationalNotification[]
-  regulatoryCnae      RegulatoryCnae?           @relation(fields: [regulatoryCnaeId], references: [id])
-  nr01Risks           Nr01RiskInventory[]
-  nr01ActionPlans     Nr01ActionPlan[]
-  nr01Evidences       Nr01Evidence[]
+  id                    String                             @id @default(uuid()) @db.Uuid
+  organizationGroupId   String                             @map("organization_group_id") @db.Uuid
+  tradeName             String                             @map("trade_name")
+  legalName             String                             @map("legal_name")
+  cnpj                  String                             @unique
+  cnaeMain              String?                            @map("cnae_main")
+  regulatoryCnaeId      String?                            @map("regulatory_cnae_id") @db.Uuid
+  riskGrade             Int?                               @map("risk_grade")
+  status                RecordStatus                       @default(ACTIVE)
+  createdAt             DateTime                           @default(now()) @map("created_at")
+  updatedAt             DateTime                           @updatedAt @map("updated_at")
+  organizationGroup     OrganizationGroup                  @relation(fields: [organizationGroupId], references: [id])
+  units                 CompanyUnit[]
+  departments           Department[]
+  jobPositions          JobPosition[]
+  employees             Employee[]
+  auditEvents           AuditEvent[]
+  notifications         OperationalNotification[]
+  regulatoryCnae        RegulatoryCnae?                    @relation(fields: [regulatoryCnaeId], references: [id])
+  nr01Risks             Nr01RiskInventory[]
+  nr01ActionPlans       Nr01ActionPlan[]
+  nr01Evidences         Nr01Evidence[]
+  psychosocialCampaigns PsychosocialCampaign[]
+  psychosocialSessions  PsychosocialQuestionnaireSession[]
+  psychosocialReports   PsychosocialTechnicalReport[]
 
   @@map("companies")
 }
@@ -165,38 +174,39 @@ model JobPosition {
 }
 
 model Employee {
-  id                   String                    @id @default(uuid()) @db.Uuid
-  userId               String?                   @map("user_id") @db.Uuid
-  companyId            String                    @map("company_id") @db.Uuid
-  companyUnitId        String?                   @map("company_unit_id") @db.Uuid
-  departmentId         String?                   @map("department_id") @db.Uuid
-  jobPositionId        String?                   @map("job_position_id") @db.Uuid
+  id                   String                             @id @default(uuid()) @db.Uuid
+  userId               String?                            @map("user_id") @db.Uuid
+  companyId            String                             @map("company_id") @db.Uuid
+  companyUnitId        String?                            @map("company_unit_id") @db.Uuid
+  departmentId         String?                            @map("department_id") @db.Uuid
+  jobPositionId        String?                            @map("job_position_id") @db.Uuid
   cpf                  String
-  fullName             String                    @map("full_name")
-  socialName           String?                   @map("social_name")
-  birthDate            DateTime?                 @map("birth_date") @db.Date
+  fullName             String                             @map("full_name")
+  socialName           String?                            @map("social_name")
+  birthDate            DateTime?                          @map("birth_date") @db.Date
   sex                  String?
   email                String?
   phone                String?
   whatsapp             String?
-  employeeRegistration String?                   @map("employee_registration")
-  workerCategoryCode   String?                   @map("worker_category_code")
-  cboCode              String?                   @map("cbo_code")
-  admissionDate        DateTime?                 @map("admission_date") @db.Date
-  employmentStatus     String                    @default("active") @map("employment_status")
-  hasMedicalPlan       Boolean                   @default(false) @map("has_medical_plan")
-  hasDentalPlan        Boolean                   @default(false) @map("has_dental_plan")
-  hasLifeInsurance     Boolean                   @default(false) @map("has_life_insurance")
-  registrationStatus   String                    @default("pending_validation") @map("registration_status")
-  createdAt            DateTime                  @default(now()) @map("created_at")
-  updatedAt            DateTime                  @updatedAt @map("updated_at")
-  company              Company                   @relation(fields: [companyId], references: [id])
-  companyUnit          CompanyUnit?              @relation(fields: [companyUnitId], references: [id])
-  department           Department?               @relation(fields: [departmentId], references: [id])
-  jobPosition          JobPosition?              @relation(fields: [jobPositionId], references: [id])
+  employeeRegistration String?                            @map("employee_registration")
+  workerCategoryCode   String?                            @map("worker_category_code")
+  cboCode              String?                            @map("cbo_code")
+  admissionDate        DateTime?                          @map("admission_date") @db.Date
+  employmentStatus     String                             @default("active") @map("employment_status")
+  hasMedicalPlan       Boolean                            @default(false) @map("has_medical_plan")
+  hasDentalPlan        Boolean                            @default(false) @map("has_dental_plan")
+  hasLifeInsurance     Boolean                            @default(false) @map("has_life_insurance")
+  registrationStatus   String                             @default("pending_validation") @map("registration_status")
+  createdAt            DateTime                           @default(now()) @map("created_at")
+  updatedAt            DateTime                           @updatedAt @map("updated_at")
+  company              Company                            @relation(fields: [companyId], references: [id])
+  companyUnit          CompanyUnit?                       @relation(fields: [companyUnitId], references: [id])
+  department           Department?                        @relation(fields: [departmentId], references: [id])
+  jobPosition          JobPosition?                       @relation(fields: [jobPositionId], references: [id])
   auditEvents          AuditEvent[]
   notifications        OperationalNotification[]
   nr01Risks            Nr01RiskInventory[]
+  psychosocialSessions PsychosocialQuestionnaireSession[]
 
   @@unique([companyId, cpf])
   @@index([companyId, departmentId, jobPositionId])
@@ -365,4 +375,104 @@ model Nr01Evidence {
 
   @@index([companyId, uploadedAt])
   @@map("nr01_evidences")
+}
+
+model PsychosocialCampaign {
+  id                 String                             @id @default(uuid()) @db.Uuid
+  companyId          String                             @map("company_id") @db.Uuid
+  name               String
+  startDate          DateTime                           @map("start_date") @db.Date
+  endDate            DateTime                           @map("end_date") @db.Date
+  targetParticipants Int                                @map("target_participants")
+  responseCount      Int                                @default(0) @map("response_count")
+  responseRate       Int                                @default(0) @map("response_rate")
+  status             String                             @default("draft")
+  createdAt          DateTime                           @default(now()) @map("created_at")
+  updatedAt          DateTime                           @updatedAt @map("updated_at")
+  company            Company                            @relation(fields: [companyId], references: [id])
+  sessions           PsychosocialQuestionnaireSession[]
+  technicalReports   PsychosocialTechnicalReport[]
+
+  @@index([companyId, status, endDate])
+  @@map("psychosocial_campaigns")
+}
+
+model PsychosocialQuestion {
+  id            String   @id @default(uuid()) @db.Uuid
+  questionKey   String   @unique @map("question_key")
+  order         Int
+  axis          String?
+  factor        String
+  prompt        String
+  reverseScored Boolean  @default(false) @map("reverse_scored")
+  options       Json
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([active, order])
+  @@map("psychosocial_questions")
+}
+
+model PsychosocialQuestionnaireSession {
+  id              String                            @id @default(uuid()) @db.Uuid
+  campaignId      String                            @map("campaign_id") @db.Uuid
+  companyId       String                            @map("company_id") @db.Uuid
+  employeeId      String                            @map("employee_id") @db.Uuid
+  sectorName      String                            @map("sector_name")
+  status          PsychosocialQuestionnaireStatus   @default(IN_PROGRESS)
+  answeredCount   Int                               @default(0) @map("answered_count")
+  totalQuestions  Int                               @default(0) @map("total_questions")
+  progressPercent Int                               @default(0) @map("progress_percent")
+  averageScore    Decimal?                          @map("average_score") @db.Decimal(5, 2)
+  riskPercent     Decimal?                          @map("risk_percent") @db.Decimal(5, 2)
+  riskLevel       RiskLevel?                        @map("risk_level")
+  startedAt       DateTime                          @default(now()) @map("started_at")
+  updatedAt       DateTime                          @updatedAt @map("updated_at")
+  finalizedAt     DateTime?                         @map("finalized_at")
+  campaign        PsychosocialCampaign              @relation(fields: [campaignId], references: [id])
+  company         Company                           @relation(fields: [companyId], references: [id])
+  employee        Employee                          @relation(fields: [employeeId], references: [id])
+  answers         PsychosocialQuestionnaireAnswer[]
+
+  @@unique([campaignId, employeeId])
+  @@index([companyId, status, updatedAt])
+  @@index([employeeId, updatedAt])
+  @@map("psychosocial_questionnaire_sessions")
+}
+
+model PsychosocialQuestionnaireAnswer {
+  id          String                           @id @default(uuid()) @db.Uuid
+  sessionId   String                           @map("session_id") @db.Uuid
+  questionKey String                           @map("question_key")
+  axis        String?
+  score       Int
+  riskScore   Int?                             @map("risk_score")
+  answeredAt  DateTime                         @default(now()) @map("answered_at")
+  session     PsychosocialQuestionnaireSession @relation(fields: [sessionId], references: [id])
+
+  @@unique([sessionId, questionKey])
+  @@index([axis])
+  @@map("psychosocial_questionnaire_answers")
+}
+
+model PsychosocialTechnicalReport {
+  id                        String               @id @default(uuid()) @db.Uuid
+  campaignId                String               @map("campaign_id") @db.Uuid
+  companyId                 String               @map("company_id") @db.Uuid
+  minimumAnonymousGroupSize Int                  @map("minimum_anonymous_group_size")
+  totalResponses            Int                  @map("total_responses")
+  visibleGroups             Int                  @map("visible_groups")
+  aggregatedGroups          Int                  @map("aggregated_groups")
+  overallRiskPercent        Decimal              @map("overall_risk_percent") @db.Decimal(5, 2)
+  overallRiskLevel          RiskLevel            @map("overall_risk_level")
+  priorityAxisLabel         String               @map("priority_axis_label")
+  executiveSummary          String               @map("executive_summary")
+  interventionPlan          Json                 @map("intervention_plan")
+  generatedAt               DateTime             @default(now()) @map("generated_at")
+  campaign                  PsychosocialCampaign @relation(fields: [campaignId], references: [id])
+  company                   Company              @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, generatedAt])
+  @@map("psychosocial_technical_reports")
 }

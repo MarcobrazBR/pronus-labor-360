@@ -72,6 +72,60 @@ export interface CopsoqAxisRisk {
   riskLevel: PsychosocialRiskLevel;
 }
 
+export interface PsychosocialQuestionScore {
+  questionId: string;
+  score: number;
+}
+
+export interface PsychosocialQuestionnaireProgress {
+  id: string;
+  campaignId: string;
+  employeeId: string;
+  companyTradeName: string;
+  sectorName: string;
+  scores: PsychosocialQuestionScore[];
+  answeredCount: number;
+  totalQuestions: number;
+  progressPercent: number;
+  isFinalized: boolean;
+  receipt?: PsychosocialAnswerReceipt;
+  startedAt: string;
+  updatedAt: string;
+  finalizedAt?: string;
+}
+
+export interface SavePsychosocialProgressInput {
+  campaignId: string;
+  employeeId: string;
+  sectorName: string;
+  scores: PsychosocialQuestionScore[];
+}
+
+export interface PsychosocialInterventionAction {
+  id: string;
+  priority: "low" | "medium" | "high" | "critical";
+  target: string;
+  action: string;
+  ownerSuggestion: string;
+  evidenceExpected: string;
+}
+
+export interface PsychosocialTechnicalReport {
+  id: string;
+  campaignId: string;
+  companyTradeName: string;
+  generatedAt: string;
+  minimumAnonymousGroupSize: number;
+  totalResponses: number;
+  visibleGroups: number;
+  aggregatedGroups: number;
+  overallRiskPercent: number;
+  overallRiskLevel: PsychosocialRiskLevel;
+  priorityAxisLabel: string;
+  executiveSummary: string;
+  interventionPlan: PsychosocialInterventionAction[];
+}
+
 export interface CopsoqSectorAxisRisk {
   companyTradeName: string;
   sectorName: string;
@@ -117,10 +171,7 @@ export interface SubmitPsychosocialAnswerInput {
   campaignId: string;
   employeeId?: string;
   sectorName: string;
-  scores: Array<{
-    questionId: string;
-    score: number;
-  }>;
+  scores: PsychosocialQuestionScore[];
 }
 
 export interface PsychosocialAnswerReceipt {
@@ -129,7 +180,9 @@ export interface PsychosocialAnswerReceipt {
   employeeId?: string;
   sectorName: string;
   averageScore: number;
+  riskPercent: number;
   riskLevel: PsychosocialRiskLevel;
+  axisScores?: CopsoqAxisRisk[];
   createdAt: string;
 }
 

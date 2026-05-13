@@ -327,6 +327,31 @@ export interface CopsoqCompanyAnalysis {
   sectors: CopsoqSectorAxisRisk[];
 }
 
+export interface PsychosocialInterventionAction {
+  id: string;
+  priority: "low" | "medium" | "high" | "critical";
+  target: string;
+  action: string;
+  ownerSuggestion: string;
+  evidenceExpected: string;
+}
+
+export interface PsychosocialTechnicalReport {
+  id: string;
+  campaignId: string;
+  companyTradeName: string;
+  generatedAt: string;
+  minimumAnonymousGroupSize: number;
+  totalResponses: number;
+  visibleGroups: number;
+  aggregatedGroups: number;
+  overallRiskPercent: number;
+  overallRiskLevel: RiskLevel;
+  priorityAxisLabel: string;
+  executiveSummary: string;
+  interventionPlan: PsychosocialInterventionAction[];
+}
+
 export type PronusDocumentType =
   | "pgr"
   | "aso"
@@ -1209,6 +1234,34 @@ const fallbackCopsoqAnalysis: CopsoqCompanyAnalysis[] = [
   },
 ];
 
+const fallbackPsychosocialTechnicalReports: PsychosocialTechnicalReport[] = [
+  {
+    id: "report-campaign-horizonte-2026-01",
+    campaignId: "campaign-horizonte-2026-01",
+    companyTradeName: "Industria Horizonte",
+    generatedAt: "2026-05-11T00:00:00.000Z",
+    minimumAnonymousGroupSize: 7,
+    totalResponses: 134,
+    visibleGroups: 3,
+    aggregatedGroups: 1,
+    overallRiskPercent: 59.4,
+    overallRiskLevel: "moderate",
+    priorityAxisLabel: "Efeitos na Saude e Bem-estar",
+    executiveSummary:
+      "Campanha em acompanhamento preventivo com prioridade em saude e bem-estar, preservando anonimato em grupos pequenos.",
+    interventionPlan: [
+      {
+        id: "intervention-horizonte-health",
+        priority: "high",
+        target: "Efeitos na Saude e Bem-estar",
+        action: "Construir plano de acolhimento com RH, liderancas e corpo clinico PRONUS.",
+        ownerSuggestion: "PRONUS + RH cliente",
+        evidenceExpected: "Plano de acao, registro de reuniao e nova medicao de acompanhamento.",
+      },
+    ],
+  },
+];
+
 const fallbackDocumentsSummary: DocumentsSummary = {
   generatedAt: "2026-04-28T00:00:00.000Z",
   documents: 3,
@@ -1477,7 +1530,7 @@ export async function loadNr01Data() {
 }
 
 export async function loadPsychosocialData() {
-  const [summary, campaigns, signals, copsoqAnalysis] = await Promise.all([
+  const [summary, campaigns, signals, copsoqAnalysis, technicalReports] = await Promise.all([
     fetchApi<PsychosocialSummary>("/psychosocial/summary", fallbackPsychosocialSummary),
     fetchApi<PsychosocialCampaign[]>("/psychosocial/campaigns", fallbackPsychosocialCampaigns),
     fetchApi<PsychosocialSectorSignal[]>(
@@ -1485,9 +1538,13 @@ export async function loadPsychosocialData() {
       fallbackPsychosocialSignals,
     ),
     fetchApi<CopsoqCompanyAnalysis[]>("/psychosocial/copsoq-analysis", fallbackCopsoqAnalysis),
+    fetchApi<PsychosocialTechnicalReport[]>(
+      "/psychosocial/technical-reports",
+      fallbackPsychosocialTechnicalReports,
+    ),
   ]);
 
-  return { summary, campaigns, signals, copsoqAnalysis };
+  return { summary, campaigns, signals, copsoqAnalysis, technicalReports };
 }
 
 export async function loadDocumentsData() {

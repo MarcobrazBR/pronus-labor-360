@@ -12,6 +12,7 @@ import type {
   PsychosocialCampaign,
   PsychosocialSectorSignal,
   PsychosocialSummary,
+  PsychosocialTechnicalReport,
 } from "../pronus-data";
 import {
   actionStatusClasses,
@@ -147,6 +148,7 @@ export function OccupationalRiskPanel({
   psychosocial: {
     campaigns: PsychosocialCampaign[];
     copsoqAnalysis: CopsoqCompanyAnalysis[];
+    technicalReports: PsychosocialTechnicalReport[];
     signals: PsychosocialSectorSignal[];
     summary: PsychosocialSummary;
   };
@@ -480,6 +482,7 @@ export function OccupationalRiskPanel({
         <PsychosocialRiskPanel
           campaigns={psychosocial.campaigns}
           copsoqAnalysis={psychosocial.copsoqAnalysis}
+          technicalReports={psychosocial.technicalReports}
           signals={psychosocial.signals}
           summary={psychosocial.summary}
         />

@@ -10,6 +10,7 @@ import {
   type PsychosocialCampaign,
   type PsychosocialSectorSignal,
   type PsychosocialSummary,
+  type PsychosocialTechnicalReport,
 } from "../pronus-data";
 
 const axisColors: Record<CopsoqAxisId, string> = {
@@ -23,11 +24,13 @@ const axisColors: Record<CopsoqAxisId, string> = {
 export function PsychosocialRiskPanel({
   campaigns,
   copsoqAnalysis,
+  technicalReports,
   signals,
   summary,
 }: Readonly<{
   campaigns: PsychosocialCampaign[];
   copsoqAnalysis: CopsoqCompanyAnalysis[];
+  technicalReports: PsychosocialTechnicalReport[];
   signals: PsychosocialSectorSignal[];
   summary: PsychosocialSummary;
 }>) {
@@ -37,6 +40,10 @@ export function PsychosocialRiskPanel({
   const activeAnalysis =
     copsoqAnalysis.find((analysis) => analysis.companyTradeName === selectedCompany) ??
     copsoqAnalysis[0];
+  const activeTechnicalReport =
+    activeAnalysis === undefined
+      ? undefined
+      : technicalReports.find((report) => report.campaignId === activeAnalysis.campaignId);
   const discGradient = useMemo(() => {
     if (activeAnalysis === undefined || activeAnalysis.axes.length === 0) {
       return "#e2e8f0";
@@ -171,6 +178,82 @@ export function PsychosocialRiskPanel({
               </div>
             </div>
           </article>
+
+          {activeTechnicalReport !== undefined && (
+            <article className="rounded-lg border border-slate-200 bg-white">
+              <div className="grid gap-4 border-b border-slate-200 px-5 py-4 lg:grid-cols-[1fr_auto]">
+                <div>
+                  <h3 className="text-base font-semibold">Relatorio tecnico e plano de intervencao</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Leitura tecnica agregada, com regra minima de anonimato e acoes sugeridas.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-right text-xs text-slate-500">
+                  <span>
+                    Minimo anonimo
+                    <strong className="block text-base text-slate-950">
+                      {activeTechnicalReport.minimumAnonymousGroupSize}
+                    </strong>
+                  </span>
+                  <span>
+                    Grupos agregados
+                    <strong className="block text-base text-slate-950">
+                      {activeTechnicalReport.aggregatedGroups}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+              <div className="grid gap-4 p-5 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-semibold text-slate-950">
+                    Prioridade tecnica: {activeTechnicalReport.priorityAxisLabel}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {activeTechnicalReport.executiveSummary}
+                  </p>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-slate-500">
+                    <span>
+                      Respostas
+                      <strong className="block text-lg text-slate-950">
+                        {activeTechnicalReport.totalResponses}
+                      </strong>
+                    </span>
+                    <span>
+                      Risco
+                      <strong className="block text-lg text-slate-950">
+                        {activeTechnicalReport.overallRiskPercent}%
+                      </strong>
+                    </span>
+                    <span>
+                      Visiveis
+                      <strong className="block text-lg text-slate-950">
+                        {activeTechnicalReport.visibleGroups}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {activeTechnicalReport.interventionPlan.map((item) => (
+                    <div key={item.id} className="rounded-md border border-slate-200 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-950">{item.target}</p>
+                        <span className="rounded-full bg-pronus-primary/10 px-2 py-1 text-xs font-semibold text-pronus-primary">
+                          {item.priority}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-600">{item.action}</p>
+                      <p className="mt-2 text-xs font-medium text-slate-500">
+                        Responsavel sugerido: {item.ownerSuggestion}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Evidencia: {item.evidenceExpected}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
+          )}
 
           <article className="rounded-lg border border-slate-200 bg-white">
             <div className="border-b border-slate-200 px-5 py-4">

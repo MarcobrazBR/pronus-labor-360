@@ -9,13 +9,18 @@ import type {
   CopsoqSectorAxisRisk,
   CreatePsychosocialCampaignInput,
   PsychosocialEmployeeAnswer,
+  PsychosocialInterventionAction,
   PsychosocialAnswerReceipt,
   PsychosocialCampaign,
   PsychosocialCampaignStatus,
   PsychosocialQuestion,
+  PsychosocialQuestionnaireProgress,
+  PsychosocialQuestionScore,
   PsychosocialRiskLevel,
   PsychosocialSectorSignal,
   PsychosocialSummary,
+  PsychosocialTechnicalReport,
+  SavePsychosocialProgressInput,
   SubmitPsychosocialAnswerInput,
   UpdatePsychosocialCampaignInput,
 } from "./psychosocial.types";
@@ -31,6 +36,7 @@ const campaignStatuses = new Set<PsychosocialCampaignStatus>([
   "analysis_in_progress",
   "completed",
 ]);
+const minimumAnonymousGroupSize = 7;
 
 function now(): string {
   return new Date().toISOString();
@@ -153,6 +159,38 @@ function normalizeScore(value: unknown): number {
 
 function riskScoreForQuestion(question: PsychosocialQuestion, score: number): number {
   return question.reverseScored ? 6 - score : score;
+}
+
+function axisIdForQuestion(question: PsychosocialQuestion): CopsoqAxisId | undefined {
+  if (question.factor === "Identificacao") {
+    return undefined;
+  }
+
+  if (question.factor.startsWith("A1.") || question.factor.startsWith("A2.")) {
+    return "work_demands";
+  }
+
+  if (question.factor.startsWith("A3.") || question.factor.startsWith("A4.")) {
+    return "work_organization";
+  }
+
+  if (question.factor.startsWith("A5.") || question.factor.startsWith("A6.")) {
+    return "relationships_leadership";
+  }
+
+  if (question.factor.startsWith("B1.") || question.factor.startsWith("B2.")) {
+    return "company_worker_relation";
+  }
+
+  if (question.factor.startsWith("C1.")) {
+    return "health_wellbeing";
+  }
+
+  return undefined;
+}
+
+function riskPercentFromScore(score: number): number {
+  return Math.round(((score - 1) / 4) * 1000) / 10;
 }
 
 const startedAt = now();
@@ -290,6 +328,7 @@ const seededCopsoqAxisBySector: Record<string, Partial<Record<CopsoqAxisId, numb
 
 interface PsychosocialStorageState {
   answers: PsychosocialEmployeeAnswer[];
+  progress: PsychosocialQuestionnaireProgress[];
 }
 
 const campaigns: PsychosocialCampaign[] = [
@@ -330,6 +369,7 @@ const seededAnswers: PsychosocialEmployeeAnswer[] = [
     sectorName: "Producao",
     averageScore: 2.2,
     riskLevel: "low",
+    riskPercent: 30,
     createdAt: "2026-04-18T12:00:00.000Z",
   },
   {
@@ -339,6 +379,7 @@ const seededAnswers: PsychosocialEmployeeAnswer[] = [
     employeeId: "employee-002",
     sectorName: "Manutencao",
     averageScore: 3.9,
+    riskPercent: 72.5,
     riskLevel: "high",
     createdAt: "2026-04-29T19:00:00.000Z",
   },
@@ -349,6 +390,7 @@ const seededAnswers: PsychosocialEmployeeAnswer[] = [
     employeeId: "employee-003",
     sectorName: "Administrativo",
     averageScore: 3.7,
+    riskPercent: 67.5,
     riskLevel: "high",
     createdAt: "2026-04-20T12:00:00.000Z",
   },
@@ -384,6 +426,7 @@ function psychosocialStatePath(): string {
 function emptyPsychosocialState(): PsychosocialStorageState {
   return {
     answers: [...seededAnswers],
+    progress: [],
   };
 }
 
@@ -401,6 +444,7 @@ function loadPsychosocialState(): PsychosocialStorageState {
       readFileSync(readablePath, "utf8"),
     ) as Partial<PsychosocialStorageState>;
     const storedAnswers = parsedState.answers ?? [];
+    const storedProgress = parsedState.progress ?? [];
 
     return {
       ...emptyPsychosocialState(),
@@ -411,6 +455,7 @@ function loadPsychosocialState(): PsychosocialStorageState {
           storedAnswers.every((answer) => answer.employeeId !== seededAnswer.employeeId),
         ),
       ],
+      progress: storedProgress,
     };
   } catch {
     return emptyPsychosocialState();
@@ -572,11 +617,15 @@ export class PsychosocialService {
   }
 
   listSectorSignals(): PsychosocialSectorSignal[] {
-    return sectorSignals;
+    return sectorSignals.map((signal) => this.applyPrivacyRule(signal));
   }
 
   listCopsoqAnalysis(): CopsoqCompanyAnalysis[] {
     return campaigns.map((campaign) => this.buildCopsoqCompanyAnalysis(campaign));
+  }
+
+  listTechnicalReports(): PsychosocialTechnicalReport[] {
+    return campaigns.map((campaign) => this.buildTechnicalReport(campaign));
   }
 
   listAnswers(): PsychosocialEmployeeAnswer[] {
@@ -591,6 +640,51 @@ export class PsychosocialService {
     );
   }
 
+  getEmployeeProgress(employeeId: string): PsychosocialQuestionnaireProgress | null {
+    return (
+      psychosocialState.progress
+        .filter((progress) => progress.employeeId === employeeId)
+        .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0] ?? null
+    );
+  }
+
+  saveProgress(input: SavePsychosocialProgressInput): PsychosocialQuestionnaireProgress {
+    const campaign = this.findCampaign(input.campaignId);
+    const employeeId = requireText(input.employeeId, "employeeId");
+    const sectorName = requireText(input.sectorName, "sectorName");
+    const normalizedScores = this.normalizeQuestionScores(input.scores, false);
+    const updatedAt = now();
+    const existingProgress = psychosocialState.progress.find(
+      (progress) => progress.campaignId === campaign.id && progress.employeeId === employeeId,
+    );
+    const receipt = this.getEmployeeAnswer(employeeId) ?? existingProgress?.receipt;
+    const progress: PsychosocialQuestionnaireProgress = {
+      id: existingProgress?.id ?? randomUUID(),
+      campaignId: campaign.id,
+      companyTradeName: campaign.companyTradeName,
+      employeeId,
+      sectorName,
+      scores: normalizedScores,
+      answeredCount: normalizedScores.length,
+      totalQuestions: this.scorableQuestions().length,
+      progressPercent: this.progressPercent(normalizedScores),
+      isFinalized: receipt !== undefined && receipt !== null,
+      receipt: receipt ?? undefined,
+      startedAt: existingProgress?.startedAt ?? updatedAt,
+      updatedAt,
+      finalizedAt: existingProgress?.finalizedAt,
+    };
+
+    if (existingProgress === undefined) {
+      psychosocialState.progress.unshift(progress);
+    } else {
+      Object.assign(existingProgress, progress);
+    }
+
+    savePsychosocialState(psychosocialState);
+    return progress;
+  }
+
   submitAnswer(input: SubmitPsychosocialAnswerInput): PsychosocialAnswerReceipt {
     const campaign = this.findCampaign(input.campaignId);
     const sectorName = requireText(input.sectorName, "sectorName");
@@ -600,22 +694,9 @@ export class PsychosocialService {
       throw new BadRequestException("Questionario sem respostas");
     }
 
-    const questionsById = new Map(questions.map((question) => [question.id, question]));
-    const normalizedScores = input.scores.map((answer) => {
-      const question = questionsById.get(answer.questionId);
-
-      if (question === undefined) {
-        throw new BadRequestException("Questao psicossocial invalida");
-      }
-
-      return riskScoreForQuestion(question, normalizeScore(answer.score));
-    });
-    const averageScore =
-      Math.round(
-        (normalizedScores.reduce((total, score) => total + score, 0) / normalizedScores.length) *
-          10,
-      ) / 10;
-    const riskLevel = classifyScore(averageScore);
+    const scoredResult = this.calculateCopsoqScore(input.scores);
+    const averageScore = scoredResult.averageScore;
+    const riskLevel = scoredResult.riskLevel;
     const createdAt = now();
     const existingAnswer =
       employeeId === undefined
@@ -638,7 +719,9 @@ export class PsychosocialService {
       employeeId,
       sectorName,
       averageScore,
+      riskPercent: scoredResult.riskPercent,
       riskLevel,
+      axisScores: scoredResult.axisScores,
       createdAt,
     };
 
@@ -656,9 +739,238 @@ export class PsychosocialService {
       }
 
       savePsychosocialState(psychosocialState);
+      this.markProgressAsFinalized(campaign, employeeId, sectorName, input.scores, receipt);
     }
 
     return receipt;
+  }
+
+  private scorableQuestions(): PsychosocialQuestion[] {
+    return questions.filter((question) => axisIdForQuestion(question) !== undefined);
+  }
+
+  private normalizeQuestionScores(
+    scores: PsychosocialQuestionScore[],
+    requireAllQuestions: boolean,
+  ): PsychosocialQuestionScore[] {
+    if (!Array.isArray(scores) || scores.length === 0) {
+      return [];
+    }
+
+    const questionsById = new Map(questions.map((question) => [question.id, question]));
+    const normalizedByQuestion = new Map<string, PsychosocialQuestionScore>();
+
+    for (const answer of scores) {
+      const question = questionsById.get(answer.questionId);
+
+      if (question === undefined) {
+        throw new BadRequestException("Questao psicossocial invalida");
+      }
+
+      normalizedByQuestion.set(answer.questionId, {
+        questionId: answer.questionId,
+        score: normalizeScore(answer.score),
+      });
+    }
+
+    const normalizedScores = Array.from(normalizedByQuestion.values()).sort((first, second) => {
+      const firstQuestion = questionsById.get(first.questionId);
+      const secondQuestion = questionsById.get(second.questionId);
+      return (firstQuestion?.order ?? 0) - (secondQuestion?.order ?? 0);
+    });
+
+    if (requireAllQuestions) {
+      const missingQuestion = this.scorableQuestions().find(
+        (question) => !normalizedByQuestion.has(question.id),
+      );
+
+      if (missingQuestion !== undefined) {
+        throw new BadRequestException("Questionario finalizado sem todas as perguntas obrigatorias");
+      }
+    }
+
+    return normalizedScores;
+  }
+
+  private progressPercent(scores: PsychosocialQuestionScore[]): number {
+    const requiredQuestions = this.scorableQuestions();
+    const answeredRequiredQuestions = new Set(
+      scores
+        .filter((score) => {
+          const question = questions.find((item) => item.id === score.questionId);
+          return question !== undefined && axisIdForQuestion(question) !== undefined;
+        })
+        .map((score) => score.questionId),
+    );
+
+    if (requiredQuestions.length === 0) {
+      return 0;
+    }
+
+    return Math.round((answeredRequiredQuestions.size / requiredQuestions.length) * 100);
+  }
+
+  private calculateCopsoqScore(scores: PsychosocialQuestionScore[]): {
+    averageScore: number;
+    riskPercent: number;
+    riskLevel: PsychosocialRiskLevel;
+    axisScores: CopsoqAxisRisk[];
+  } {
+    const normalizedScores = this.normalizeQuestionScores(scores, true);
+    const questionsById = new Map(questions.map((question) => [question.id, question]));
+    const groupedScores = new Map<CopsoqAxisId, number[]>();
+    const allRiskScores: number[] = [];
+
+    for (const answer of normalizedScores) {
+      const question = questionsById.get(answer.questionId);
+      const axisId = question === undefined ? undefined : axisIdForQuestion(question);
+
+      if (question === undefined || axisId === undefined) {
+        continue;
+      }
+
+      const riskScore = riskScoreForQuestion(question, answer.score);
+      const currentScores = groupedScores.get(axisId) ?? [];
+
+      currentScores.push(riskScore);
+      groupedScores.set(axisId, currentScores);
+      allRiskScores.push(riskScore);
+    }
+
+    if (allRiskScores.length === 0) {
+      throw new BadRequestException("Questionario sem perguntas pontuaveis");
+    }
+
+    const averageScore =
+      Math.round(
+        (allRiskScores.reduce((total, score) => total + score, 0) / allRiskScores.length) * 10,
+      ) / 10;
+    const riskPercent = riskPercentFromScore(averageScore);
+    const axisScores = copsoqAxes.map<CopsoqAxisRisk>((axis) => {
+      const axisRiskScores = groupedScores.get(axis.id) ?? [];
+      const axisAverage =
+        axisRiskScores.length === 0
+          ? 0
+          : axisRiskScores.reduce((total, score) => total + score, 0) / axisRiskScores.length;
+      const axisRiskPercent = axisRiskScores.length === 0 ? 0 : riskPercentFromScore(axisAverage);
+
+      return {
+        axisId: axis.id,
+        axisLabel: axis.label,
+        riskLevel: classifyRiskPercent(axisRiskPercent),
+        riskPercent: Math.round(axisRiskPercent * 10) / 10,
+      };
+    });
+
+    return {
+      averageScore,
+      riskLevel: classifyRiskPercent(riskPercent),
+      riskPercent,
+      axisScores,
+    };
+  }
+
+  private markProgressAsFinalized(
+    campaign: PsychosocialCampaign,
+    employeeId: string,
+    sectorName: string,
+    scores: PsychosocialQuestionScore[],
+    receipt: PsychosocialAnswerReceipt,
+  ): void {
+    const updatedAt = now();
+    const existingProgress = psychosocialState.progress.find(
+      (progress) => progress.campaignId === campaign.id && progress.employeeId === employeeId,
+    );
+    const normalizedScores = this.normalizeQuestionScores(scores, false);
+    const finalizedProgress: PsychosocialQuestionnaireProgress = {
+      id: existingProgress?.id ?? randomUUID(),
+      campaignId: campaign.id,
+      companyTradeName: campaign.companyTradeName,
+      employeeId,
+      sectorName,
+      scores: normalizedScores,
+      answeredCount: normalizedScores.length,
+      totalQuestions: this.scorableQuestions().length,
+      progressPercent: 100,
+      isFinalized: true,
+      receipt,
+      startedAt: existingProgress?.startedAt ?? updatedAt,
+      updatedAt,
+      finalizedAt: updatedAt,
+    };
+
+    if (existingProgress === undefined) {
+      psychosocialState.progress.unshift(finalizedProgress);
+    } else {
+      Object.assign(existingProgress, finalizedProgress);
+    }
+
+    savePsychosocialState(psychosocialState);
+  }
+
+  private applyPrivacyRule(signal: PsychosocialSectorSignal): PsychosocialSectorSignal {
+    if (signal.responses >= minimumAnonymousGroupSize) {
+      return {
+        ...signal,
+        privacyStatus: "visible",
+      };
+    }
+
+    return {
+      ...signal,
+      privacyStatus: "aggregated",
+      sectorName: "Setores agregados",
+      recommendation:
+        "Resultado agrupado automaticamente para preservar anonimato em grupos pequenos.",
+    };
+  }
+
+  private buildTechnicalReport(campaign: PsychosocialCampaign): PsychosocialTechnicalReport {
+    const analysis = this.buildCopsoqCompanyAnalysis(campaign);
+    const signals = sectorSignals.filter((signal) => signal.campaignId === campaign.id);
+    const visibleGroups = signals.filter(
+      (signal) => signal.responses >= minimumAnonymousGroupSize,
+    ).length;
+    const aggregatedGroups = signals.length - visibleGroups;
+
+    return {
+      id: `report-${campaign.id}`,
+      campaignId: campaign.id,
+      companyTradeName: campaign.companyTradeName,
+      generatedAt: now(),
+      minimumAnonymousGroupSize,
+      totalResponses: campaign.responseCount,
+      visibleGroups,
+      aggregatedGroups,
+      overallRiskPercent: analysis.overallRiskPercent,
+      overallRiskLevel: analysis.overallRiskLevel,
+      priorityAxisLabel: analysis.priorityAxisLabel,
+      executiveSummary:
+        analysis.overallRiskLevel === "high" || analysis.overallRiskLevel === "critical"
+          ? `Campanha indica prioridade tecnica em ${analysis.priorityAxisLabel.toLowerCase()}, mantendo exposicao apenas agregada por regra minima de anonimato.`
+          : `Campanha em acompanhamento preventivo, com atencao a ${analysis.priorityAxisLabel.toLowerCase()} e manutencao da regra minima de anonimato.`,
+      interventionPlan: this.buildInterventionPlan(analysis),
+    };
+  }
+
+  private buildInterventionPlan(analysis: CopsoqCompanyAnalysis): PsychosocialInterventionAction[] {
+    const sortedAxes = [...analysis.axes].sort(
+      (first, second) => second.riskPercent - first.riskPercent,
+    );
+
+    return sortedAxes.slice(0, 3).map((axis, index) => ({
+      id: `intervention-${analysis.campaignId}-${axis.axisId}`,
+      priority:
+        axis.riskLevel === "critical" ? "critical" : axis.riskLevel === "high" ? "high" : "medium",
+      target: axis.axisLabel,
+      action:
+        index === 0
+          ? "Construir plano de intervencao com lideranca, RH e corpo clinico PRONUS."
+          : "Monitorar indicador e definir acao preventiva setorial sem expor dados individuais.",
+      ownerSuggestion: index === 0 ? "PRONUS + RH cliente" : "RH cliente",
+      evidenceExpected:
+        "Registro de reuniao, plano de acao, comunicacao interna e nova medicao de acompanhamento.",
+    }));
   }
 
   private findCampaign(id: string): PsychosocialCampaign {

@@ -44,8 +44,23 @@ interface PsychosocialCampaign {
 interface PsychosocialAnswerReceipt {
   id: string;
   averageScore: number;
+  riskPercent?: number;
   riskLevel: RiskLevel;
   createdAt: string;
+}
+
+interface PsychosocialQuestionnaireProgress {
+  id: string;
+  campaignId: string;
+  employeeId: string;
+  sectorName: string;
+  scores: Array<{ questionId: string; score: number }>;
+  answeredCount: number;
+  totalQuestions: number;
+  progressPercent: number;
+  isFinalized: boolean;
+  receipt?: PsychosocialAnswerReceipt;
+  updatedAt: string;
 }
 
 interface SavedQuestionnaireState {
@@ -204,6 +219,7 @@ export function PsychosocialQuestionnairePanel({
   const [hasSyncedFinalized, setHasSyncedFinalized] = useState(false);
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   const storageKey = useMemo(() => `pronus:copsq:${profile.employeeId}`, [profile.employeeId]);
 
@@ -229,12 +245,16 @@ export function PsychosocialQuestionnairePanel({
 
       try {
         const apiUrl = getApiUrl();
-        const [questionsResponse, campaignsResponse] = await Promise.all([
+        const [questionsResponse, campaignsResponse, progressResponse] = await Promise.all([
           fetch(`${apiUrl}/psychosocial/questions`),
           fetch(`${apiUrl}/psychosocial/campaigns`),
+          fetch(`${apiUrl}/psychosocial/progress/employee/${profile.employeeId}`),
         ]);
         const questionsPayload = (await questionsResponse.json()) as unknown;
         const campaignsPayload = (await campaignsResponse.json()) as unknown;
+        const progressPayload = progressResponse.ok
+          ? ((await progressResponse.json()) as PsychosocialQuestionnaireProgress | null)
+          : null;
 
         if (!questionsResponse.ok) {
           throw new Error(responseMessage(questionsPayload, "Questionario indisponivel"));
@@ -245,10 +265,36 @@ export function PsychosocialQuestionnairePanel({
         }
 
         if (!shouldIgnore) {
-          setQuestions(
-            (questionsPayload as PsychosocialQuestion[]).sort((a, b) => a.order - b.order),
+          const sortedQuestions = (questionsPayload as PsychosocialQuestion[]).sort(
+            (a, b) => a.order - b.order,
           );
+
+          setQuestions(sortedQuestions);
           setCampaigns(campaignsPayload as PsychosocialCampaign[]);
+
+          if (progressPayload !== null) {
+            const backendScores = Object.fromEntries(
+              progressPayload.scores.map((score) => [score.questionId, score.score]),
+            );
+            const backendReceipt = progressPayload.receipt ?? null;
+            const backendBlocks = buildQuestionBlocks(sortedQuestions);
+
+            setScores(backendScores);
+            setReceipt(backendReceipt);
+            setIsFinalized(progressPayload.isFinalized);
+            setHasSyncedFinalized(progressPayload.isFinalized);
+            setLastSavedAt(progressPayload.updatedAt);
+            setCurrentBlockIndex(firstIncompleteBlockIndex(backendBlocks, backendScores));
+            writeSavedState(storageKey, {
+              isFinalized: progressPayload.isFinalized,
+              receipt: backendReceipt,
+              scores: backendScores,
+            });
+
+            if (progressPayload.isFinalized && backendReceipt !== null) {
+              onCompleted?.(backendReceipt);
+            }
+          }
         }
       } catch (loadError) {
         if (!shouldIgnore) {
@@ -270,7 +316,7 @@ export function PsychosocialQuestionnairePanel({
     return () => {
       shouldIgnore = true;
     };
-  }, [profile.employeeId]);
+  }, [onCompleted, profile.employeeId, storageKey]);
 
   const selectedCampaign = useMemo(
     () =>
@@ -313,6 +359,39 @@ export function PsychosocialQuestionnairePanel({
     });
   }
 
+  async function saveProgress(nextScores: Record<string, number>) {
+    if (selectedCampaign === undefined || isFinalized) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${getApiUrl()}/psychosocial/progress`, {
+        body: JSON.stringify({
+          campaignId: selectedCampaign.id,
+          employeeId: profile.employeeId,
+          scores: Object.entries(nextScores).map(([questionId, score]) => ({
+            questionId,
+            score,
+          })),
+          sectorName: profile.department,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = (await response.json()) as PsychosocialQuestionnaireProgress | {
+        message?: string;
+      };
+
+      if (response.ok && "updatedAt" in payload) {
+        setLastSavedAt(payload.updatedAt);
+      }
+    } catch {
+      setLastSavedAt(null);
+    }
+  }
+
   function setAnswer(questionId: string, score: number) {
     if (isFinalized) {
       return;
@@ -326,6 +405,7 @@ export function PsychosocialQuestionnairePanel({
         receipt: null,
         scores: next,
       });
+      void saveProgress(next);
 
       return next;
     });
@@ -493,6 +573,7 @@ export function PsychosocialQuestionnairePanel({
                   type="button"
                   onClick={() => {
                     persist(scores);
+                    void saveProgress(scores);
                     setIsModalOpen(false);
                   }}
                 >
@@ -520,6 +601,7 @@ export function PsychosocialQuestionnairePanel({
                   </div>
                   <p className="mt-3 text-sm text-slate-600">
                     {answeredQuestions}/{questions.length} respostas salvas automaticamente.
+                    {lastSavedAt !== null ? " Servidor sincronizado." : ""}
                   </p>
                 </aside>
 

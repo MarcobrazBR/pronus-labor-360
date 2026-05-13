@@ -90,6 +90,8 @@ Estado encontrado:
 - Importacao de clientes agora valida unidade, setor, cargo e CBO contra os catalogos estruturais, informa erro por linha/campo e bloqueia CPF duplicado dentro da planilha ou ja cadastrado na empresa.
 - API psicossocial agora possui campanhas, questionario-base, envio inicial de respostas, calculo de adesao, classificacao de risco e sinais por setor com indicacao de privacidade.
 - API psicossocial agora aplica pontuacao reversa nas perguntas positivas antes de classificar o nivel de risco.
+- API psicossocial agora possui sessao de questionario com progresso parcial por colaborador, permitindo salvar resposta a resposta no backend e retomar em outro dispositivo.
+- Pontuacao COPSOQ passou a desconsiderar perguntas de identificacao no calculo de risco, calcular percentual por eixo e expor relatorio tecnico inicial com regra minima de anonimato e plano de intervencao.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
 - Portal PRONUS passou a consumir a API local com fallback para dados-semente.
 - Portal PRONUS reorganizado com navegacao real por paginas:
@@ -131,6 +133,7 @@ Estado encontrado:
 - Modulo Configuracoes centraliza a base logica de cargos, setores, feriados, agenda, tabelas auxiliares e parametros reguladores usados pelo restante do MVP.
 - Cadastro de empresa em Busca Empresa agora reconhece CNAE parametrizado e mostra grau de risco, classificacao de atividade e obrigacoes legais vinculadas antes de salvar o cadastro.
 - Schema Prisma preparado para Supabase com vinculos estruturais entre empresa, unidade, setor, cargo/CBO e colaborador, alem de tabelas-base para CNAE, grau de risco com status de revisao tecnico-juridica, inventario NR-01, planos de acao e evidencias.
+- Schema Prisma tambem recebeu tabelas-base para campanha psicossocial, catalogo de perguntas, sessao de questionario, respostas, relatorio tecnico e plano de intervencao em JSON, preparando a migracao do progresso parcial para Supabase.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.
