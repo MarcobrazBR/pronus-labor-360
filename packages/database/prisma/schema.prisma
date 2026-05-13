@@ -28,16 +28,39 @@ enum RecordStatus {
   BLOCKED
 }
 
+enum LegalReviewStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  RETIRED
+}
+
+enum Nr01RiskType {
+  PHYSICAL
+  CHEMICAL
+  BIOLOGICAL
+  ERGONOMIC
+  ACCIDENT
+}
+
+enum Nr01ActionStatus {
+  PLANNED
+  IN_PROGRESS
+  OVERDUE
+  COMPLETED
+  CANCELED
+}
+
 model User {
-  id        String     @id @default(uuid()) @db.Uuid
+  id        String       @id @default(uuid()) @db.Uuid
   name      String
-  email     String?    @unique
-  cpf       String?    @unique
+  email     String?      @unique
+  cpf       String?      @unique
   phone     String?
-  userType  UserType   @map("user_type")
+  userType  UserType     @map("user_type")
   status    RecordStatus @default(ACTIVE)
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -55,127 +78,146 @@ model OrganizationGroup {
 }
 
 model Company {
-  id                  String             @id @default(uuid()) @db.Uuid
-  organizationGroupId String             @map("organization_group_id") @db.Uuid
-  tradeName           String             @map("trade_name")
-  legalName           String             @map("legal_name")
-  cnpj                String             @unique
-  cnaeMain            String?            @map("cnae_main")
-  riskGrade           Int?               @map("risk_grade")
-  status              RecordStatus       @default(ACTIVE)
-  createdAt           DateTime           @default(now()) @map("created_at")
-  updatedAt           DateTime           @updatedAt @map("updated_at")
-  organizationGroup   OrganizationGroup  @relation(fields: [organizationGroupId], references: [id])
+  id                  String                    @id @default(uuid()) @db.Uuid
+  organizationGroupId String                    @map("organization_group_id") @db.Uuid
+  tradeName           String                    @map("trade_name")
+  legalName           String                    @map("legal_name")
+  cnpj                String                    @unique
+  cnaeMain            String?                   @map("cnae_main")
+  regulatoryCnaeId    String?                   @map("regulatory_cnae_id") @db.Uuid
+  riskGrade           Int?                      @map("risk_grade")
+  status              RecordStatus              @default(ACTIVE)
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+  organizationGroup   OrganizationGroup         @relation(fields: [organizationGroupId], references: [id])
   units               CompanyUnit[]
   departments         Department[]
   jobPositions        JobPosition[]
   employees           Employee[]
   auditEvents         AuditEvent[]
   notifications       OperationalNotification[]
+  regulatoryCnae      RegulatoryCnae?           @relation(fields: [regulatoryCnaeId], references: [id])
+  nr01Risks           Nr01RiskInventory[]
+  nr01ActionPlans     Nr01ActionPlan[]
+  nr01Evidences       Nr01Evidence[]
 
   @@map("companies")
 }
 
 model CompanyUnit {
-  id          String       @id @default(uuid()) @db.Uuid
-  companyId   String       @map("company_id") @db.Uuid
+  id          String              @id @default(uuid()) @db.Uuid
+  companyId   String              @map("company_id") @db.Uuid
   name        String
   code        String?
-  status      RecordStatus @default(ACTIVE)
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  company     Company      @relation(fields: [companyId], references: [id])
+  status      RecordStatus        @default(ACTIVE)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  company     Company             @relation(fields: [companyId], references: [id])
   departments Department[]
   employees   Employee[]
+  nr01Risks   Nr01RiskInventory[]
 
+  @@unique([companyId, name])
+  @@unique([companyId, code])
   @@map("company_units")
 }
 
 model Department {
-  id            String       @id @default(uuid()) @db.Uuid
-  companyId     String       @map("company_id") @db.Uuid
-  companyUnitId String?      @map("company_unit_id") @db.Uuid
+  id            String              @id @default(uuid()) @db.Uuid
+  companyId     String              @map("company_id") @db.Uuid
+  companyUnitId String?             @map("company_unit_id") @db.Uuid
   name          String
   code          String?
-  status        RecordStatus @default(ACTIVE)
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
-  company       Company      @relation(fields: [companyId], references: [id])
-  companyUnit   CompanyUnit? @relation(fields: [companyUnitId], references: [id])
+  status        RecordStatus        @default(ACTIVE)
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  company       Company             @relation(fields: [companyId], references: [id])
+  companyUnit   CompanyUnit?        @relation(fields: [companyUnitId], references: [id])
   jobPositions  JobPosition[]
   employees     Employee[]
+  nr01Risks     Nr01RiskInventory[]
 
+  @@unique([companyId, companyUnitId, name])
+  @@unique([companyId, code])
   @@map("departments")
 }
 
 model JobPosition {
-  id           String       @id @default(uuid()) @db.Uuid
-  companyId    String       @map("company_id") @db.Uuid
-  departmentId String?      @map("department_id") @db.Uuid
+  id           String              @id @default(uuid()) @db.Uuid
+  companyId    String              @map("company_id") @db.Uuid
+  departmentId String?             @map("department_id") @db.Uuid
   title        String
-  cboCode      String?      @map("cbo_code")
+  eSocialCode  String?             @map("esocial_code")
+  cboCode      String?             @map("cbo_code")
   description  String?
-  status       RecordStatus @default(ACTIVE)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  company      Company      @relation(fields: [companyId], references: [id])
-  department   Department?  @relation(fields: [departmentId], references: [id])
+  status       RecordStatus        @default(ACTIVE)
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  company      Company             @relation(fields: [companyId], references: [id])
+  department   Department?         @relation(fields: [departmentId], references: [id])
   employees    Employee[]
+  nr01Risks    Nr01RiskInventory[]
 
+  @@unique([companyId, departmentId, title])
+  @@unique([companyId, eSocialCode])
+  @@index([companyId, cboCode])
   @@map("job_positions")
 }
 
 model Employee {
-  id                   String       @id @default(uuid()) @db.Uuid
-  userId               String?      @map("user_id") @db.Uuid
-  companyId            String       @map("company_id") @db.Uuid
-  companyUnitId        String?      @map("company_unit_id") @db.Uuid
-  departmentId         String?      @map("department_id") @db.Uuid
-  jobPositionId        String?      @map("job_position_id") @db.Uuid
+  id                   String                    @id @default(uuid()) @db.Uuid
+  userId               String?                   @map("user_id") @db.Uuid
+  companyId            String                    @map("company_id") @db.Uuid
+  companyUnitId        String?                   @map("company_unit_id") @db.Uuid
+  departmentId         String?                   @map("department_id") @db.Uuid
+  jobPositionId        String?                   @map("job_position_id") @db.Uuid
   cpf                  String
-  fullName             String       @map("full_name")
-  socialName           String?      @map("social_name")
-  birthDate            DateTime?    @map("birth_date") @db.Date
+  fullName             String                    @map("full_name")
+  socialName           String?                   @map("social_name")
+  birthDate            DateTime?                 @map("birth_date") @db.Date
   sex                  String?
   email                String?
   phone                String?
   whatsapp             String?
-  employeeRegistration String?      @map("employee_registration")
-  workerCategoryCode   String?      @map("worker_category_code")
-  admissionDate        DateTime?    @map("admission_date") @db.Date
-  employmentStatus     String       @default("active") @map("employment_status")
-  hasMedicalPlan       Boolean      @default(false) @map("has_medical_plan")
-  hasDentalPlan        Boolean      @default(false) @map("has_dental_plan")
-  hasLifeInsurance     Boolean      @default(false) @map("has_life_insurance")
-  registrationStatus   String       @default("pending_validation") @map("registration_status")
-  createdAt            DateTime     @default(now()) @map("created_at")
-  updatedAt            DateTime     @updatedAt @map("updated_at")
-  company              Company      @relation(fields: [companyId], references: [id])
-  companyUnit          CompanyUnit? @relation(fields: [companyUnitId], references: [id])
-  department           Department?  @relation(fields: [departmentId], references: [id])
-  jobPosition          JobPosition? @relation(fields: [jobPositionId], references: [id])
+  employeeRegistration String?                   @map("employee_registration")
+  workerCategoryCode   String?                   @map("worker_category_code")
+  cboCode              String?                   @map("cbo_code")
+  admissionDate        DateTime?                 @map("admission_date") @db.Date
+  employmentStatus     String                    @default("active") @map("employment_status")
+  hasMedicalPlan       Boolean                   @default(false) @map("has_medical_plan")
+  hasDentalPlan        Boolean                   @default(false) @map("has_dental_plan")
+  hasLifeInsurance     Boolean                   @default(false) @map("has_life_insurance")
+  registrationStatus   String                    @default("pending_validation") @map("registration_status")
+  createdAt            DateTime                  @default(now()) @map("created_at")
+  updatedAt            DateTime                  @updatedAt @map("updated_at")
+  company              Company                   @relation(fields: [companyId], references: [id])
+  companyUnit          CompanyUnit?              @relation(fields: [companyUnitId], references: [id])
+  department           Department?               @relation(fields: [departmentId], references: [id])
+  jobPosition          JobPosition?              @relation(fields: [jobPositionId], references: [id])
   auditEvents          AuditEvent[]
   notifications        OperationalNotification[]
+  nr01Risks            Nr01RiskInventory[]
 
   @@unique([companyId, cpf])
+  @@index([companyId, departmentId, jobPositionId])
   @@map("employees")
 }
 
 model AuditEvent {
-  id               String    @id @default(uuid()) @db.Uuid
-  scope            String
-  action           String
-  companyId        String?   @map("company_id") @db.Uuid
-  employeeId       String?   @map("employee_id") @db.Uuid
-  movementId       String?   @map("movement_id") @db.Uuid
-  actorUserId      String?   @map("actor_user_id") @db.Uuid
-  actorName        String    @map("actor_name")
-  actorRole        String    @map("actor_role")
-  summary          String
-  metadata         Json?
-  createdAt        DateTime  @default(now()) @map("created_at")
-  company          Company?  @relation(fields: [companyId], references: [id])
-  employee         Employee? @relation(fields: [employeeId], references: [id])
+  id          String    @id @default(uuid()) @db.Uuid
+  scope       String
+  action      String
+  companyId   String?   @map("company_id") @db.Uuid
+  employeeId  String?   @map("employee_id") @db.Uuid
+  movementId  String?   @map("movement_id") @db.Uuid
+  actorUserId String?   @map("actor_user_id") @db.Uuid
+  actorName   String    @map("actor_name")
+  actorRole   String    @map("actor_role")
+  summary     String
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  company     Company?  @relation(fields: [companyId], references: [id])
+  employee    Employee? @relation(fields: [employeeId], references: [id])
 
   @@index([companyId, createdAt])
   @@index([employeeId, createdAt])
@@ -183,21 +225,144 @@ model AuditEvent {
 }
 
 model OperationalNotification {
-  id           String    @id @default(uuid()) @db.Uuid
-  status       String
-  severity     String
-  type         String
-  companyId    String    @map("company_id") @db.Uuid
-  employeeId   String?   @map("employee_id") @db.Uuid
-  movementId   String?   @map("movement_id") @db.Uuid
-  title        String
-  message      String
-  createdAt    DateTime  @default(now()) @map("created_at")
-  dueAt        DateTime  @map("due_at")
-  resolvedAt   DateTime? @map("resolved_at")
-  company      Company   @relation(fields: [companyId], references: [id])
-  employee     Employee? @relation(fields: [employeeId], references: [id])
+  id         String    @id @default(uuid()) @db.Uuid
+  status     String
+  severity   String
+  type       String
+  companyId  String    @map("company_id") @db.Uuid
+  employeeId String?   @map("employee_id") @db.Uuid
+  movementId String?   @map("movement_id") @db.Uuid
+  title      String
+  message    String
+  createdAt  DateTime  @default(now()) @map("created_at")
+  dueAt      DateTime  @map("due_at")
+  resolvedAt DateTime? @map("resolved_at")
+  company    Company   @relation(fields: [companyId], references: [id])
+  employee   Employee? @relation(fields: [employeeId], references: [id])
 
   @@index([companyId, status, dueAt])
   @@map("operational_notifications")
+}
+
+model RegulatoryRiskDegree {
+  id                String            @id @default(uuid()) @db.Uuid
+  degree            Int               @unique
+  description       String
+  analysisDepth     String            @map("analysis_depth")
+  requiredRiskTypes Json              @map("required_risk_types")
+  automaticRules    Json              @map("automatic_rules")
+  reviewFrequency   String?           @map("review_frequency")
+  sourceUrl         String?           @map("source_url")
+  sourceVersion     String?           @map("source_version")
+  effectiveFrom     DateTime?         @map("effective_from") @db.Date
+  effectiveTo       DateTime?         @map("effective_to") @db.Date
+  legalReviewStatus LegalReviewStatus @default(PENDING_REVIEW) @map("legal_review_status")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  cnaes             RegulatoryCnae[]
+
+  @@map("regulatory_risk_degrees")
+}
+
+model RegulatoryCnae {
+  id                     String                @id @default(uuid()) @db.Uuid
+  code                   String                @unique
+  description            String
+  riskDegreeId           String?               @map("risk_degree_id") @db.Uuid
+  riskDegree             Int?                  @map("risk_degree")
+  activityClassification String?               @map("activity_classification")
+  obligations            Json
+  nr04Rules              Json?                 @map("nr04_rules")
+  cipaRules              Json?                 @map("cipa_rules")
+  sesmtRules             Json?                 @map("sesmt_rules")
+  technicalNotes         String?               @map("technical_notes")
+  sourceUrl              String?               @map("source_url")
+  sourceVersion          String?               @map("source_version")
+  effectiveFrom          DateTime?             @map("effective_from") @db.Date
+  effectiveTo            DateTime?             @map("effective_to") @db.Date
+  legalReviewStatus      LegalReviewStatus     @default(PENDING_REVIEW) @map("legal_review_status")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+  reviewedBy             String?               @map("reviewed_by")
+  reviewedAt             DateTime?             @map("reviewed_at")
+  riskDegreeReference    RegulatoryRiskDegree? @relation(fields: [riskDegreeId], references: [id])
+  companies              Company[]
+
+  @@index([riskDegree])
+  @@index([legalReviewStatus])
+  @@map("regulatory_cnaes")
+}
+
+model Nr01RiskInventory {
+  id              String           @id @default(uuid()) @db.Uuid
+  companyId       String           @map("company_id") @db.Uuid
+  companyUnitId   String?          @map("company_unit_id") @db.Uuid
+  departmentId    String?          @map("department_id") @db.Uuid
+  jobPositionId   String?          @map("job_position_id") @db.Uuid
+  employeeId      String?          @map("employee_id") @db.Uuid
+  gheCode         String?          @map("ghe_code")
+  riskType        Nr01RiskType     @map("risk_type")
+  agent           String
+  source          String?          @map("source")
+  exposureTime    String?          @map("exposure_time")
+  controlMeasures String?          @map("control_measures")
+  probability     Int?
+  severity        Int?
+  riskLevel       RiskLevel        @map("risk_level")
+  legalBasis      String?          @map("legal_basis")
+  assessmentDate  DateTime?        @map("assessment_date") @db.Date
+  responsibleName String?          @map("responsible_name")
+  status          RecordStatus     @default(ACTIVE)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  company         Company          @relation(fields: [companyId], references: [id])
+  companyUnit     CompanyUnit?     @relation(fields: [companyUnitId], references: [id])
+  department      Department?      @relation(fields: [departmentId], references: [id])
+  jobPosition     JobPosition?     @relation(fields: [jobPositionId], references: [id])
+  employee        Employee?        @relation(fields: [employeeId], references: [id])
+  actionPlans     Nr01ActionPlan[]
+  evidences       Nr01Evidence[]
+
+  @@index([companyId, riskType, riskLevel])
+  @@index([departmentId, jobPositionId])
+  @@map("nr01_risk_inventory")
+}
+
+model Nr01ActionPlan {
+  id              String            @id @default(uuid()) @db.Uuid
+  companyId       String            @map("company_id") @db.Uuid
+  riskId          String            @map("risk_id") @db.Uuid
+  title           String
+  description     String?
+  responsibleName String?           @map("responsible_name")
+  dueDate         DateTime?         @map("due_date") @db.Date
+  status          Nr01ActionStatus  @default(PLANNED)
+  completedAt     DateTime?         @map("completed_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  company         Company           @relation(fields: [companyId], references: [id])
+  risk            Nr01RiskInventory @relation(fields: [riskId], references: [id])
+  evidences       Nr01Evidence[]
+
+  @@index([companyId, status, dueDate])
+  @@map("nr01_action_plans")
+}
+
+model Nr01Evidence {
+  id           String             @id @default(uuid()) @db.Uuid
+  companyId    String             @map("company_id") @db.Uuid
+  riskId       String?            @map("risk_id") @db.Uuid
+  actionPlanId String?            @map("action_plan_id") @db.Uuid
+  title        String
+  description  String?
+  fileUrl      String             @map("file_url")
+  fileType     String?            @map("file_type")
+  uploadedBy   String?            @map("uploaded_by")
+  uploadedAt   DateTime           @default(now()) @map("uploaded_at")
+  company      Company            @relation(fields: [companyId], references: [id])
+  risk         Nr01RiskInventory? @relation(fields: [riskId], references: [id])
+  actionPlan   Nr01ActionPlan?    @relation(fields: [actionPlanId], references: [id])
+
+  @@index([companyId, uploadedAt])
+  @@map("nr01_evidences")
 }

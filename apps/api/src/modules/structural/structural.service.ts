@@ -80,6 +80,11 @@ const structuralAudiences = new Set<StructuralAudience>([
   "pronus_administrative",
   "pronus_clinical",
 ]);
+const clientEmployeeAudiences = new Set<StructuralAudience>([
+  "client",
+  "client_hr",
+  "client_manager",
+]);
 const validStatuses = new Set<StructuralStatus>([
   "active",
   "pending_validation",
@@ -114,6 +119,13 @@ interface AccessStorageState {
   }>;
 }
 
+interface EmployeeCatalogResolution {
+  unit?: StructuralUnit;
+  department: StructuralDepartment;
+  jobPosition: StructuralJobPosition;
+  cboCode?: string;
+}
+
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
@@ -126,6 +138,53 @@ function formatCnpj(value: string): string {
 function formatCpf(value: string): string {
   const digits = onlyDigits(value);
   return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+}
+
+function normalizeLookupText(value: string): string {
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isValidCpf(value: string): boolean {
+  const cpf = onlyDigits(value);
+
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  const calculateDigit = (length: number): number => {
+    let sum = 0;
+
+    for (let index = 0; index < length; index += 1) {
+      sum += Number(cpf[index]) * (length + 1 - index);
+    }
+
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  return calculateDigit(9) === Number(cpf[9]) && calculateDigit(10) === Number(cpf[10]);
+}
+
+function isValidCnpj(value: string): boolean {
+  const cnpj = onlyDigits(value);
+
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) {
+    return false;
+  }
+
+  const calculateDigit = (length: number): number => {
+    const factors =
+      length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const sum = factors.reduce((total, factor, index) => total + Number(cnpj[index]) * factor, 0);
+    const remainder = sum % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+
+  return calculateDigit(12) === Number(cnpj[12]) && calculateDigit(13) === Number(cnpj[13]);
 }
 
 function requireText(value: unknown, field: string): string {
@@ -247,6 +306,10 @@ function normalizeCnpj(value: unknown): string {
     throw new BadRequestException("CNPJ deve ter 14 digitos");
   }
 
+  if (!isValidCnpj(cnpj)) {
+    throw new BadRequestException("CNPJ invalido");
+  }
+
   return formatCnpj(cnpj);
 }
 
@@ -255,6 +318,10 @@ function normalizeCpf(value: unknown): string {
 
   if (cpf.length !== 11) {
     throw new BadRequestException("CPF deve ter 11 digitos");
+  }
+
+  if (!isValidCpf(cpf)) {
+    throw new BadRequestException("CPF invalido");
   }
 
   return formatCpf(cpf);
@@ -271,7 +338,25 @@ function optionalCpf(value: unknown, field: string): string | undefined {
     throw new BadRequestException(`${field} deve ter 11 digitos`);
   }
 
+  if (!isValidCpf(cpf)) {
+    throw new BadRequestException(`${field} invalido`);
+  }
+
   return formatCpf(cpf);
+}
+
+function normalizeCbo(value: unknown, field = "cboCode"): string | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const cbo = onlyDigits(requireText(value, field));
+
+  if (cbo.length !== 6) {
+    throw new BadRequestException(`${field} deve ter 6 digitos`);
+  }
+
+  return cbo.replace(/^(\d{4})(\d{2})$/, "$1-$2");
 }
 
 function optionalDigits(value: unknown, field: string, length?: number): string | undefined {
@@ -530,6 +615,22 @@ function importIssueFromError(error: unknown): { field?: string; message: string
     return { field: "cnpj", message };
   }
 
+  if (/Unidade/i.test(message)) {
+    return { field: "unidade", message };
+  }
+
+  if (/Setor/i.test(message)) {
+    return { field: "setor", message };
+  }
+
+  if (/Cargo/i.test(message)) {
+    return { field: "cargo", message };
+  }
+
+  if (/CBO/i.test(message)) {
+    return { field: "cbo", message };
+  }
+
   return { message };
 }
 
@@ -545,7 +646,7 @@ const companies: StructuralCompany[] = [
     groupName: "Grupo Demonstracao",
     tradeName: "Industria Horizonte",
     legalName: "Industria Horizonte Ltda.",
-    cnpj: "12.345.678/0001-90",
+    cnpj: "12.345.678/0001-95",
     contractStatus: "active",
     contractDueDate: "2026-12-31",
     selectedPackage: "Essencial SST + Psicossocial",
@@ -559,7 +660,7 @@ const companies: StructuralCompany[] = [
     temporaryWorkCompanyIndicator: "N",
     primaryCnae: "1091102",
     contactName: "Mariana Costa",
-    contactCpf: "111.222.333-44",
+    contactCpf: "111.222.333-96",
     contactPhone: "1133334444",
     contactMobile: "11988887777",
     contactEmail: "rh@industriahorizonte.com.br",
@@ -575,7 +676,7 @@ const companies: StructuralCompany[] = [
     groupName: "Grupo Demonstracao",
     tradeName: "Rede Norte",
     legalName: "Rede Norte Comercio S.A.",
-    cnpj: "98.765.432/0001-10",
+    cnpj: "98.765.432/0001-98",
     contractStatus: "onboarding",
     contractDueDate: "2026-10-31",
     selectedPackage: "Completo Ocupacional",
@@ -589,7 +690,7 @@ const companies: StructuralCompany[] = [
     temporaryWorkCompanyIndicator: "N",
     primaryCnae: "4711302",
     contactName: "Paulo Mendes",
-    contactCpf: "222.333.444-55",
+    contactCpf: "222.333.444-05",
     contactPhone: "1144445555",
     contactMobile: "11977776666",
     contactEmail: "rh@redenorte.com.br",
@@ -871,12 +972,17 @@ const employees: StructuralEmployee[] = [
     id: "employee-001",
     companyId: "company-pronus-demo",
     companyTradeName: "Industria Horizonte",
+    unitId: "unit-horizonte-matriz",
+    unitName: "Matriz",
+    departmentId: "department-horizonte-producao",
+    jobPositionId: "job-horizonte-operadora-maquina",
     fullName: "Ana Cristina Ramos",
     cpf: "123.456.789-09",
     birthDate: "1989-03-14",
     inclusionDate: "2026-01-05",
     department: "Producao",
     jobPosition: "Operadora de Maquina",
+    cboCode: "7842-05",
     registrationStatus: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -885,12 +991,17 @@ const employees: StructuralEmployee[] = [
     id: "employee-002",
     companyId: "company-pronus-demo",
     companyTradeName: "Industria Horizonte",
+    unitId: "unit-horizonte-matriz",
+    unitName: "Matriz",
+    departmentId: "department-horizonte-manutencao",
+    jobPositionId: "job-horizonte-tecnico-seguranca",
     fullName: "Rafael Moreira Lima",
     cpf: "987.654.321-00",
     birthDate: "1982-08-21",
     inclusionDate: "2026-01-05",
     department: "Manutencao",
     jobPosition: "Tecnico de Seguranca",
+    cboCode: "3516-05",
     registrationStatus: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -899,12 +1010,17 @@ const employees: StructuralEmployee[] = [
     id: "employee-003",
     companyId: "company-pronus-retail",
     companyTradeName: "Rede Norte",
+    unitId: "unit-rede-norte-loja-01",
+    unitName: "Loja 01",
+    departmentId: "department-rede-norte-atendimento",
+    jobPositionId: "job-rede-norte-supervisora-loja",
     fullName: "Beatriz Almeida Souza",
-    cpf: "456.789.123-44",
+    cpf: "456.789.123-64",
     birthDate: "1991-11-02",
     inclusionDate: "2026-02-12",
     department: "Atendimento",
     jobPosition: "Supervisora de Loja",
+    cboCode: "5201-10",
     registrationStatus: "active",
     createdAt: startedAt,
     updatedAt: startedAt,
@@ -1244,7 +1360,10 @@ export class StructuralService {
 
   loginClientAccess(input: ClientAccessLoginInput): ClientAccessProfile {
     const cnpj = normalizeCnpj(input.cnpj);
-    const company = companies.find((item) => onlyDigits(item.cnpj) === onlyDigits(cnpj));
+    const normalizedCnpj = normalizeCnpj(cnpj);
+    const company = companies.find(
+      (item) => onlyDigits(item.cnpj) === onlyDigits(normalizedCnpj),
+    );
 
     if (company === undefined || company.status === "inactive") {
       throw new NotFoundException("CNPJ nao encontrado na base de empresas");
@@ -1578,7 +1697,7 @@ export class StructuralService {
       throw new BadRequestException("Unidade nao pertence a empresa informada");
     }
 
-    this.ensureUniqueDepartmentName(audience, name);
+    this.ensureUniqueDepartmentName(audience, name, company?.id, unit?.id);
 
     const createdAt = now();
     const department: StructuralDepartment = {
@@ -1629,7 +1748,7 @@ export class StructuralService {
       throw new BadRequestException("Unidade nao pertence a empresa informada");
     }
 
-    this.ensureUniqueDepartmentName(audience, name, department.id);
+    this.ensureUniqueDepartmentName(audience, name, company?.id, unit?.id, department.id);
 
     if (company?.id !== previousCompany?.id) {
       if (previousCompany !== undefined) {
@@ -1699,7 +1818,7 @@ export class StructuralService {
       throw new BadRequestException("Setor nao pertence a empresa informada");
     }
 
-    this.ensureUniqueJobTitle(audience, title);
+    this.ensureUniqueJobTitle(audience, title, company?.id, department?.id);
 
     const createdAt = now();
     const jobPosition: StructuralJobPosition = {
@@ -1711,7 +1830,7 @@ export class StructuralService {
       title,
       audience,
       eSocialCode: optionalText(input.eSocialCode, "eSocialCode"),
-      cboCode: optionalText(input.cboCode, "cboCode"),
+      cboCode: normalizeCbo(input.cboCode),
       description: optionalText(input.description, "description"),
       status: "active",
       createdAt,
@@ -1728,8 +1847,12 @@ export class StructuralService {
       input.companyId === undefined
         ? jobPosition.companyId
         : optionalText(input.companyId, "companyId");
+    const requestedDepartmentId =
+      input.departmentId === undefined
+        ? jobPosition.departmentId
+        : optionalText(input.departmentId, "departmentId");
     const department =
-      input.departmentId === undefined ? undefined : this.findDepartment(input.departmentId);
+      requestedDepartmentId === undefined ? undefined : this.findDepartment(requestedDepartmentId);
     const company =
       requestedCompanyId === undefined
         ? department?.companyId === undefined
@@ -1749,7 +1872,7 @@ export class StructuralService {
       throw new BadRequestException("Setor nao pertence a empresa informada");
     }
 
-    this.ensureUniqueJobTitle(audience, title, id);
+    this.ensureUniqueJobTitle(audience, title, company?.id, department?.id, id);
 
     jobPosition.companyId = company?.id;
     jobPosition.companyTradeName = company?.tradeName;
@@ -1759,12 +1882,14 @@ export class StructuralService {
     jobPosition.audience = audience;
     jobPosition.eSocialCode =
       optionalText(input.eSocialCode, "eSocialCode") ?? jobPosition.eSocialCode;
-    jobPosition.cboCode = optionalText(input.cboCode, "cboCode") ?? jobPosition.cboCode;
+    jobPosition.cboCode =
+      input.cboCode === undefined ? jobPosition.cboCode : normalizeCbo(input.cboCode);
     jobPosition.description =
       optionalText(input.description, "description") ?? jobPosition.description;
     jobPosition.status = normalizeStatus(input.status, "status") ?? jobPosition.status;
     jobPosition.updatedAt = now();
 
+    this.syncJobPositionOnEmployees(jobPosition);
     return jobPosition;
   }
 
@@ -2035,6 +2160,7 @@ export class StructuralService {
   createEmployee(input: CreateStructuralEmployeeInput): StructuralEmployee {
     const company = this.findCompany(input.companyId);
     const cpf = normalizeCpf(input.cpf);
+    const catalog = this.resolveEmployeeCatalog(company, input);
 
     if (
       employees.some(
@@ -2050,14 +2176,18 @@ export class StructuralService {
       id: randomUUID(),
       companyId: company.id,
       companyTradeName: company.tradeName,
+      unitId: catalog.unit?.id,
+      unitName: catalog.unit?.name,
+      departmentId: catalog.department.id,
+      jobPositionId: catalog.jobPosition.id,
       fullName: requireText(input.fullName, "fullName"),
       cpf,
       birthDate: optionalText(input.birthDate, "birthDate"),
       inclusionDate: optionalText(input.inclusionDate, "inclusionDate") ?? createdAt.slice(0, 10),
       exclusionDate: optionalText(input.exclusionDate, "exclusionDate"),
-      department: requireText(input.department, "department"),
-      jobPosition: requireText(input.jobPosition, "jobPosition"),
-      cboCode: optionalText(input.cboCode, "cboCode"),
+      department: catalog.department.name,
+      jobPosition: catalog.jobPosition.title,
+      cboCode: catalog.cboCode,
       email: optionalText(input.email, "email"),
       phone: optionalText(input.phone, "phone"),
       registrationStatus: "active",
@@ -2098,6 +2228,15 @@ export class StructuralService {
     const nextStatus =
       normalizeStatus(input.registrationStatus, "registrationStatus") ??
       employee.registrationStatus;
+    const catalog = this.resolveEmployeeCatalog(company, {
+      unitId: input.unitId ?? employee.unitId,
+      unitName: input.unitName ?? employee.unitName,
+      departmentId: input.departmentId ?? employee.departmentId,
+      department: input.department ?? employee.department,
+      jobPositionId: input.jobPositionId ?? employee.jobPositionId,
+      jobPosition: input.jobPosition ?? employee.jobPosition,
+      cboCode: input.cboCode ?? employee.cboCode,
+    });
 
     if (
       cpf !== undefined &&
@@ -2138,6 +2277,10 @@ export class StructuralService {
 
     employee.companyId = company.id;
     employee.companyTradeName = company.tradeName;
+    employee.unitId = catalog.unit?.id;
+    employee.unitName = catalog.unit?.name;
+    employee.departmentId = catalog.department.id;
+    employee.jobPositionId = catalog.jobPosition.id;
     employee.fullName = optionalText(input.fullName, "fullName") ?? employee.fullName;
     employee.cpf = cpf ?? employee.cpf;
     employee.birthDate = optionalText(input.birthDate, "birthDate") ?? employee.birthDate;
@@ -2145,9 +2288,9 @@ export class StructuralService {
       optionalText(input.inclusionDate, "inclusionDate") ?? employee.inclusionDate;
     employee.exclusionDate =
       optionalText(input.exclusionDate, "exclusionDate") ?? employee.exclusionDate;
-    employee.department = optionalText(input.department, "department") ?? employee.department;
-    employee.jobPosition = optionalText(input.jobPosition, "jobPosition") ?? employee.jobPosition;
-    employee.cboCode = optionalText(input.cboCode, "cboCode") ?? employee.cboCode;
+    employee.department = catalog.department.name;
+    employee.jobPosition = catalog.jobPosition.title;
+    employee.cboCode = catalog.cboCode;
     employee.email = optionalText(input.email, "email") ?? employee.email;
     employee.phone = optionalText(input.phone, "phone") ?? employee.phone;
     employee.registrationStatus = nextStatus;
@@ -2251,14 +2394,13 @@ export class StructuralService {
     divergence.updatedAt = now();
 
     if (status === "approved") {
-      const employee = this.findEmployee(divergence.employeeId);
+      const updateInput: UpdateStructuralEmployeeInput = { registrationStatus: "active" };
 
       for (const change of divergence.changes) {
-        employee[change.field] = change.submittedValue;
+        updateInput[change.field] = change.submittedValue;
       }
 
-      employee.registrationStatus = "active";
-      employee.updatedAt = divergence.updatedAt;
+      this.updateEmployee(divergence.employeeId, updateInput);
     }
 
     if (status === "rejected") {
@@ -2276,6 +2418,7 @@ export class StructuralService {
     const createdEmployees: StructuralEmployee[] = [];
     const skipped: StructuralEmployeeImportIssue[] = [];
     const errors: StructuralEmployeeImportIssue[] = [];
+    const seenCpfByCompany = new Set<string>();
 
     for (const { rowNumber, row } of rows) {
       try {
@@ -2285,6 +2428,21 @@ export class StructuralService {
           "nome",
         );
         const cpf = normalizeCpf(pickRowValue(row, ["cpf"]));
+        const duplicateKey = `${company.id}:${onlyDigits(cpf)}`;
+
+        if (seenCpfByCompany.has(duplicateKey)) {
+          errors.push({
+            field: "cpf",
+            rowNumber,
+            row,
+            message: "CPF duplicado na planilha para esta empresa",
+          });
+          continue;
+        }
+
+        seenCpfByCompany.add(duplicateKey);
+
+        const unitName = pickRowValue(row, ["unidade", "unit", "filial"]);
         const department = requireText(
           pickRowValue(row, ["setor", "department", "departamento"]),
           "setor",
@@ -2293,6 +2451,12 @@ export class StructuralService {
           pickRowValue(row, ["cargo", "jobposition", "funcao"]),
           "cargo",
         );
+        const catalog = this.resolveEmployeeCatalog(company, {
+          unitName,
+          department,
+          jobPosition,
+          cboCode: pickRowValue(row, ["cbo", "codigocbo", "cbocode"]),
+        });
 
         if (
           employees.some(
@@ -2312,13 +2476,16 @@ export class StructuralService {
         if (!dryRun) {
           const employee = this.createEmployee({
             companyId: company.id,
+            unitId: catalog.unit?.id,
+            departmentId: catalog.department.id,
+            jobPositionId: catalog.jobPosition.id,
             fullName,
             cpf,
             birthDate: pickRowValue(row, ["datanascimento", "nascimento", "birthdate"]),
             inclusionDate: pickRowValue(row, ["datainclusao", "admissao", "inclusiondate"]),
-            department,
-            jobPosition,
-            cboCode: pickRowValue(row, ["cbo", "codigocbo", "cbocode"]),
+            department: catalog.department.name,
+            jobPosition: catalog.jobPosition.title,
+            cboCode: catalog.cboCode,
             email: pickRowValue(row, ["email", "emailcorporativo"]),
             phone: pickRowValue(row, ["telefone", "phone", "whatsapp", "celular"]),
           });
@@ -2449,6 +2616,175 @@ export class StructuralService {
     }
 
     return company;
+  }
+
+  private resolveUnitCatalog(
+    company: StructuralCompany,
+    input: { unitId?: string; unitName?: string },
+  ): StructuralUnit | undefined {
+    const requestedUnitId = optionalText(input.unitId, "unitId");
+    const requestedUnitName = optionalText(input.unitName, "unitName");
+
+    if (requestedUnitId === undefined && requestedUnitName === undefined) {
+      return undefined;
+    }
+
+    const requested = requestedUnitId ?? requestedUnitName;
+    const normalizedRequested = normalizeLookupText(requested ?? "");
+    const unit = units.find(
+      (item) =>
+        item.companyId === company.id &&
+        item.status !== "inactive" &&
+        (item.id === requestedUnitId ||
+          normalizeLookupText(item.name) === normalizedRequested ||
+          normalizeLookupText(item.code ?? "") === normalizedRequested),
+    );
+
+    if (unit === undefined) {
+      throw new NotFoundException("Unidade nao encontrada no catalogo da empresa");
+    }
+
+    return unit;
+  }
+
+  private resolveDepartmentCatalog(
+    company: StructuralCompany,
+    input: { departmentId?: string; department?: string },
+    unit?: StructuralUnit,
+  ): StructuralDepartment {
+    const requestedDepartmentId = optionalText(input.departmentId, "departmentId");
+    const requestedDepartmentName = optionalText(input.department, "department");
+
+    if (requestedDepartmentId === undefined && requestedDepartmentName === undefined) {
+      throw new BadRequestException("Campo obrigatorio invalido: department");
+    }
+
+    const requested = requestedDepartmentId ?? requestedDepartmentName ?? "";
+    const normalizedRequested = normalizeLookupText(requested);
+    const candidates = departments.filter(
+      (department) =>
+        department.companyId === company.id &&
+        department.status !== "inactive" &&
+        clientEmployeeAudiences.has(department.audience) &&
+        (unit === undefined || department.unitId === unit.id) &&
+        (department.id === requestedDepartmentId ||
+          normalizeLookupText(department.name) === normalizedRequested ||
+          normalizeLookupText(department.code ?? "") === normalizedRequested),
+    );
+
+    if (candidates.length === 0) {
+      throw new NotFoundException("Setor nao encontrado no catalogo da empresa");
+    }
+
+    if (candidates.length > 1) {
+      throw new BadRequestException("Setor ambiguo; informe a unidade ou o ID do setor");
+    }
+
+    const department = candidates[0];
+
+    if (department === undefined) {
+      throw new NotFoundException("Setor nao encontrado no catalogo da empresa");
+    }
+
+    return department;
+  }
+
+  private resolveJobPositionCatalog(
+    company: StructuralCompany,
+    department: StructuralDepartment,
+    input: { jobPositionId?: string; jobPosition?: string; cboCode?: string },
+  ): StructuralJobPosition {
+    const requestedJobId = optionalText(input.jobPositionId, "jobPositionId");
+    const requestedJobTitle = optionalText(input.jobPosition, "jobPosition");
+    const requestedCbo = normalizeCbo(input.cboCode);
+
+    if (
+      requestedJobId === undefined &&
+      requestedJobTitle === undefined &&
+      requestedCbo === undefined
+    ) {
+      throw new BadRequestException("Campo obrigatorio invalido: jobPosition");
+    }
+
+    const requested = requestedJobId ?? requestedJobTitle ?? "";
+    const normalizedRequested = normalizeLookupText(requested);
+    const candidates = jobPositions.filter(
+      (jobPosition) =>
+        jobPosition.companyId === company.id &&
+        jobPosition.departmentId === department.id &&
+        jobPosition.status !== "inactive" &&
+        clientEmployeeAudiences.has(jobPosition.audience) &&
+        (jobPosition.id === requestedJobId ||
+          normalizeLookupText(jobPosition.title) === normalizedRequested ||
+          normalizeLookupText(jobPosition.eSocialCode ?? "") === normalizedRequested ||
+          (requestedJobId === undefined &&
+            requestedJobTitle === undefined &&
+            requestedCbo !== undefined &&
+            onlyDigits(jobPosition.cboCode ?? "") === onlyDigits(requestedCbo))),
+    );
+
+    if (candidates.length === 0) {
+      throw new NotFoundException("Cargo nao encontrado no catalogo do setor");
+    }
+
+    if (candidates.length > 1) {
+      throw new BadRequestException("Cargo ambiguo; informe o ID ou codigo eSocial do cargo");
+    }
+
+    const jobPosition = candidates[0];
+
+    if (jobPosition === undefined) {
+      throw new NotFoundException("Cargo nao encontrado no catalogo do setor");
+    }
+
+    if (
+      requestedCbo !== undefined &&
+      jobPosition.cboCode !== undefined &&
+      onlyDigits(jobPosition.cboCode) !== onlyDigits(requestedCbo)
+    ) {
+      throw new BadRequestException("CBO informado nao confere com o cargo cadastrado");
+    }
+
+    return jobPosition;
+  }
+
+  private resolveEmployeeCatalog(
+    company: StructuralCompany,
+    input: {
+      unitId?: string;
+      unitName?: string;
+      departmentId?: string;
+      department?: string;
+      jobPositionId?: string;
+      jobPosition?: string;
+      cboCode?: string;
+    },
+  ): EmployeeCatalogResolution {
+    const explicitUnit = this.resolveUnitCatalog(company, input);
+    const department = this.resolveDepartmentCatalog(company, input, explicitUnit);
+
+    if (
+      explicitUnit !== undefined &&
+      department.unitId !== undefined &&
+      department.unitId !== explicitUnit.id
+    ) {
+      throw new BadRequestException("Setor nao pertence a unidade informada");
+    }
+
+    const unit =
+      explicitUnit ??
+      (department.unitId === undefined
+        ? undefined
+        : units.find((item) => item.id === department.unitId && item.status !== "inactive"));
+    const jobPosition = this.resolveJobPositionCatalog(company, department, input);
+    const requestedCbo = normalizeCbo(input.cboCode);
+
+    return {
+      unit,
+      department,
+      jobPosition,
+      cboCode: requestedCbo ?? jobPosition.cboCode,
+    };
   }
 
   private findUnit(id: string): StructuralUnit {
@@ -2649,12 +2985,12 @@ export class StructuralService {
   }
 
   private ensureUniqueUnitName(companyId: string, name: string, currentId?: string): void {
-    const normalizedName = name.toLowerCase();
+    const normalizedName = normalizeLookupText(name);
     const duplicated = units.some(
       (unit) =>
         unit.id !== currentId &&
         unit.companyId === companyId &&
-        unit.name.toLowerCase() === normalizedName,
+        normalizeLookupText(unit.name) === normalizedName,
     );
 
     if (duplicated) {
@@ -2665,36 +3001,44 @@ export class StructuralService {
   private ensureUniqueDepartmentName(
     audience: StructuralAudience,
     name: string,
+    companyId?: string,
+    unitId?: string,
     currentId?: string,
   ): void {
-    const normalizedName = name.toLowerCase();
+    const normalizedName = normalizeLookupText(name);
     const duplicated = departments.some(
       (department) =>
         department.id !== currentId &&
         department.audience === audience &&
-        department.name.toLowerCase() === normalizedName,
+        department.companyId === companyId &&
+        department.unitId === unitId &&
+        normalizeLookupText(department.name) === normalizedName,
     );
 
     if (duplicated) {
-      throw new ConflictException("Ja existe setor com este nome neste perfil");
+      throw new ConflictException("Ja existe setor com este nome neste escopo");
     }
   }
 
   private ensureUniqueJobTitle(
     audience: StructuralAudience,
     title: string,
+    companyId?: string,
+    departmentId?: string,
     currentId?: string,
   ): void {
-    const normalizedTitle = title.toLowerCase();
+    const normalizedTitle = normalizeLookupText(title);
     const duplicated = jobPositions.some(
       (jobPosition) =>
         jobPosition.id !== currentId &&
         jobPosition.audience === audience &&
-        jobPosition.title.toLowerCase() === normalizedTitle,
+        jobPosition.companyId === companyId &&
+        jobPosition.departmentId === departmentId &&
+        normalizeLookupText(jobPosition.title) === normalizedTitle,
     );
 
     if (duplicated) {
-      throw new ConflictException("Ja existe cargo com este titulo neste perfil");
+      throw new ConflictException("Ja existe cargo com este titulo neste escopo");
     }
   }
 
@@ -2736,12 +3080,33 @@ export class StructuralService {
         department.unitName = unit.name;
       }
     }
+
+    for (const employee of employees) {
+      if (employee.unitId === unit.id) {
+        employee.unitName = unit.name;
+      }
+    }
   }
 
   private syncDepartmentNameOnJobPositions(department: StructuralDepartment): void {
     for (const jobPosition of jobPositions) {
       if (jobPosition.departmentId === department.id) {
         jobPosition.departmentName = department.name;
+      }
+    }
+
+    for (const employee of employees) {
+      if (employee.departmentId === department.id) {
+        employee.department = department.name;
+      }
+    }
+  }
+
+  private syncJobPositionOnEmployees(jobPosition: StructuralJobPosition): void {
+    for (const employee of employees) {
+      if (employee.jobPositionId === jobPosition.id) {
+        employee.jobPosition = jobPosition.title;
+        employee.cboCode = jobPosition.cboCode ?? employee.cboCode;
       }
     }
   }

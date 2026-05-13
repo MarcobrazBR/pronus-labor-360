@@ -22,7 +22,7 @@ Este documento concentra os acessos demonstrativos usados no ambiente local de d
 | Portal PRONUS Operacoes | Administrativo PRONUS      | `456.789.123-88`     | `456789`     |
 | Portal PRONUS Operacoes | Corpo Clinico PRONUS       | `654.987.321-11`     | `654987`     |
 | Portal PRONUS Operacoes | Corpo Clinico PRONUS       | `789.123.456-22`     | `789123`     |
-| Portal RH Cliente       | Industria Horizonte        | `12.345.678/0001-90` | `123456`     |
+| Portal RH Cliente       | Industria Horizonte        | `12.345.678/0001-95` | `123456`     |
 | Portal Colaborador      | Rafael Moreira Lima        | `987.654.321-00`     | `987654`     |
 | Portal Profissional     | Carlos Henrique Nunes      | `654.987.321-11`     | `654987`     |
 | Portal Profissional     | Larissa Moreira            | `789.123.456-22`     | `789123`     |

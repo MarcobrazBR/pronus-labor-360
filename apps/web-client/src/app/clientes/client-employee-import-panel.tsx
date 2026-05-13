@@ -23,7 +23,7 @@ interface ImportResult {
 }
 
 function buildTemplate(company: StructuralCompany) {
-  return `cnpj;nome;cpf;setor;cargo;cbo;email;telefone;data_nascimento;data_inclusao\n${company.cnpj};Maria Silva;12345678909;Producao;Operadora de Maquina;7842-05;nome@empresa.com;11999990000;1990-02-10;2026-04-28`;
+  return `cnpj;unidade;nome;cpf;setor;cargo;cbo;email;telefone;data_nascimento;data_inclusao\n${company.cnpj};Matriz;Maria Silva;12345678909;Producao;Operadora de Maquina;7842-05;nome@empresa.com;11999990000;1990-02-10;2026-04-28`;
 }
 
 function issueLabel(issue: ImportIssue) {

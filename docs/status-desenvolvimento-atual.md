@@ -83,10 +83,11 @@ Estado encontrado:
   - `GET /documents/signatures`
   - `POST /documents/signatures`
   - `PATCH /documents/signatures/:id`
-- API estrutural agora valida campos obrigatorios, normaliza CPF/CNPJ, bloqueia duplicidades e faz inativacao logica.
+- API estrutural agora valida campos obrigatorios, CPF/CNPJ com digitos verificadores, CBO com 6 digitos, bloqueia duplicidades e faz inativacao logica.
 - API estrutural agora cobre empresa, unidade, setor, cargo e colaborador.
 - Cadastro de empresa na API estrutural agora contempla status contratual e campos preparatorios para eSocial S-1000: validade, classificacao tributaria, indicadores cadastrais e contato responsavel.
 - Importacao inicial de colaboradores via CSV adicionada, com modo `dryRun`, validacao por CNPJ ou empresa padrao, contagem de linhas validas, puladas e com erro.
+- Importacao de clientes agora valida unidade, setor, cargo e CBO contra os catalogos estruturais, informa erro por linha/campo e bloqueia CPF duplicado dentro da planilha ou ja cadastrado na empresa.
 - API psicossocial agora possui campanhas, questionario-base, envio inicial de respostas, calculo de adesao, classificacao de risco e sinais por setor com indicacao de privacidade.
 - API psicossocial agora aplica pontuacao reversa nas perguntas positivas antes de classificar o nivel de risco.
 - Portal PRONUS evoluido de placeholder para painel operacional inicial.
@@ -129,6 +130,7 @@ Estado encontrado:
 - Portal PRONUS agora possui o modulo `/configuracoes`, com abas de CNAE, Grau de risco, Checklist tecnico, Estruturas e Operacional.
 - Modulo Configuracoes centraliza a base logica de cargos, setores, feriados, agenda, tabelas auxiliares e parametros reguladores usados pelo restante do MVP.
 - Cadastro de empresa em Busca Empresa agora reconhece CNAE parametrizado e mostra grau de risco, classificacao de atividade e obrigacoes legais vinculadas antes de salvar o cadastro.
+- Schema Prisma preparado para Supabase com vinculos estruturais entre empresa, unidade, setor, cargo/CBO e colaborador, alem de tabelas-base para CNAE, grau de risco com status de revisao tecnico-juridica, inventario NR-01, planos de acao e evidencias.
 - Portal PRONUS agora exibe painel inicial psicossocial com campanhas, adesao media, amostra minima, sinais por setor, recomendacoes e governanca de privacidade.
 - Portal Colaborador agora possui consulta por CPF, conferencia cadastral, envio de divergencia e questionario psicossocial vinculado a campanha ativa da empresa.
 - Portal RH Cliente agora mostra divergencias cadastrais pendentes/agregadas.

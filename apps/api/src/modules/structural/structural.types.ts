@@ -49,6 +49,10 @@ export interface StructuralEmployee {
   id: string;
   companyId: string;
   companyTradeName: string;
+  unitId?: string;
+  unitName?: string;
+  departmentId?: string;
+  jobPositionId?: string;
   fullName: string;
   cpf: string;
   birthDate?: string;
@@ -224,13 +228,17 @@ export type UpdateStructuralCompanyInput = Partial<
 
 export interface CreateStructuralEmployeeInput {
   companyId: string;
+  unitId?: string;
+  unitName?: string;
+  departmentId?: string;
   fullName: string;
   cpf: string;
   birthDate?: string;
   inclusionDate?: string;
   exclusionDate?: string;
-  department: string;
-  jobPosition: string;
+  department?: string;
+  jobPositionId?: string;
+  jobPosition?: string;
   cboCode?: string;
   email?: string;
   phone?: string;
@@ -240,12 +248,16 @@ export type UpdateStructuralEmployeeInput = Partial<
   Pick<
     CreateStructuralEmployeeInput,
     | "companyId"
+    | "unitId"
+    | "unitName"
+    | "departmentId"
     | "fullName"
     | "cpf"
     | "birthDate"
     | "inclusionDate"
     | "exclusionDate"
     | "department"
+    | "jobPositionId"
     | "jobPosition"
     | "cboCode"
     | "email"

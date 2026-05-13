@@ -330,7 +330,7 @@ export const campaignStatusLabels: Record<PsychosocialCampaignStatus, string> = 
 
 const fallbackCompanies: StructuralCompany[] = [
   {
-    cnpj: "12.345.678/0001-90",
+    cnpj: "12.345.678/0001-95",
     contractDueDate: "2026-12-31",
     contractStatus: "active",
     departments: 6,
@@ -344,7 +344,7 @@ const fallbackCompanies: StructuralCompany[] = [
     units: 2,
   },
   {
-    cnpj: "98.765.432/0001-10",
+    cnpj: "98.765.432/0001-98",
     contractDueDate: "2026-10-31",
     contractStatus: "onboarding",
     departments: 11,
