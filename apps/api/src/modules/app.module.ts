@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ClientAccessController } from "./client-access/client-access.controller";
+import { DatabaseModule } from "./database/database.module";
 import { DocumentsController } from "./documents/documents.controller";
 import { DocumentsService } from "./documents/documents.service";
 import { EmployeeAccessController } from "./employee-access/employee-access.controller";
@@ -15,6 +16,7 @@ import { StructuralController } from "./structural/structural.controller";
 import { StructuralService } from "./structural/structural.service";
 
 @Module({
+  imports: [DatabaseModule],
   controllers: [
     HealthController,
     StructuralController,

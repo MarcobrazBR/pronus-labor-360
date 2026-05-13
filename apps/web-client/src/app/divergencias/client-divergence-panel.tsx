@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -26,7 +27,7 @@ export function ClientDivergencePanel({
     setMessage(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(`${apiUrl}/employee-access/divergences/${id}`, {
         body: JSON.stringify({ reviewerName: "RH Cliente", status }),
         headers: { "Content-Type": "application/json" },

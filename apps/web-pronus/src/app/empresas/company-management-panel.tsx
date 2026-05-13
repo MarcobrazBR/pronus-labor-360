@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -502,7 +503,7 @@ export function CompanyManagementPanel({
 
     async function loadOperationalData() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+        const apiUrl = getPublicApiUrl();
         const [resetResponse, answersResponse] = await Promise.all([
           fetch(`${apiUrl}/client-access/password-reset-requests`),
           fetch(`${apiUrl}/psychosocial/answers`),
@@ -551,7 +552,7 @@ export function CompanyManagementPanel({
 
     async function refreshPsychosocialAnswers() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+        const apiUrl = getPublicApiUrl();
         const response = await fetch(`${apiUrl}/psychosocial/answers`);
 
         if (!response.ok) {
@@ -671,7 +672,7 @@ export function CompanyManagementPanel({
     setSuccess(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(
         editingCompany === null
           ? `${apiUrl}/structural/companies`
@@ -738,7 +739,7 @@ export function CompanyManagementPanel({
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(`${apiUrl}/structural/employees`, {
         body: JSON.stringify({
           ...employeeForm,
@@ -771,7 +772,7 @@ export function CompanyManagementPanel({
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(
         `${apiUrl}/client-access/password-reset-requests/${requestId}/resolve`,
         { method: "PATCH" },

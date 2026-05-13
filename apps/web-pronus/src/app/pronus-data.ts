@@ -1,3 +1,4 @@
+import { getPublicApiUrl } from "@pronus/config";
 import type { RiskLevel } from "@pronus/types";
 
 export type StructuralStatus = "active" | "pending_validation" | "blocked" | "inactive";
@@ -1408,7 +1409,7 @@ export const fallbackRegulatoryRiskDegrees: RegulatoryRiskDegree[] = [
 ];
 
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+  const apiUrl = getPublicApiUrl();
 
   try {
     const response = await fetch(`${apiUrl}${path}`, { cache: "no-store" });

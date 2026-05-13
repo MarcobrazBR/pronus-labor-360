@@ -1,3 +1,4 @@
+import { getPublicApiUrl } from "@pronus/config";
 export type StructuralStatus = "active" | "pending_validation" | "blocked" | "inactive";
 export type CompanyContractStatus =
   | "prospecting"
@@ -677,7 +678,7 @@ const fallbackCopsoqAnalysis: CopsoqCompanyAnalysis[] = [
 ];
 
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+  const apiUrl = getPublicApiUrl();
 
   try {
     const response = await fetch(`${apiUrl}${path}`, { cache: "no-store" });

@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
@@ -323,7 +324,7 @@ export function CompanyClientsPanel({
     setMessage(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(`${apiUrl}/structural/employees`, {
         body: JSON.stringify({
           birthDate: inclusionForm.birthDate,
@@ -376,7 +377,7 @@ export function CompanyClientsPanel({
     );
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       await fetch(`${apiUrl}/structural/notifications/${id}`, {
         body: JSON.stringify({ status: "resolved" }),
         headers: { "Content-Type": "application/json" },

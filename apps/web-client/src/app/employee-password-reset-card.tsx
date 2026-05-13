@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useEffect, useMemo, useState } from "react";
 
 interface EmployeePasswordResetRequest {
@@ -14,7 +15,7 @@ interface EmployeePasswordResetRequest {
 }
 
 function getApiUrl() {
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+  return getPublicApiUrl();
 }
 
 function dateLabel(value: string) {

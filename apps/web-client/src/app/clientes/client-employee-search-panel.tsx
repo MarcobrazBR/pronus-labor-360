@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useMemo, useState } from "react";
 import {
   dateLabel,
@@ -332,7 +333,7 @@ export function ClientEmployeeSearchPanel({
     setMessage(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
 
       if (movementForm.type === "inclusion") {
         const response = await fetch(`${apiUrl}/structural/employees`, {

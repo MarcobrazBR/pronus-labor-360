@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
@@ -133,7 +134,7 @@ export function DepartmentManagementPanel({
     setSuccess(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(`${apiUrl}/structural/departments`, {
         body: JSON.stringify(form),
         headers: { "Content-Type": "application/json" },

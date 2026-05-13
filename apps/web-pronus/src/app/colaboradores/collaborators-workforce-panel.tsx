@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useEffect, useMemo, useState } from "react";
 import {
   structuralAudienceLabels,
@@ -525,7 +526,7 @@ export function CollaboratorsWorkforcePanel({
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(`${apiUrl}/pronus-access/users/${person.id}/reset-password`, {
         method: "PATCH",
       });

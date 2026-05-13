@@ -384,3 +384,12 @@ Estado encontrado:
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-copsoq-eixos-2026-05-11.md`.
 - Typecheck completo do monorepo passou apos a inclusao da matriz COPSOQ.
 - Build completo do monorepo passou apos a inclusao da matriz COPSOQ.
+- `@pronus/config` passou a centralizar a URL publica da API, origens permitidas locais, fallback demonstrativo e topologia AWS + Supabase.
+- Os quatro portais deixaram de depender de `localhost:3333` espalhado no codigo e agora consomem `getPublicApiUrl()`, preparando deploy separado dos frontends na AWS.
+- API ganhou `DatabaseService`, preparado para ativar Prisma/Supabase quando `DATABASE_URL` estiver configurado e seguir em modo demonstrativo quando nao houver banco real.
+- `GET /health` agora informa o modo de banco (`demo` ou `supabase-postgres`) e o status de conexao da API.
+- `.env.example` foi reorganizado separando variaveis publicas dos portais e segredos privados do backend.
+- Documentada a separacao backend/frontend em `docs/separacao-backend-frontend-aws-supabase.md`.
+- Typecheck completo do monorepo passou apos a separacao inicial backend/frontend.
+- Build completo do monorepo passou apos a separacao inicial backend/frontend.
+- Teste do artefato compilado da API confirmou `GET /health` retornando modo `demo` quando `DATABASE_URL` ainda nao esta configurado.

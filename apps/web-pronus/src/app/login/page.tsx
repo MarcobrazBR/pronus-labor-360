@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useState } from "react";
 
 interface PronusLoginResult {
@@ -22,7 +23,7 @@ interface PronusLoginResult {
 }
 
 function getApiUrl() {
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+  return getPublicApiUrl();
 }
 
 function responseMessage(payload: unknown, fallback: string) {

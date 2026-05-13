@@ -1,3 +1,4 @@
+import { getPublicApiUrl } from "@pronus/config";
 export type PronusAccessProfile = {
   id: string;
   fullName: string;
@@ -36,7 +37,7 @@ const licenseByUserId: Record<string, string> = {
 };
 
 export function getApiUrl() {
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+  return getPublicApiUrl();
 }
 
 export function responseMessage(payload: unknown, fallback: string) {

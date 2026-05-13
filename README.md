@@ -166,6 +166,7 @@ Ja existe:
 - Portal Profissional de Saude com login por CPF, troca obrigatoria de senha, agenda do dia, videochamada demonstrativa, controles por icones, resumo GPT demonstrativo do prontuario, leitura em audio, transcricao para anamnese e finalizacao que alimenta o pagamento profissional;
 - Portal Profissional de Saude com barra superior de modulos para Atendimento, Meu financeiro e Prontuario Integrado;
 - Prontuario Integrado demonstrativo com busca sob demanda por CPF, nome e empresa, risco psicossocial apenas como dado exibido, camadas ocupacional/assistencial/gestao, timeline unica, filtros, sigilo, anexos, conduta, proximo passo e status;
+- separacao tecnica inicial entre frontends AWS, API NestJS e Supabase, com URL publica da API centralizada em `@pronus/config` e health check indicando modo demo ou Prisma/Supabase;
 - plano de deploy AWS + Supabase documentado para organizar publicacao externa dos quatro portais, Supabase PostgreSQL/Auth/Storage e API de negocio;
 - documentacao funcional e tecnica em `docs/`.
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -88,7 +89,7 @@ export function EmployeeImportPanel({
     setSuccessResult(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+      const apiUrl = getPublicApiUrl();
       const response = await fetch(`${apiUrl}/structural/employees/import`, {
         method: "POST",
         headers: {

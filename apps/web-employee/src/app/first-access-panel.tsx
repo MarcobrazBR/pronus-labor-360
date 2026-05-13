@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PsychosocialQuestionnairePanel } from "./psychosocial-questionnaire-panel";
@@ -137,7 +138,7 @@ const slotSeed = [
 ];
 
 function getApiUrl() {
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+  return getPublicApiUrl();
 }
 
 function monthKey(value: string) {

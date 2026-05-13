@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicApiUrl } from "@pronus/config";
 import { useEffect, useState } from "react";
 
 interface ClientAccessProfile {
@@ -12,7 +13,7 @@ interface ClientAccessProfile {
 const clientSessionKey = "pronus:client-session";
 
 function getApiUrl() {
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+  return getPublicApiUrl();
 }
 
 function responseMessage(payload: unknown, fallback: string) {
