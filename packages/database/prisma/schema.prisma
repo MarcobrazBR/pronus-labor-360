@@ -109,6 +109,9 @@ model Company {
   psychosocialCampaigns PsychosocialCampaign[]
   psychosocialSessions  PsychosocialQuestionnaireSession[]
   psychosocialReports   PsychosocialTechnicalReport[]
+  lgpdConsents          LgpdConsentRecord[]
+  sensitiveAccessTrail  SensitiveAccessTrail[]
+  esocialSstQueue       ESocialSstEventQueue[]
 
   @@map("companies")
 }
@@ -207,6 +210,9 @@ model Employee {
   notifications        OperationalNotification[]
   nr01Risks            Nr01RiskInventory[]
   psychosocialSessions PsychosocialQuestionnaireSession[]
+  lgpdConsents         LgpdConsentRecord[]
+  sensitiveAccessTrail SensitiveAccessTrail[]
+  esocialSstQueue      ESocialSstEventQueue[]
 
   @@unique([companyId, cpf])
   @@index([companyId, departmentId, jobPositionId])
@@ -475,4 +481,109 @@ model PsychosocialTechnicalReport {
 
   @@index([companyId, generatedAt])
   @@map("psychosocial_technical_reports")
+}
+
+model LgpdConsentRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  companyId      String?   @map("company_id") @db.Uuid
+  employeeId     String?   @map("employee_id") @db.Uuid
+  subjectType    String    @map("subject_type")
+  subjectId      String    @map("subject_id")
+  subjectName    String    @map("subject_name")
+  purpose        String
+  legalBasis     String    @map("legal_basis")
+  status         String
+  version        String
+  channel        String
+  evidenceHash   String?   @map("evidence_hash")
+  grantedAt      DateTime? @map("granted_at")
+  revokedAt      DateTime? @map("revoked_at")
+  retentionUntil DateTime? @map("retention_until") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  company        Company?  @relation(fields: [companyId], references: [id])
+  employee       Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([companyId, purpose, status])
+  @@index([employeeId, purpose])
+  @@map("lgpd_consent_records")
+}
+
+model LgpdRetentionPolicy {
+  id                    String   @id @default(uuid()) @db.Uuid
+  dataDomain            String   @map("data_domain")
+  legalBasis            String   @map("legal_basis")
+  retentionPeriodMonths Int      @map("retention_period_months")
+  deletionAction        String   @map("deletion_action")
+  reviewFrequency       String   @map("review_frequency")
+  ownerRole             String   @map("owner_role")
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@index([active, dataDomain])
+  @@map("lgpd_retention_policies")
+}
+
+model AttachmentSecurityPolicy {
+  id                 String   @id @default(uuid()) @db.Uuid
+  bucketName         String   @unique @map("bucket_name")
+  dataClass          String   @map("data_class")
+  allowedMimeTypes   Json     @map("allowed_mime_types")
+  maxSizeMb          Int      @map("max_size_mb")
+  encryptionRequired Boolean  @default(true) @map("encryption_required")
+  signedUrlMinutes   Int      @map("signed_url_minutes")
+  retentionPolicyId  String?  @map("retention_policy_id") @db.Uuid
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([dataClass, active])
+  @@map("attachment_security_policies")
+}
+
+model SensitiveAccessTrail {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String?   @map("company_id") @db.Uuid
+  employeeId    String?   @map("employee_id") @db.Uuid
+  actorUserId   String?   @map("actor_user_id") @db.Uuid
+  actorName     String    @map("actor_name")
+  actorRole     String    @map("actor_role")
+  dataDomain    String    @map("data_domain")
+  action        String
+  decision      String
+  purpose       String
+  reason        String?
+  ipHash        String?   @map("ip_hash")
+  userAgentHash String?   @map("user_agent_hash")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  company       Company?  @relation(fields: [companyId], references: [id])
+  employee      Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([companyId, dataDomain, createdAt])
+  @@index([employeeId, dataDomain, createdAt])
+  @@map("sensitive_access_trail")
+}
+
+model ESocialSstEventQueue {
+  id                      String    @id @default(uuid()) @db.Uuid
+  companyId               String    @map("company_id") @db.Uuid
+  employeeId              String?   @map("employee_id") @db.Uuid
+  eventType               String    @map("event_type")
+  sourceModule            String    @map("source_module")
+  sourceReferenceId       String?   @map("source_reference_id")
+  status                  String
+  schemaVersion           String    @map("schema_version")
+  payloadSummary          Json      @map("payload_summary")
+  validationMessages      Json      @map("validation_messages")
+  futureSubmissionEnabled Boolean   @default(false) @map("future_submission_enabled")
+  generatedAt             DateTime  @default(now()) @map("generated_at")
+  dueAt                   DateTime? @map("due_at") @db.Date
+  lockedAt                DateTime? @map("locked_at")
+  company                 Company   @relation(fields: [companyId], references: [id])
+  employee                Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([companyId, eventType, status])
+  @@index([employeeId, eventType])
+  @@map("esocial_sst_event_queue")
 }

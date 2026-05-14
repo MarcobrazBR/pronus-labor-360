@@ -401,3 +401,8 @@ Estado encontrado:
 - Prioridade 4 iniciada pelo Portal RH Cliente: painel inicial reorganizado com base de clientes, pendencias do RH, adesao psicossocial, score operacional, proximas acoes, leitura por setor, documentos essenciais, conformidade acompanhada e pendencias SST.
 - Screenshot `portal-rh-cliente.png` atualizado para refletir o novo painel executivo do Portal RH.
 - Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-prioridade-4-portal-rh-2026-05-13.md`.
+- Prioridade 5 iniciada com base de qualidade para crescimento seguro: scripts `test` e `test:quality`, suite `node --test` para validacoes e contratos criticos, modulo API `quality`, contratos LGPD/seguranca e fila futura eSocial SST.
+- API ganhou endpoints `GET /quality/summary`, `GET /quality/automated-tests`, `GET /quality/lgpd-governance` e `GET /quality/esocial-sst-queue`.
+- Prisma schema recebeu modelos preparatorios para `LgpdConsentRecord`, `LgpdRetentionPolicy`, `AttachmentSecurityPolicy`, `SensitiveAccessTrail` e `ESocialSstEventQueue`.
+- Fila eSocial SST preparada para S-2210, S-2220, S-2240 e S-3000 com `futureSubmissionEnabled=false`, sem envio real no MVP.
+- Documentacao da Prioridade 5 registrada em `docs/prioridade-5-qualidade-lgpd-esocial.md` e avaliacao UX/Nielsen em `docs/avaliacao-ux-nielsen-prioridade-5-qualidade-lgpd-esocial-2026-05-13.md`.

@@ -17,6 +17,8 @@
     "dev:api": "pnpm --filter @pronus/api dev",
     "build": "cross-env NEXT_TELEMETRY_DISABLED=1 pnpm -r --workspace-concurrency=1 build",
     "lint": "pnpm -r lint",
+    "test": "node --no-warnings --test \"tests/**/*.test.mjs\"",
+    "test:quality": "node --no-warnings --test \"tests/quality/*.test.mjs\"",
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
     "db:generate": "pnpm --filter @pronus/database db:generate",
