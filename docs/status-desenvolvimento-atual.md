@@ -398,3 +398,6 @@ Estado encontrado:
 - Typecheck completo do monorepo passou apos a separacao inicial backend/frontend.
 - Build completo do monorepo passou apos a separacao inicial backend/frontend.
 - Teste do artefato compilado da API confirmou `GET /health` retornando modo `demo` quando `DATABASE_URL` ainda nao esta configurado.
+- Prioridade 4 iniciada pelo Portal RH Cliente: painel inicial reorganizado com base de clientes, pendencias do RH, adesao psicossocial, score operacional, proximas acoes, leitura por setor, documentos essenciais, conformidade acompanhada e pendencias SST.
+- Screenshot `portal-rh-cliente.png` atualizado para refletir o novo painel executivo do Portal RH.
+- Avaliacao UX pelas Heuristicas de Usabilidade de Jakob Nielsen registrada em `docs/avaliacao-ux-nielsen-prioridade-4-portal-rh-2026-05-13.md`.
